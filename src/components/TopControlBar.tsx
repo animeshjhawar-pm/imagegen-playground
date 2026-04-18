@@ -1,0 +1,118 @@
+"use client";
+
+import { usePlayground } from "@/context/PlaygroundContext";
+import {
+  IMAGE_TYPES_BY_PAGE,
+  IMAGE_TYPE_LABELS,
+  type PageType,
+  type ImageType,
+} from "@/config/pipelines";
+
+const PAGE_TYPE_OPTIONS: { value: PageType; label: string }[] = [
+  { value: "blog",     label: "Blog" },
+  { value: "service",  label: "Service" },
+  { value: "category", label: "Category" },
+];
+
+interface TopControlBarProps {
+  onRunAll: () => void;
+  isRunningAll: boolean;
+}
+
+export function TopControlBar({ onRunAll, isRunningAll }: TopControlBarProps) {
+  const { state, dispatch } = usePlayground();
+  const { pageType, imageType, clients } = state;
+
+  const imageTypeOptions = pageType ? IMAGE_TYPES_BY_PAGE[pageType] : [];
+  const hasSelection    = pageType !== null && imageType !== null;
+  const canAddClient    = hasSelection; // Fix 7: disabled until both selected
+
+  const selectCls = `
+    bg-neutral-900 border border-neutral-700 rounded
+    text-neutral-100 text-sm px-3 py-1.5
+    focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500
+    hover:border-violet-500/40 transition-colors cursor-pointer
+    disabled:opacity-40 disabled:cursor-not-allowed
+  `;
+
+  return (
+    <div className="border-b border-neutral-800/80 bg-neutral-900/50 px-6 py-4
+      flex flex-wrap items-center gap-3">
+
+      {/* Page Type */}
+      <div className="flex flex-col gap-1">
+        <label className="text-[10px] uppercase tracking-widest text-neutral-500">
+          Page Type
+        </label>
+        <select
+          value={pageType ?? ""}
+          onChange={(e) =>
+            dispatch({ type: "SELECT_PAGE_TYPE", pageType: e.target.value as PageType })
+          }
+          className={selectCls}
+          style={{ minWidth: "130px" }}
+        >
+          <option value="" disabled>Select…</option>
+          {PAGE_TYPE_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Image Type */}
+      <div className="flex flex-col gap-1">
+        <label
+          className={`text-[10px] uppercase tracking-widest ${
+            pageType ? "text-neutral-500" : "text-neutral-700"
+          }`}
+        >
+          Image Type
+        </label>
+        <select
+          value={imageType ?? ""}
+          onChange={(e) =>
+            dispatch({ type: "SELECT_IMAGE_TYPE", imageType: e.target.value as ImageType })
+          }
+          disabled={!pageType}
+          className={selectCls}
+          style={{ minWidth: "210px" }}
+        >
+          <option value="" disabled>
+            {pageType ? "Select image type…" : "Select page type first"}
+          </option>
+          {imageTypeOptions.map((it) => (
+            <option key={it} value={it}>{IMAGE_TYPE_LABELS[it]}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="flex-1" />
+
+      {/* Add Client — disabled until both dropdowns selected (Fix 7) */}
+      <button
+        onClick={() => dispatch({ type: "ADD_CLIENT" })}
+        disabled={!canAddClient}
+        title={canAddClient ? undefined : "Select Page Type and Image Type first"}
+        className="px-3 py-1.5 text-sm rounded
+          border border-neutral-700 bg-neutral-800
+          text-neutral-300 hover:text-neutral-100 hover:bg-neutral-700
+          disabled:opacity-40 disabled:cursor-not-allowed
+          transition-colors"
+      >
+        + Add Client
+      </button>
+
+      {/* Run All — violet primary CTA */}
+      <button
+        onClick={onRunAll}
+        disabled={!hasSelection || clients.length === 0 || isRunningAll}
+        className="px-4 py-1.5 text-sm rounded font-medium
+          bg-violet-600 text-white hover:bg-violet-500
+          disabled:opacity-40 disabled:cursor-not-allowed
+          transition-colors"
+      >
+        {isRunningAll ? "Running…" : "▶ Run All"}
+      </button>
+    </div>
+  );
+}

@@ -1,0 +1,300 @@
+"use client";
+
+import { useRef, useEffect, useState } from "react";
+import { usePlayground } from "@/context/PlaygroundContext";
+import type { PipelineDefinition, PageType, ImageType } from "@/config/pipelines";
+import type { ClientState } from "@/state/playgroundReducer";
+import { FlowRow } from "./FlowRow";
+import { CollapsibleField } from "./CollapsibleField";
+
+// ---------------------------------------------------------------------------
+// Inline SVG chevrons — no lucide-react dep
+// ---------------------------------------------------------------------------
+function ChevronDown({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+      className={className ?? "w-4 h-4"}>
+      <path fillRule="evenodd"
+        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+        clipRule="evenodd" />
+    </svg>
+  );
+}
+function ChevronRight({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+      className={className ?? "w-4 h-4"}>
+      <path fillRule="evenodd"
+        d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+        clipRule="evenodd" />
+    </svg>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+function flowStepSummary(
+  flow: ClientState["oldFlow"],
+  stepNames: string[]
+): string {
+  const done = stepNames.filter(
+    (n) => flow.stepStates[n]?.status === "completed"
+  ).length;
+  return `${done}/${stepNames.length}`;
+}
+
+// ---------------------------------------------------------------------------
+// Props
+// ---------------------------------------------------------------------------
+interface ClientGroupProps {
+  client: ClientState;
+  pipeline: PipelineDefinition;
+  pageType: PageType;
+  imageType: ImageType;
+  colSpan: number;
+  isLastAdded: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+export function ClientGroup({
+  client, pipeline, pageType, imageType, colSpan, isLastAdded,
+}: ClientGroupProps) {
+  const { dispatch } = usePlayground();
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState(client.name);
+  const headerRowRef = useRef<HTMLTableRowElement>(null);
+
+  // Fix 8: scroll into view for newly-added clients
+  useEffect(() => {
+    if (isLastAdded) {
+      headerRowRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      const t = setTimeout(() => dispatch({ type: "CLEAR_LAST_ADDED" }), 600);
+      return () => clearTimeout(t);
+    }
+  }, [isLastAdded, dispatch]);
+
+  const stepNames = pipeline.steps.map((s) => s.name);
+  const oldSummary = flowStepSummary(client.oldFlow, stepNames);
+  const newSummary = flowStepSummary(client.newFlow, stepNames);
+
+  // Fix 3: count filled context fields for the panel header badge
+  const filledCtx = pipeline.clientContextFields.filter(
+    (f) => (client.context[f.name] ?? "").trim() !== ""
+  ).length;
+  const totalCtx = pipeline.clientContextFields.length;
+
+  function commitName() {
+    dispatch({ type: "UPDATE_CLIENT_NAME", clientId: client.id, name: nameDraft });
+    setEditingName(false);
+  }
+
+  // ── Chevron A: client header row ─────────────────────────────────────────
+  return (
+    <>
+      <tr
+        ref={headerRowRef}
+        className="border-b border-neutral-800 bg-neutral-900/60 sticky top-[41px] z-[5]"
+      >
+        <td colSpan={colSpan} className="px-5 py-4">
+          <div className="flex items-center gap-0">
+            {/* Chevron A — collapses entire client group */}
+            <button
+              onClick={() => dispatch({ type: "TOGGLE_CLIENT_COLLAPSE", clientId: client.id })}
+              className="w-5 h-5 flex items-center justify-center mr-3 rounded
+                text-neutral-400 hover:text-neutral-100 hover:bg-neutral-800 transition-colors flex-shrink-0"
+              title={client.isCollapsed ? "Expand client" : "Collapse client"}
+            >
+              {client.isCollapsed
+                ? <ChevronRight className="w-4 h-4" />
+                : <ChevronDown  className="w-4 h-4" />}
+            </button>
+
+            {/* Client name — click to edit inline */}
+            {editingName ? (
+              <input
+                autoFocus
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                onBlur={commitName}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") commitName();
+                  if (e.key === "Escape") { setNameDraft(client.name); setEditingName(false); }
+                }}
+                className="bg-transparent border-b border-violet-500 text-neutral-100
+                  text-lg font-semibold focus:outline-none px-0 py-0 min-w-[140px]"
+              />
+            ) : (
+              <button
+                onClick={() => setEditingName(true)}
+                className="group flex items-center gap-1.5 text-lg font-semibold ml-1
+                  text-neutral-100 hover:text-violet-300 transition-colors"
+                title="Click to rename"
+              >
+                {client.name}
+                {/* pencil icon — visible on hover */}
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
+                  className="w-3.5 h-3.5 text-neutral-600 group-hover:text-violet-400 transition-colors">
+                  <path d="M13.488 2.513a1.75 1.75 0 00-2.475 0L6.75 6.774a2.75 2.75 0 00-.596.892l-.79 2.107a.75.75 0 00.966.966l2.108-.79a2.75 2.75 0 00.892-.597l4.261-4.262a1.75 1.75 0 000-2.477zM3.75 11a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5z" />
+                </svg>
+              </button>
+            )}
+
+            {/* Compact status summary when collapsed */}
+            {client.isCollapsed && (
+              <span className="ml-4 text-[11px] text-neutral-500 font-mono">
+                {newSummary} steps (New) · {oldSummary} (Old)
+              </span>
+            )}
+
+            <div className="flex-1" />
+
+            {/* Remove button */}
+            <button
+              onClick={() => dispatch({ type: "REMOVE_CLIENT", clientId: client.id })}
+              className="text-xs text-neutral-500 hover:text-red-400 transition-colors ml-4"
+              title="Remove client"
+            >
+              ✕ Remove
+            </button>
+          </div>
+        </td>
+      </tr>
+
+      {/* Everything below is hidden when Chevron A collapses the group */}
+      {!client.isCollapsed && (
+        <>
+          {/* ── Chevron B: context panel ────────────────────────────────── */}
+          {/* Indented with ml-8 so it's visually nested under Chevron A */}
+          <tr className="border-b border-neutral-800/60 bg-neutral-950/60">
+            <td colSpan={colSpan} className="px-5 py-1.5">
+              <div className="ml-8">
+                <button
+                  onClick={() =>
+                    dispatch({ type: "TOGGLE_CLIENT_CONTEXT_COLLAPSE", clientId: client.id })
+                  }
+                  className="flex items-center gap-1.5 group"
+                >
+                  {/* Chevron B — smaller than Chevron A */}
+                  <span className="w-4 h-4 flex items-center justify-center flex-shrink-0
+                    text-neutral-500 group-hover:text-neutral-300 transition-colors">
+                    {client.isContextCollapsed
+                      ? <ChevronRight className="w-3.5 h-3.5" />
+                      : <ChevronDown  className="w-3.5 h-3.5" />}
+                  </span>
+                  <span className="text-xs font-medium tracking-wider uppercase text-neutral-400
+                    group-hover:text-neutral-200 transition-colors">
+                    Client Context
+                  </span>
+                  <span className="text-neutral-600 text-xs">·</span>
+                  <span className="text-[10px] text-neutral-600 font-mono">
+                    {filledCtx}/{totalCtx} filled
+                  </span>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          {/* Context fields panel */}
+          {!client.isContextCollapsed && (
+            <tr className="border-b border-neutral-800/60">
+              <td colSpan={colSpan} className="px-5 py-3 bg-neutral-950/30">
+                {/* ml-8 mirrors Chevron B indentation */}
+                <div className="ml-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {pipeline.clientContextFields.map((field) => {
+                    const val = client.context[field.name] ?? field.default ?? "";
+
+                    // Fix 3: dispatch by kind, not by name
+                    if (field.kind === "url" || field.kind === "text") {
+                      return (
+                        <div key={field.name} className="flex flex-col gap-1">
+                          <label className="text-[10px] uppercase tracking-widest text-neutral-500">
+                            {field.label}
+                            {field.required && <span className="text-red-500 ml-0.5">*</span>}
+                          </label>
+                          <input
+                            type={field.kind === "url" ? "url" : "text"}
+                            value={val}
+                            placeholder={field.kind === "url" ? "https://…" : ""}
+                            onChange={(e) =>
+                              dispatch({
+                                type: "UPDATE_CLIENT_CONTEXT",
+                                clientId: client.id,
+                                field: field.name,
+                                value: e.target.value,
+                              })
+                            }
+                            className="bg-neutral-800 border border-neutral-700 rounded
+                              text-neutral-100 text-xs px-2 py-1.5 font-mono
+                              focus:outline-none focus:ring-1 focus:ring-violet-500
+                              hover:border-violet-500/40 transition-colors"
+                          />
+                        </div>
+                      );
+                    }
+
+                    if (field.kind === "select") {
+                      return (
+                        <div key={field.name} className="flex flex-col gap-1">
+                          <label className="text-[10px] uppercase tracking-widest text-neutral-500">
+                            {field.label}
+                          </label>
+                          <select
+                            value={val}
+                            onChange={(e) =>
+                              dispatch({
+                                type: "UPDATE_CLIENT_CONTEXT",
+                                clientId: client.id,
+                                field: field.name,
+                                value: e.target.value,
+                              })
+                            }
+                            className="bg-neutral-800 border border-neutral-700 rounded
+                              text-neutral-100 text-xs px-2 py-1.5
+                              focus:outline-none focus:ring-1 focus:ring-violet-500"
+                          >
+                            {field.options?.map((o) => (
+                              <option key={o} value={o}>{o}</option>
+                            ))}
+                          </select>
+                        </div>
+                      );
+                    }
+
+                    // kind === 'textarea' | 'json' → CollapsibleField
+                    return (
+                      <CollapsibleField
+                        key={field.name}
+                        label={`${field.label}${field.required ? " *" : " (opt)"}`}
+                        value={val}
+                        readOnly={false}
+                        outputType={field.kind === "json" ? "json" : "text"}
+                        onChange={(v) =>
+                          dispatch({
+                            type: "UPDATE_CLIENT_CONTEXT",
+                            clientId: client.id,
+                            field: field.name,
+                            value: v,
+                          })
+                        }
+                        placeholder="—"
+                      />
+                    );
+                  })}
+                </div>
+              </td>
+            </tr>
+          )}
+
+          {/* Old + New flow rows */}
+          <FlowRow flowType="old" client={client} pipeline={pipeline}
+            pageType={pageType} imageType={imageType} />
+          <FlowRow flowType="new" client={client} pipeline={pipeline}
+            pageType={pageType} imageType={imageType} />
+        </>
+      )}
+    </>
+  );
+}

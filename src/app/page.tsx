@@ -1,65 +1,199 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState } from "react";
+import { PlaygroundProvider, usePlayground } from "@/context/PlaygroundContext";
+import { TopControlBar } from "@/components/TopControlBar";
+import { PipelineTable } from "@/components/PipelineTable";
+import { EmptyState } from "@/components/EmptyState";
+import { DryRunToggle } from "@/components/DryRunToggle";
+import { ConfirmRunAllModal } from "@/components/ConfirmRunAllModal";
+import { PIPELINES } from "@/config/pipelines";
+import { runStep } from "@/lib/runStep";
+import { resolveInputs } from "@/lib/resolveInputs";
+import { estimateCost } from "@/lib/costEstimates";
+
+export default function PlaygroundPage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <PlaygroundProvider>
+      <PlaygroundInner />
+    </PlaygroundProvider>
+  );
+}
+
+function PlaygroundInner() {
+  const { state, dispatch, isDryRun } = usePlayground();
+  const [isRunningAll, setIsRunningAll] = useState(false);
+  const [pendingConfirm, setPendingConfirm] = useState<{
+    stepCount: number;
+    estimatedCost: number;
+  } | null>(null);
+
+  const { pageType, imageType, clients } = state;
+  const hasSelection = pageType !== null && imageType !== null;
+
+  async function executeRunAll() {
+    if (!hasSelection || clients.length === 0 || isRunningAll) return;
+    const pipeline = PIPELINES[`${pageType}:${imageType}`];
+    if (!pipeline) return;
+
+    const pipelineKey = `${pageType}:${imageType}`;
+
+    setIsRunningAll(true);
+    try {
+      for (const client of clients) {
+        for (const flowType of ["old", "new"] as const) {
+          for (const step of pipeline.steps) {
+            const diff = flowType === "old" ? step.diffOld : step.diffNew;
+            if (diff === "skipped") continue;
+
+            const flow = flowType === "old" ? client.oldFlow : client.newFlow;
+            const stepState = flow.stepStates[step.name];
+            if (stepState?.isOutputOverride && stepState.output) continue;
+
+            dispatch({
+              type: "SET_STEP_STATUS",
+              clientId: client.id,
+              flowType,
+              stepName: step.name,
+              status: "running",
+            });
+
+            const resolved = resolveInputs(step, client, flowType);
+
+            try {
+              const result = await runStep({
+                pageType: pageType!,
+                imageType: imageType!,
+                flowType,
+                step,
+                resolvedInputs: resolved,
+                aspectRatio:
+                  step.name === "generate_image" ? pipeline.defaultAspectRatio : undefined,
+                isDryRun,
+                clientId: client.id,
+                pipelineKey,
+              });
+
+              if (result.status === "completed") {
+                dispatch({
+                  type: "SET_STEP_RUN_OUTPUT",
+                  clientId: client.id,
+                  flowType,
+                  stepName: step.name,
+                  output: result.output,
+                });
+              } else {
+                dispatch({
+                  type: "SET_STEP_ERROR",
+                  clientId: client.id,
+                  flowType,
+                  stepName: step.name,
+                  error: result.error ?? "Unknown error",
+                });
+              }
+            } catch (err) {
+              dispatch({
+                type: "SET_STEP_ERROR",
+                clientId: client.id,
+                flowType,
+                stepName: step.name,
+                error: err instanceof Error ? err.message : String(err),
+              });
+            }
+          }
+        }
+      }
+    } finally {
+      setIsRunningAll(false);
+    }
+  }
+
+  function handleRunAll() {
+    if (!hasSelection || clients.length === 0 || isRunningAll) return;
+    const pipeline = PIPELINES[`${pageType}:${imageType}`];
+    if (!pipeline) return;
+
+    // Live mode → confirm first, show step count + cost estimate
+    if (!isDryRun) {
+      let stepCount = 0;
+      let estimatedCost = 0;
+      for (const client of clients) {
+        for (const flowType of ["old", "new"] as const) {
+          for (const step of pipeline.steps) {
+            const diff = flowType === "old" ? step.diffOld : step.diffNew;
+            if (diff === "skipped") continue;
+            const flow = flowType === "old" ? client.oldFlow : client.newFlow;
+            const stepState = flow.stepStates[step.name];
+            if (stepState?.isOutputOverride && stepState.output) continue;
+            stepCount += 1;
+            estimatedCost += estimateCost(step.name);
+          }
+        }
+      }
+      setPendingConfirm({ stepCount, estimatedCost });
+      return;
+    }
+
+    void executeRunAll();
+  }
+
+  return (
+    <div className="flex flex-col h-screen overflow-hidden">
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <header className="border-b border-neutral-800 bg-neutral-950/80 backdrop-blur px-6 py-5 flex items-center justify-between flex-shrink-0">
+        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
+            className="w-6 h-6 text-violet-400 drop-shadow-[0_0_8px_rgba(139,92,246,0.6)]">
+            <path fillRule="evenodd"
+              d="M9 4.5a.75.75 0 01.721.544l.813 2.846a3.75 3.75 0 002.576 2.576l2.846.813a.75.75 0 010 1.442l-2.846.813a3.75 3.75 0 00-2.576 2.576l-.813 2.846a.75.75 0 01-1.442 0l-.813-2.846a3.75 3.75 0 00-2.576-2.576l-2.846-.813a.75.75 0 010-1.442l2.846-.813A3.75 3.75 0 007.466 7.89l.813-2.846A.75.75 0 019 4.5zM18 1.5a.75.75 0 01.728.568l.258 1.036c.236.94.97 1.674 1.91 1.91l1.036.258a.75.75 0 010 1.456l-1.036.258c-.94.236-1.674.97-1.91 1.91l-.258 1.036a.75.75 0 01-1.456 0l-.258-1.036a2.625 2.625 0 00-1.91-1.91l-1.036-.258a.75.75 0 010-1.456l1.036-.258a2.625 2.625 0 001.91-1.91l.258-1.036A.75.75 0 0118 1.5z"
+              clipRule="evenodd" />
+          </svg>
+          <span className="bg-gradient-to-r from-violet-400 to-violet-600 bg-clip-text text-transparent
+            drop-shadow-[0_0_12px_rgba(139,92,246,0.3)]">
+            ImageGen
+          </span>
+          <span className="text-white">Playground</span>
+          <span
+            title="Internal debugging tool"
+            className="ml-2 px-2 py-0.5 rounded text-[10px] font-semibold tracking-wide
+              bg-neutral-800 border border-neutral-700 text-neutral-400 uppercase"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            Internal · v0.1
+          </span>
+        </h1>
+
+        <div className="flex items-center gap-5">
+          <DryRunToggle />
+          <div className="h-6 w-px bg-neutral-800" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="https://cdn.gushwork.ai/v2/gush_new_logo.svg"
+            alt="Gushwork"
+            className="h-8 w-auto"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+          />
         </div>
+      </header>
+
+      {/* ── Control bar ────────────────────────────────────────────────────── */}
+      <TopControlBar onRunAll={handleRunAll} isRunningAll={isRunningAll} />
+
+      {/* ── Main content ───────────────────────────────────────────────────── */}
+      <main className="flex-1 overflow-auto flex flex-col">
+        {!hasSelection ? <EmptyState /> : <PipelineTable />}
       </main>
+
+      {/* ── Confirm modal (live mode only) ─────────────────────────────────── */}
+      <ConfirmRunAllModal
+        isOpen={pendingConfirm !== null}
+        stepCount={pendingConfirm?.stepCount ?? 0}
+        estimatedCost={pendingConfirm?.estimatedCost ?? 0}
+        onCancel={() => setPendingConfirm(null)}
+        onConfirm={() => {
+          setPendingConfirm(null);
+          void executeRunAll();
+        }}
+      />
     </div>
   );
 }
