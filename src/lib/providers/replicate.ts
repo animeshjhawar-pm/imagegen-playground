@@ -7,9 +7,11 @@ export interface ReplicateResult {
   image_url: string;
 }
 
-const MAX_WAIT_MS   = 120_000; // 2 minutes
-const POLL_INTERVAL = 2_000;   // 2 seconds between polls
-const MAX_RETRIES   = 3;
+// Tuned for Vercel Hobby's 60s function timeout. Leaves ~5s headroom for
+// the initial POST + retry sleep + response serialization.
+const MAX_WAIT_MS   = 50_000; // 50s polling budget
+const POLL_INTERVAL = 2_000;  // 2 seconds between polls
+const MAX_RETRIES   = 2;      // one retry on transient POST failure
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));

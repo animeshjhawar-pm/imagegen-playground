@@ -16,8 +16,9 @@ export async function scrapeClientSite(url: string): Promise<FirecrawlResult> {
     );
   }
 
+  // Capped at 55s to fit inside Vercel Hobby's 60s function limit.
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 60_000);
+  const timeout = setTimeout(() => controller.abort(), 55_000);
 
   let response: Response;
   try {

@@ -29,7 +29,11 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Deploying to Vercel
 
-This repo ships with a [`vercel.json`](vercel.json) that bumps the `/api/run-step` function timeout to **300 seconds** so Replicate's longest polls can complete. That setting **requires a Vercel Pro plan or higher** — the deploy will fail on the free/hobby tier.
+This repo is tuned to run on **Vercel Hobby (free)**: [`vercel.json`](vercel.json) sets the `/api/run-step` function timeout to the Hobby-tier maximum of **60 seconds**. All three provider calls (Firecrawl, Portkey, Replicate) have matching client-side timeouts so a single step never exceeds that budget.
+
+### Known Hobby-tier tradeoff
+
+The Replicate image generation step (`google/nano-banana-pro`) occasionally takes 45–60 seconds end-to-end. On Hobby, the function is hard-killed at 60s, so a slow generation can time out. If that happens, click **▶ Run Step** on the `generate_image` cell again — inputs are preserved and the previous steps won't re-run. Upgrade to Vercel Pro later if you need longer timeouts (change `maxDuration` in `vercel.json` to up to `300`).
 
 ### Step-by-step
 
@@ -40,9 +44,8 @@ This repo ships with a [`vercel.json`](vercel.json) that bumps the `/api/run-ste
    - `PORTKEY_API_KEY`
    - `PORTKEY_CONFIG_ID` (default: `pc-portke-0dd3de`)
    - `REPLICATE_API_TOKEN`
-4. Confirm the project is on the **Pro** plan (required for the 300s function timeout).
-5. Click **Deploy**.
-6. After the first deploy succeeds, open the deployed URL, flip **Test Run** OFF, and run one real step end-to-end to verify all four keys are wired.
+4. Click **Deploy** (no plan upgrade required).
+5. After the first deploy succeeds, open the deployed URL, flip **Test Run** OFF, and run one real step end-to-end to verify all four keys are wired.
 
 ## Reference
 

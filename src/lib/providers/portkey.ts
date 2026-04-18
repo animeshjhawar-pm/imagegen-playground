@@ -33,9 +33,10 @@ export async function callPortkey(params: {
 
   const { model, systemPrompt, userPrompt, maxTokens = 4096, metadata } = params;
 
-  // 600-second timeout per Phase 1 §5.1 (long Claude completions)
+  // Capped at 55s to fit inside Vercel Hobby's 60s function limit.
+  // Claude Sonnet at ~4K tokens typically completes in <30s.
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 600_000);
+  const timeout = setTimeout(() => controller.abort(), 55_000);
 
   let response: Response;
   try {
