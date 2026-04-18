@@ -5,7 +5,6 @@ import { usePlayground } from "@/context/PlaygroundContext";
 import type { PipelineDefinition, PageType, ImageType } from "@/config/pipelines";
 import type { ClientState } from "@/state/playgroundReducer";
 import { FlowRow } from "./FlowRow";
-import { CollapsibleField } from "./CollapsibleField";
 
 // ---------------------------------------------------------------------------
 // Inline SVG chevrons — no lucide-react dep
@@ -263,24 +262,38 @@ export function ClientGroup({
                       );
                     }
 
-                    // kind === 'textarea' | 'json' → CollapsibleField
+                    // kind === 'textarea' | 'json' → always-visible textarea
+                    const isJson = field.kind === "json";
                     return (
-                      <CollapsibleField
-                        key={field.name}
-                        label={`${field.label}${field.required ? " *" : " (opt)"}`}
-                        value={val}
-                        readOnly={false}
-                        outputType={field.kind === "json" ? "json" : "text"}
-                        onChange={(v) =>
-                          dispatch({
-                            type: "UPDATE_CLIENT_CONTEXT",
-                            clientId: client.id,
-                            field: field.name,
-                            value: v,
-                          })
-                        }
-                        placeholder="—"
-                      />
+                      <div key={field.name} className="flex flex-col gap-1">
+                        <label className="text-[10px] uppercase tracking-widest text-neutral-500">
+                          {field.label}
+                          {field.required
+                            ? <span className="text-red-500 ml-0.5">*</span>
+                            : <span className="text-neutral-600 ml-1 normal-case tracking-normal">(opt)</span>}
+                        </label>
+                        <textarea
+                          value={val}
+                          rows={isJson ? 5 : 3}
+                          placeholder={
+                            isJson
+                              ? '{\n  "primary_color": "#...",\n  ...\n}'
+                              : ""
+                          }
+                          onChange={(e) =>
+                            dispatch({
+                              type: "UPDATE_CLIENT_CONTEXT",
+                              clientId: client.id,
+                              field: field.name,
+                              value: e.target.value,
+                            })
+                          }
+                          className="bg-neutral-800 border border-neutral-700 rounded
+                            text-neutral-100 text-xs px-2 py-1.5 font-mono resize-y
+                            focus:outline-none focus:ring-1 focus:ring-violet-500
+                            hover:border-violet-500/40 transition-colors min-h-[5.25rem]"
+                        />
+                      </div>
                     );
                   })}
                 </div>

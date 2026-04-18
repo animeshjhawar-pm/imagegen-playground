@@ -25,7 +25,7 @@ export async function generateImage(params: {
   const token = process.env.REPLICATE_API_TOKEN;
   if (!token) {
     throw new Error(
-      "REPLICATE_API_TOKEN is not set. Add it to .env.local and restart the dev server."
+      "REPLICATE_API_TOKEN is not set. Local: add to .env.local and restart `npm run dev`. Vercel: add in Project Settings → Environment Variables, then redeploy."
     );
   }
 

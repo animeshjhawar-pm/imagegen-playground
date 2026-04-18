@@ -12,7 +12,7 @@ export async function scrapeClientSite(url: string): Promise<FirecrawlResult> {
   const apiKey = process.env.FIRECRAWL_API_KEY;
   if (!apiKey) {
     throw new Error(
-      "FIRECRAWL_API_KEY is not set. Add it to .env.local and restart the dev server."
+      "FIRECRAWL_API_KEY is not set. Local: add to .env.local and restart `npm run dev`. Vercel: add in Project Settings → Environment Variables, then redeploy."
     );
   }
 

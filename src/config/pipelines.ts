@@ -206,11 +206,11 @@ function makeSteps(combinationKey: string): StepDefinition[] {
       name: "generate_placeholder_description",
       title: "Generate Placeholder Description",
       description:
-        "Generates a short placeholder image description. Old flow: generic description. New flow: description enriched with graphic_token brand context.",
+        "New-flow-only helper: enriches a short image description with graphic_token brand context. Stormbreaker's production old-flow takes the description directly from Postgres page_info — the playground expects you to type it into the next step's input instead.",
       model: "claude-sonnet-4-5",
       provider: "portkey",
-      diffOld: "same_as_old",
-      diffNew: "modified",
+      diffOld: "skipped",
+      diffNew: "new",
       inputs: [
         {
           name: "business_context_token",
@@ -237,7 +237,7 @@ function makeSteps(combinationKey: string): StepDefinition[] {
       name: "build_image_prompt",
       title: "Build Image Prompt",
       description:
-        "Expands the placeholder description into a full photorealistic image generation prompt using Claude. Old flow: no brand context. New flow: BRAND IDENTITY block injected.",
+        "Mirrors stormbreaker's `generate_prompt` step — expands a short image description into a photorealistic prompt via Claude. Old flow: plain system prompt (matches production). New flow: BRAND IDENTITY block from graphic_token appended to the system prompt.",
       model: "claude-sonnet-4-6",
       provider: "portkey",
       diffOld: "same_as_old",
@@ -245,7 +245,7 @@ function makeSteps(combinationKey: string): StepDefinition[] {
       inputs: [
         {
           name: "placeholder_description",
-          label: "Placeholder Description",
+          label: "Image Description",
           source: {
             kind: "step_output",
             stepName: "generate_placeholder_description",

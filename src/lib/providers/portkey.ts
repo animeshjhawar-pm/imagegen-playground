@@ -27,7 +27,7 @@ export async function callPortkey(params: {
 
   if (!apiKey) {
     throw new Error(
-      "PORTKEY_API_KEY is not set. Add it to .env.local and restart the dev server."
+      "PORTKEY_API_KEY is not set. Local: add to .env.local and restart `npm run dev`. Vercel: add in Project Settings → Environment Variables, then redeploy."
     );
   }
 
