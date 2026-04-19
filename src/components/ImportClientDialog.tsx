@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { ImportedClientSeed } from "@/state/playgroundReducer";
+import { CLIENT_SAMPLES, getClientSampleBySlug } from "@/config/client-samples";
 
 interface ImportClientDialogProps {
   isOpen: boolean;
@@ -151,6 +152,10 @@ export function ImportClientDialog({ isOpen, onCancel, onImport }: ImportClientD
   const [brandingJson, setBrandingJson]       = useState("");
   const [seedOpen, setSeedOpen]               = useState(false);
   const [singleError, setSingleError]         = useState<string | null>(null);
+  // Advanced stormbreaker variables — populated when a Preset client is
+  // picked. Each is a stringified JSON blob that drops straight into
+  // client.context at import time.
+  const [advanced, setAdvanced] = useState<Record<string, string>>({});
 
   // CSV state
   const [csvFilename, setCsvFilename]   = useState<string>("");
@@ -161,6 +166,7 @@ export function ImportClientDialog({ isOpen, onCancel, onImport }: ImportClientD
     setName(""); setHomepage(""); setLogoUrl("");
     setBusinessContext(""); setCleanHtml(""); setBrandingJson("");
     setSeedOpen(false); setSingleError(null);
+    setAdvanced({});
     setCsvFilename(""); setCsvSeeds([]); setCsvErrors([]);
     setTab("single");
   }
@@ -180,8 +186,12 @@ export function ImportClientDialog({ isOpen, onCancel, onImport }: ImportClientD
       catch { setSingleError("Branding JSON is not valid JSON."); return; }
     }
     const context: Record<string, string> = { client_homepage_url: homepage.trim() };
-    if (logoUrl.trim())        context.company_logo_url       = logoUrl.trim();
+    if (logoUrl.trim())         context.company_logo_url       = logoUrl.trim();
     if (businessContext.trim()) context.business_context_token = businessContext.trim();
+    // Preset-filled advanced stormbreaker vars (may all be "" if nothing picked).
+    for (const [k, v] of Object.entries(advanced)) {
+      if (v && v.trim()) context[k] = v;
+    }
 
     const scrapeSeed =
       cleanHtml.trim() || brandingJson.trim()
@@ -248,6 +258,50 @@ export function ImportClientDialog({ isOpen, onCancel, onImport }: ImportClientD
         <div className="px-5 py-4 overflow-auto flex-1">
           {tab === "single" ? (
             <div className="flex flex-col gap-3">
+              {/* Preset picker — fills every field with real prod data for one of the 10 sample clients. */}
+              <div className="flex items-center gap-2 px-3 py-2 rounded border border-violet-900/50 bg-violet-950/20">
+                <label className="text-[10px] uppercase tracking-widest text-violet-300 whitespace-nowrap">
+                  Preset client
+                </label>
+                <select
+                  value=""
+                  onChange={(e) => {
+                    const sample = getClientSampleBySlug(e.target.value);
+                    if (!sample) return;
+                    setName(sample.name);
+                    setHomepage(sample.url);
+                    setLogoUrl(sample.primaryLogoUrl);
+                    // Default the short Business Context to the service topic,
+                    // falling back to category, then blog. Users typing another
+                    // topic later just overwrite it.
+                    setBusinessContext(
+                      sample.sampleServiceTopic ||
+                      sample.sampleCategoryTopic ||
+                      sample.sampleBlogTopic ||
+                      ""
+                    );
+                    setAdvanced({
+                      design_tokens_json:       sample.designTokensJson,
+                      company_info_json:        sample.companyInfoJson,
+                      paa_data_json:            sample.paaDataJson,
+                      service_catalog_json:     sample.serviceCatalogJson,
+                      product_information_json: sample.productInformationJson,
+                      blog_content_markdown:    "",
+                    });
+                    setSeedOpen(true);
+                    setSingleError(null);
+                  }}
+                  className="flex-1 bg-neutral-900 border border-neutral-700 rounded
+                    text-neutral-100 text-xs px-2 py-1.5
+                    focus:outline-none focus:ring-1 focus:ring-violet-500"
+                >
+                  <option value="">— pick one of 10 real prod clients —</option>
+                  {CLIENT_SAMPLES.map((s) => (
+                    <option key={s.slug} value={s.slug}>{s.name} · {s.url}</option>
+                  ))}
+                </select>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] uppercase tracking-widest text-neutral-500">

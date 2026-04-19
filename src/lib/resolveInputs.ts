@@ -1,6 +1,9 @@
 import type { StepDefinition, ImageType } from "@/config/pipelines";
 import type { ClientState } from "@/state/playgroundReducer";
-import { extractImageRequirementDescription } from "./parseImageRequirement";
+import {
+  extractImageRequirementDescription,
+  extractFirstPageInfoImageDescription,
+} from "./parseImageRequirement";
 
 /**
  * Resolves each input's value purely from its declared source — does NOT
@@ -42,6 +45,8 @@ export function resolveInputs(
         }
       } else if (raw && source.stepName === "generate_image_description") {
         resolved[inputDef.name] = extractImageRequirementDescription(raw, imageType);
+      } else if (raw && source.stepName === "generate_page_structure") {
+        resolved[inputDef.name] = extractFirstPageInfoImageDescription(raw);
       } else {
         resolved[inputDef.name] = raw;
       }

@@ -108,6 +108,14 @@ export interface ClientContextField {
   required: boolean;
   options?: string[];
   default?: string;
+  /**
+   * When true, the field is tucked behind an "Advanced stormbreaker inputs"
+   * disclosure so the common context panel stays readable. Used for the
+   * per-client JSON blobs (design_tokens, company_info, service_catalog,
+   * product_information, paa_data, blog_content) that are large and
+   * typically populated via the Import → Preset Client picker.
+   */
+  advanced?: boolean;
 }
 
 export interface PipelineDefinition {
@@ -146,6 +154,7 @@ export const IMAGE_TYPE_LABELS: Record<ImageType, string> = {
 // ---------------------------------------------------------------------------
 
 const SHARED_CLIENT_CONTEXT_FIELDS: ClientContextField[] = [
+  // Always-visible fields
   { name: "client_homepage_url", label: "Client Homepage URL", kind: "url", required: true },
   {
     name: "business_context_token",
@@ -155,6 +164,16 @@ const SHARED_CLIENT_CONTEXT_FIELDS: ClientContextField[] = [
   },
   { name: "company_logo_url", label: "Company Logo URL", kind: "url", required: false },
   { name: "graphic_token",    label: "Graphic Token Override (JSON)", kind: "json", required: false },
+
+  // Advanced — populated by the Import → Preset picker for each of the 10
+  // real client samples. These feed stormbreaker's SERVICE_PAGE_CONTENT_GEN /
+  // CATEGORY_PAGE_CONTENT_GEN / IMAGE_PLACEHOLDER stored prompts.
+  { name: "design_tokens_json",       label: "design_tokens (project.design_tokens)",          kind: "json",     required: false, advanced: true },
+  { name: "company_info_json",        label: "company_info (project.company_info)",            kind: "json",     required: false, advanced: true },
+  { name: "paa_data_json",            label: "paa_data (cluster.paa_data)",                    kind: "json",     required: false, advanced: true },
+  { name: "service_catalog_json",     label: "service_catalog (resources where type='service')", kind: "json",   required: false, advanced: true },
+  { name: "product_information_json", label: "product_information (resources where type='product')", kind: "json", required: false, advanced: true },
+  { name: "blog_content_markdown",    label: "blog_content (markdown with block ids, for IMAGE_PLACEHOLDER)", kind: "textarea", required: false, advanced: true },
 ];
 
 // ---------------------------------------------------------------------------
@@ -236,7 +255,7 @@ const generateBlogImagePlaceholdersStep: StepDefinition = {
   name: "generate_image_description",
   title: "Generate Image Placeholders",
   description:
-    "Calls Portkey stored prompt IMAGE_PLACEHOLDER (pp-blog-image-07032e) exactly as stormbreaker's create_image_placeholders.py handler does. Input: the blog markdown. Output: one or more <image_requirement id type alt>description</image_requirement> tags, one per image the LLM decides to place.",
+    "Calls Portkey stored prompt IMAGE_PLACEHOLDER (pp-blog-image-07032e) exactly as stormbreaker's create_image_placeholders.py handler does. Input: the blog markdown (paste it into `blog_content_markdown` under Advanced). Output: one or more <image_requirement id type alt>description</image_requirement> tags, one per image the LLM decides to place.",
   model: "claude-sonnet-4-6 (via Portkey stored prompt)",
   provider: "portkey",
   diffOld: "same_as_old",
@@ -245,18 +264,64 @@ const generateBlogImagePlaceholdersStep: StepDefinition = {
     {
       name: "blog_content",
       label: "Blog Content (markdown)",
-      source: { kind: "client_context", field: "business_context_token" },
+      source: { kind: "client_context", field: "blog_content_markdown" },
       required: true,
     },
   ],
-  // Stored-prompt mode: prompt body lives in Portkey dashboard. The step
-  // runs the exact stormbreaker production prompt for both flows by default;
-  // flip diffNew → "modified" and populate systemPromptNew / userPromptTemplate
-  // here (or via the View / Edit Prompt dialog override) to iterate.
   promptIdOld:     STORMBREAKER_PROMPTS.IMAGE_PLACEHOLDER,
   promptIdNew:     STORMBREAKER_PROMPTS.IMAGE_PLACEHOLDER,
   promptVariables: ["blog_content"],
   outputType: "text",
+};
+
+/** Service-pipeline upstream step: mirrors stormbreaker's
+ *  handlers/create_pages/create_page_structure.py for page_type='service'.
+ *  Calls SERVICE_PAGE_CONTENT_GEN (pp-service-pa-ab5621) with the same
+ *  four variables `utils/page_structure.py:get_service_prompt_params`
+ *  sends: topic, paa_data, service_catalog, company_info. Output is a
+ *  full page_info JSON — downstream Step 4 auto-extracts the first
+ *  image description via resolveInputs. */
+const generateServicePageStructureStep: StepDefinition = {
+  name: "generate_page_structure",
+  title: "Generate Service Page Structure",
+  description:
+    "Calls Portkey stored prompt SERVICE_PAGE_CONTENT_GEN (pp-service-pa-ab5621) — the same prompt stormbreaker's create_page_structure.py handler runs for service pages. Variables come from the client's Advanced context fields; `topic` is pulled from Business Context.",
+  model: "claude-sonnet-4-6 (via Portkey stored prompt)",
+  provider: "portkey",
+  diffOld: "same_as_old",
+  diffNew: "same_as_old",
+  inputs: [
+    { name: "topic",            label: "topic",            source: { kind: "client_context", field: "business_context_token" },  required: true  },
+    { name: "paa_data",         label: "paa_data",         source: { kind: "client_context", field: "paa_data_json" },           required: false },
+    { name: "service_catalog",  label: "service_catalog",  source: { kind: "client_context", field: "service_catalog_json" },    required: false },
+    { name: "company_info",     label: "company_info",     source: { kind: "client_context", field: "company_info_json" },       required: false },
+  ],
+  promptIdOld:     STORMBREAKER_PROMPTS.SERVICE_PAGE_CONTENT_GEN,
+  promptIdNew:     STORMBREAKER_PROMPTS.SERVICE_PAGE_CONTENT_GEN,
+  promptVariables: ["topic", "paa_data", "service_catalog", "company_info"],
+  outputType: "json",
+};
+
+/** Category equivalent — matches `get_category_prompt_params`. */
+const generateCategoryPageStructureStep: StepDefinition = {
+  name: "generate_page_structure",
+  title: "Generate Category Page Structure",
+  description:
+    "Calls Portkey stored prompt CATEGORY_PAGE_CONTENT_GEN (pp-category-p-ba2554) — the same prompt stormbreaker's create_page_structure.py handler runs for category pages. Variables: topic, paa_data, product_information, company_info.",
+  model: "claude-sonnet-4-6 (via Portkey stored prompt)",
+  provider: "portkey",
+  diffOld: "same_as_old",
+  diffNew: "same_as_old",
+  inputs: [
+    { name: "topic",               label: "topic",               source: { kind: "client_context", field: "business_context_token" },    required: true  },
+    { name: "paa_data",            label: "paa_data",            source: { kind: "client_context", field: "paa_data_json" },             required: false },
+    { name: "product_information", label: "product_information", source: { kind: "client_context", field: "product_information_json" }, required: false },
+    { name: "company_info",        label: "company_info",        source: { kind: "client_context", field: "company_info_json" },         required: false },
+  ],
+  promptIdOld:     STORMBREAKER_PROMPTS.CATEGORY_PAGE_CONTENT_GEN,
+  promptIdNew:     STORMBREAKER_PROMPTS.CATEGORY_PAGE_CONTENT_GEN,
+  promptVariables: ["topic", "paa_data", "product_information", "company_info"],
+  outputType: "json",
 };
 
 const generatePlaceholderDescriptionStep: StepDefinition = {
@@ -435,6 +500,28 @@ const buildImagePromptStep_LLM_blog: StepDefinition = {
   ],
 };
 
+/** Service / category variant: sources the description from the
+ *  SERVICE|CATEGORY_PAGE_CONTENT_GEN step output (resolveInputs walks
+ *  the page_info JSON and picks the first non-certification image
+ *  description). */
+const buildImagePromptStep_LLM_page: StepDefinition = {
+  ...buildImagePromptStep_LLM,
+  inputs: [
+    {
+      name: "placeholder_description",
+      label: "Image Description (from page_info.images[].description)",
+      source: { kind: "step_output", stepName: "generate_page_structure" },
+      required: true,
+    },
+    {
+      name: "graphic_token",
+      label: "Graphic Token (new flow only)",
+      source: { kind: "step_output", stepName: "extract_graphic_token" },
+      required: false,
+    },
+  ],
+};
+
 // ---------------------------------------------------------------------------
 // Pipeline composer
 // ---------------------------------------------------------------------------
@@ -517,29 +604,27 @@ export const PIPELINES: Record<string, PipelineDefinition> = {
       "Same handler as Infographic in stormbreaker (generic_images.py); differs only by the `type` attribute on the <image_requirement> tag the LLM produces in Step 3.",
   }),
 
-  // Service / Category — Pinecone path in production, LLM fallback here.
-  // TODO: wire SERVICE_PAGE_CONTENT_GEN / CATEGORY_PAGE_CONTENT_GEN stored
-  // prompts as a Step 3 upstream description source. Those prompts need four
-  // variables each (topic, paa_data, service_catalog|product_information,
-  // company_info) so they require new client-context fields to hold the JSON
-  // blobs. See utils/page_structure.py:{get_service,get_category}_prompt_params.
+  // Service pipelines — upstream SERVICE_PAGE_CONTENT_GEN now wired.
   "service:title": makePipeline({
-    step4: buildImagePromptStep_LLM,
+    step3: generateServicePageStructureStep,
+    step4: buildImagePromptStep_LLM_page,
     defaultAspectRatio: "16:9",
     alignmentNote:
-      "Stormbreaker: Pinecone search → if match, refine via amp-up prompt; if miss, SERVICE_PAGE_CONTENT_GEN produces page_info with image descriptions, then Claude 4.6 expansion + Replicate. The upstream SERVICE_PAGE_CONTENT_GEN call (prompt pp-service-pa-ab5621) is not yet wired in the playground — type the image description into Business Context for now.",
+      "Old flow: Step 3 calls SERVICE_PAGE_CONTENT_GEN (pp-service-pa-ab5621) with topic + paa_data + service_catalog + company_info — identical variables to stormbreaker's get_service_prompt_params. Import → Preset picks one of the 10 sample clients to auto-fill paa_data / service_catalog / company_info. Step 4 expands the first page_info image description via Claude 4.6. Pinecone + amp-up (service-page refinement) are not implemented — on-miss path only.",
   }),
   "service:h2": makePipeline({
-    step4: buildImagePromptStep_LLM,
+    step3: generateServicePageStructureStep,
+    step4: buildImagePromptStep_LLM_page,
     defaultAspectRatio: "4:3",
     alignmentNote:
-      "Same handler as service:title (update_images.py); the distinction only exists in the context field of the image object in page_info.",
+      "Same handler and upstream prompt as service:title (update_images.py). In stormbreaker the title vs h2 distinction only exists in each image object's `context` field within page_info.",
   }),
 
   "category:industry": makePipeline({
-    step4: buildImagePromptStep_LLM,
+    step3: generateCategoryPageStructureStep,
+    step4: buildImagePromptStep_LLM_page,
     defaultAspectRatio: "16:9",
     alignmentNote:
-      "Stormbreaker: Pinecone search → if match, upscale only (no re-generation); if miss, CATEGORY_PAGE_CONTENT_GEN produces page_info with image descriptions, then Claude 4.6 expansion + Replicate. The upstream CATEGORY_PAGE_CONTENT_GEN call (prompt pp-category-p-ba2554) is not yet wired in the playground — type the image description into Business Context for now.",
+      "Old flow: Step 3 calls CATEGORY_PAGE_CONTENT_GEN (pp-category-p-ba2554) with topic + paa_data + product_information + company_info. Step 4 expands the first page_info image description via Claude 4.6. Pinecone + upscale-on-match is not implemented — on-miss path only.",
   }),
 };

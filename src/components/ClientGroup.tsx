@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState } from "react";
 import { usePlayground } from "@/context/PlaygroundContext";
 import type { PipelineDefinition, PageType, ImageType } from "@/config/pipelines";
-import type { ClientState } from "@/state/playgroundReducer";
+import type { ClientState, PlaygroundAction } from "@/state/playgroundReducer";
 import { FlowRow } from "./FlowRow";
 
 // ---------------------------------------------------------------------------
@@ -200,103 +200,11 @@ export function ClientGroup({
           {!client.isContextCollapsed && (
             <tr className="border-b border-neutral-800/60">
               <td colSpan={colSpan} className="px-5 py-3 bg-neutral-950/30">
-                {/* ml-8 mirrors Chevron B indentation */}
-                <div className="ml-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {pipeline.clientContextFields.map((field) => {
-                    const val = client.context[field.name] ?? field.default ?? "";
-
-                    // Fix 3: dispatch by kind, not by name
-                    if (field.kind === "url" || field.kind === "text") {
-                      return (
-                        <div key={field.name} className="flex flex-col gap-1">
-                          <label className="text-[10px] uppercase tracking-widest text-neutral-500">
-                            {field.label}
-                            {field.required && <span className="text-red-500 ml-0.5">*</span>}
-                          </label>
-                          <input
-                            type={field.kind === "url" ? "url" : "text"}
-                            value={val}
-                            placeholder={field.kind === "url" ? "https://…" : ""}
-                            onChange={(e) =>
-                              dispatch({
-                                type: "UPDATE_CLIENT_CONTEXT",
-                                clientId: client.id,
-                                field: field.name,
-                                value: e.target.value,
-                              })
-                            }
-                            className="bg-neutral-800 border border-neutral-700 rounded
-                              text-neutral-100 text-xs px-2 py-1.5 font-mono
-                              focus:outline-none focus:ring-1 focus:ring-violet-500
-                              hover:border-violet-500/40 transition-colors"
-                          />
-                        </div>
-                      );
-                    }
-
-                    if (field.kind === "select") {
-                      return (
-                        <div key={field.name} className="flex flex-col gap-1">
-                          <label className="text-[10px] uppercase tracking-widest text-neutral-500">
-                            {field.label}
-                          </label>
-                          <select
-                            value={val}
-                            onChange={(e) =>
-                              dispatch({
-                                type: "UPDATE_CLIENT_CONTEXT",
-                                clientId: client.id,
-                                field: field.name,
-                                value: e.target.value,
-                              })
-                            }
-                            className="bg-neutral-800 border border-neutral-700 rounded
-                              text-neutral-100 text-xs px-2 py-1.5
-                              focus:outline-none focus:ring-1 focus:ring-violet-500"
-                          >
-                            {field.options?.map((o) => (
-                              <option key={o} value={o}>{o}</option>
-                            ))}
-                          </select>
-                        </div>
-                      );
-                    }
-
-                    // kind === 'textarea' | 'json' → always-visible textarea
-                    const isJson = field.kind === "json";
-                    return (
-                      <div key={field.name} className="flex flex-col gap-1">
-                        <label className="text-[10px] uppercase tracking-widest text-neutral-500">
-                          {field.label}
-                          {field.required
-                            ? <span className="text-red-500 ml-0.5">*</span>
-                            : <span className="text-neutral-600 ml-1 normal-case tracking-normal">(opt)</span>}
-                        </label>
-                        <textarea
-                          value={val}
-                          rows={isJson ? 5 : 3}
-                          placeholder={
-                            isJson
-                              ? '{\n  "primary_color": "#...",\n  ...\n}'
-                              : ""
-                          }
-                          onChange={(e) =>
-                            dispatch({
-                              type: "UPDATE_CLIENT_CONTEXT",
-                              clientId: client.id,
-                              field: field.name,
-                              value: e.target.value,
-                            })
-                          }
-                          className="bg-neutral-800 border border-neutral-700 rounded
-                            text-neutral-100 text-xs px-2 py-1.5 font-mono resize-y
-                            focus:outline-none focus:ring-1 focus:ring-violet-500
-                            hover:border-violet-500/40 transition-colors min-h-[5.25rem]"
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
+                <ClientContextFieldsPanel
+                  client={client}
+                  pipeline={pipeline}
+                  dispatch={dispatch}
+                />
               </td>
             </tr>
           )}
@@ -309,5 +217,147 @@ export function ClientGroup({
         </>
       )}
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Context fields panel — renders the always-visible fields in a 2-col grid
+// and tucks the advanced stormbreaker-input JSON fields behind a disclosure.
+// ---------------------------------------------------------------------------
+
+function ClientContextFieldsPanel({
+  client,
+  pipeline,
+  dispatch,
+}: {
+  client: ClientState;
+  pipeline: PipelineDefinition;
+  dispatch: React.Dispatch<PlaygroundAction>;
+}) {
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const basic    = pipeline.clientContextFields.filter((f) => !f.advanced);
+  const advanced = pipeline.clientContextFields.filter((f) =>  f.advanced);
+  const advancedFilled = advanced.filter(
+    (f) => (client.context[f.name] ?? "").trim() !== ""
+  ).length;
+
+  function renderField(field: typeof basic[number]) {
+    const val = client.context[field.name] ?? field.default ?? "";
+
+    if (field.kind === "url" || field.kind === "text") {
+      return (
+        <div key={field.name} className="flex flex-col gap-1">
+          <label className="text-[10px] uppercase tracking-widest text-neutral-500">
+            {field.label}
+            {field.required && <span className="text-red-500 ml-0.5">*</span>}
+          </label>
+          <input
+            type={field.kind === "url" ? "url" : "text"}
+            value={val}
+            placeholder={field.kind === "url" ? "https://…" : ""}
+            onChange={(e) =>
+              dispatch({
+                type: "UPDATE_CLIENT_CONTEXT",
+                clientId: client.id,
+                field: field.name,
+                value: e.target.value,
+              })
+            }
+            className="bg-neutral-800 border border-neutral-700 rounded
+              text-neutral-100 text-xs px-2 py-1.5 font-mono
+              focus:outline-none focus:ring-1 focus:ring-violet-500
+              hover:border-violet-500/40 transition-colors"
+          />
+        </div>
+      );
+    }
+
+    if (field.kind === "select") {
+      return (
+        <div key={field.name} className="flex flex-col gap-1">
+          <label className="text-[10px] uppercase tracking-widest text-neutral-500">
+            {field.label}
+          </label>
+          <select
+            value={val}
+            onChange={(e) =>
+              dispatch({
+                type: "UPDATE_CLIENT_CONTEXT",
+                clientId: client.id,
+                field: field.name,
+                value: e.target.value,
+              })
+            }
+            className="bg-neutral-800 border border-neutral-700 rounded
+              text-neutral-100 text-xs px-2 py-1.5
+              focus:outline-none focus:ring-1 focus:ring-violet-500"
+          >
+            {field.options?.map((o) => (
+              <option key={o} value={o}>{o}</option>
+            ))}
+          </select>
+        </div>
+      );
+    }
+
+    const isJson = field.kind === "json";
+    return (
+      <div key={field.name} className="flex flex-col gap-1">
+        <label className="text-[10px] uppercase tracking-widest text-neutral-500">
+          {field.label}
+          {field.required
+            ? <span className="text-red-500 ml-0.5">*</span>
+            : <span className="text-neutral-600 ml-1 normal-case tracking-normal">(opt)</span>}
+        </label>
+        <textarea
+          value={val}
+          rows={isJson ? 5 : 3}
+          placeholder={isJson ? '{\n  "primary_color": "#...",\n  ...\n}' : ""}
+          onChange={(e) =>
+            dispatch({
+              type: "UPDATE_CLIENT_CONTEXT",
+              clientId: client.id,
+              field: field.name,
+              value: e.target.value,
+            })
+          }
+          className="bg-neutral-800 border border-neutral-700 rounded
+            text-neutral-100 text-xs px-2 py-1.5 font-mono resize-y
+            focus:outline-none focus:ring-1 focus:ring-violet-500
+            hover:border-violet-500/40 transition-colors min-h-[5.25rem]"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="ml-8 flex flex-col gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {basic.map(renderField)}
+      </div>
+
+      {advanced.length > 0 && (
+        <div className="rounded border border-neutral-800/80 bg-neutral-950/40">
+          <button
+            onClick={() => setAdvancedOpen((v) => !v)}
+            className="w-full flex items-center gap-2 px-3 py-2 text-[11px] text-neutral-400 hover:text-neutral-200 transition-colors"
+          >
+            <span>{advancedOpen ? "▾" : "▸"}</span>
+            <span className="font-medium">Advanced stormbreaker inputs</span>
+            <span className="text-neutral-600 text-[10px]">
+              · design_tokens / company_info / paa_data / service_catalog / product_information / blog_content
+            </span>
+            <span className="ml-auto text-[10px] text-neutral-500 font-mono">
+              {advancedFilled}/{advanced.length} set
+            </span>
+          </button>
+          {advancedOpen && (
+            <div className="px-3 pb-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {advanced.map(renderField)}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
