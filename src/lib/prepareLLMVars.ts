@@ -1,4 +1,4 @@
-import { formatBrandLines } from "@/config/prompts";
+import { formatBrandLines } from "@/config/prompts-old-flow";
 
 /**
  * Extends the resolved input map with derived variables used by system /

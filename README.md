@@ -47,6 +47,30 @@ The Replicate image generation step (`google/nano-banana-pro`) occasionally take
 4. Click **Deploy** (no plan upgrade required).
 5. After the first deploy succeeds, open the deployed URL, flip **Test Run** OFF, and run one real step end-to-end to verify all four keys are wired.
 
+## Iterating on prompts
+
+The playground is split into two lanes:
+
+- **Old flow** — frozen baseline. Mirrors stormbreaker production byte-for-byte. View only, in the UI and in code. Changes here invalidate past comparisons.
+- **New flow** — the experimentation surface. Edit freely.
+
+Two files, one per lane:
+
+| File | Purpose |
+|---|---|
+| [`src/config/prompts-old-flow.ts`](src/config/prompts-old-flow.ts) | **Frozen.** Stormbreaker verbatim — `image_generation_system_prompt`, `amp_up_prompt_system_prompt`, user templates, brand-block helpers. |
+| [`src/config/prompts-new-flow.ts`](src/config/prompts-new-flow.ts) | **Edit here.** Step 2 graphic-token extraction, Step 3 placeholder description, Step 4 brand-identity injection. |
+
+### Workflow
+
+1. Open `prompts-new-flow.ts`, find the constant for the step you're iterating on (each has a comment listing the available `{{tokens}}`), edit, save.
+2. Next.js hot-reloads. Click **▶ Run Step** on the new-flow side of a client.
+3. Compare against the old-flow output sitting alongside.
+
+For one-off experiments without editing code: click **View / Edit Prompt** on a new-flow step → edit the prompt inline → **▶ Save & Re-run**. Those overrides are per-client and per-session (they disappear on page refresh). Code edits in `prompts-new-flow.ts` are the permanent new baseline.
+
+On an old-flow step the same button shows up as **View Prompt** and opens a read-only dialog — a deliberate guardrail so the baseline can't drift without a code change.
+
 ## Reference
 
 - Pipeline details, prompt catalog, and API integration notes: [`docs/backend-context.md`](docs/backend-context.md)

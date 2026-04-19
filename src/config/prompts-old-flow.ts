@@ -1,31 +1,27 @@
-// ---------------------------------------------------------------------------
-// Central prompt repository.
+// ═══════════════════════════════════════════════════════════════════════════
+// OLD-FLOW PROMPT REPOSITORY — FROZEN BASELINE. DO NOT EDIT LIGHTLY.
 //
-// One place to read, edit, and reference every prompt used by the playground.
-// Prompts marked "[stormbreaker verbatim]" are copied character-for-character
-// from the `gw-backend-stormbreaker` repo and should be kept in sync when
-// stormbreaker updates.
+// These prompts mirror the current production behavior of
+// `gw-backend-stormbreaker`. They are intentionally verbatim copies, with
+// file/line provenance on each constant. The whole point of the playground
+// is to compare the **new** flow against this baseline — so changes here
+// invalidate past comparisons. If stormbreaker updates, sync this file
+// accordingly and note the change in the commit message.
 //
-// Source files referenced:
-//   • prompts/image_gen.py
-//   • prompts/image_description.py
-//   • handlers/create_blog_pages/image_operations/cover_image.py
-//   • scripts/test_infographic_graphic_token.py
-// ---------------------------------------------------------------------------
-
-// ╔════════════════════════════════════════════════════════════════════════╗
-// ║ Old flow — verbatim from production stormbreaker                       ║
-// ╚════════════════════════════════════════════════════════════════════════╝
+// Shared helpers (brand-block formatting, key labels) also live here because
+// the new flow consumes them when injecting graphic_token values.
+//
+// If you're trying to iterate on a prompt, open `prompts-new-flow.ts`
+// instead — that file is the experimentation surface.
+// ═══════════════════════════════════════════════════════════════════════════
 
 /**
  * [stormbreaker verbatim]
  * prompts/image_gen.py:63-120 — `image_generation_system_prompt`
  *
  * Used by `services/replicate/replicate.py:generate_prompt()` when
- * `amp_up=False` (the normal text-to-image generation path for
- * service/category/blog-infographic/blog-generic pipelines).
- *
- * Runs on model `claude-sonnet-4-6` (constant `PROMPT_GENERATION_MODEL`).
+ * `amp_up=False` — the normal text-to-image path for service/category/
+ * blog-infographic/blog-generic pipelines. Model: `claude-sonnet-4-6`.
  */
 export const IMAGE_GENERATION_SYSTEM_PROMPT = `
 You are an expert AI Prompt Engineer specializing in creating detailed, photorealistic prompts for commercial marketing imagery. Your function is to take a single, concise business need and translate it into a rich, descriptive prompt that a generative AI model (like Midjourney or DALL-E 3) can use to create a high-quality, high-conversion image.
@@ -88,12 +84,10 @@ Your final output must be a single, ready-to-use prompt, formatted as follows:
 
 /**
  * [stormbreaker verbatim]
- * prompts/image_gen.py:1-61 — `amp_up_prompt_system_prompt`
+ * prompts/image_gen.py:1-61 — `amp_up_prompt_system_prompt`.
  *
- * Used by `generate_prompt(amp_up=True)` for the service-page refinement
- * path (upscale existing matched image → img2img transform). Not wired
- * into the playground pipeline today but preserved here for reference
- * and to make it trivial to add an "amp-up" comparison later.
+ * Not currently wired into the playground, but kept here so adding a
+ * service-page refinement comparison later is a one-line change.
  */
 export const AMP_UP_PROMPT_SYSTEM_PROMPT = `
 You are an expert AI Prompt Engineer creating instructions for generative image editing to transform images into high-quality landing page assets.
@@ -159,22 +153,17 @@ Transform the image so the woman is looking directly at the camera with a warm, 
 
 /**
  * [stormbreaker verbatim]
- * services/replicate/replicate.py:115-118
- *
- * The user prompt sent alongside `image_generation_system_prompt` / the
- * amp-up system prompt. Stormbreaker sends a JSON-shaped string so the
- * LLM sees `description` as a structured field. Playground variable:
+ * services/replicate/replicate.py:115-118 — user prompt paired with
+ * IMAGE_GENERATION_SYSTEM_PROMPT. Playground token:
  * `{{placeholder_description}}`.
  */
 export const BUILD_IMAGE_PROMPT_USER_TEMPLATE = `{ "description": "{{placeholder_description}}" }`;
 
 /**
  * [stormbreaker verbatim]
- * handlers/create_blog_pages/image_operations/cover_image.py:27-47
- *
- * Cover-image prompt for the blog cover flow. Stormbreaker does NOT run
- * an LLM expansion step for covers — this string is passed directly as
- * the Replicate `prompt`. Captured here for reference / future wiring.
+ * handlers/create_blog_pages/image_operations/cover_image.py:27-47.
+ * Stormbreaker sends this directly to Replicate (no LLM expansion).
+ * Captured for future wiring.
  */
 export const COVER_IMAGE_PROMPT_TEMPLATE = `
 Create a professional blog cover image for a blog post about "{{blog_topic}}"
@@ -198,30 +187,12 @@ MOOD & TONE:
 The final image should be eye-catching enough for social media while maintaining professional standards suitable for B2B communications.
 `.trim();
 
-// ╔════════════════════════════════════════════════════════════════════════╗
-// ║ New flow — derived from stormbreaker test scripts                      ║
-// ╚════════════════════════════════════════════════════════════════════════╝
+// ---------------------------------------------------------------------------
+// Shared helpers — used by new-flow prompts to render a graphic_token
+// into a labeled "BRAND IDENTITY" block. Mirrors
+// scripts/test_infographic_graphic_token.py:80-100.
+// ---------------------------------------------------------------------------
 
-/**
- * [stormbreaker test-script verbatim]
- * scripts/test_infographic_graphic_token.py:80-104 — the BRAND IDENTITY
- * block appended by `create_cover_image_prompt_new(blog_topic, token_keys)`.
- *
- * This is the exact phrasing used in the stormbreaker comparison script
- * for injecting a graphic_token into a prompt. Playground tokens:
- * `{{brand_lines}}` — one `- Label: value` per available token key.
- */
-export const BRAND_IDENTITY_BLOCK_TEMPLATE = `
-
-BRAND IDENTITY (use these exact values — do not substitute):
-{{brand_lines}}
-`;
-
-/**
- * Ordered (label, token-key) pairs that match
- * scripts/test_infographic_graphic_token.py:81-91 key_labels dict. Used
- * to format a graphic_token JSON into the BRAND IDENTITY block above.
- */
 export const BRAND_IDENTITY_KEY_LABELS: Array<[key: string, label: string]> = [
   ["primary_color",   "Primary brand color (use as dominant color in design elements)"],
   ["secondary_color", "Secondary brand color (use for visual hierarchy and contrast)"],
@@ -235,79 +206,6 @@ export const BRAND_IDENTITY_KEY_LABELS: Array<[key: string, label: string]> = [
   ["industry",        "Industry / vertical"],
 ];
 
-/**
- * Playground NEW flow: stormbreaker's `image_generation_system_prompt`
- * with the BRAND IDENTITY block appended verbatim from the test script.
- * Receives `{{brand_lines}}` at render time (Step 4 new flow).
- */
-export const IMAGE_GENERATION_SYSTEM_PROMPT_WITH_BRAND =
-  IMAGE_GENERATION_SYSTEM_PROMPT + BRAND_IDENTITY_BLOCK_TEMPLATE;
-
-// ╔════════════════════════════════════════════════════════════════════════╗
-// ║ Playground-only helper steps (no stormbreaker equivalent)              ║
-// ║ These exist to feed the NEW-flow comparison; stormbreaker reads the    ║
-// ║ description from Postgres page_info and the graphic_token is not yet   ║
-// ║ in production (see docs/backend-context.md §6 & §8.1).                 ║
-// ╚════════════════════════════════════════════════════════════════════════╝
-
-/**
- * [playground-only]
- * System prompt for Step 2 `extract_graphic_token` (new flow).
- * Output schema mirrors the keys consumed by
- * `scripts/test_infographic_graphic_token.py:80-91`.
- */
-export const EXTRACT_GRAPHIC_TOKEN_SYSTEM_PROMPT = `
-You are a brand analyst. Given the HTML/markdown and any branding data scraped from a company homepage, extract a graphic_token JSON with the following fields:
-
-- primary_color    (hex string)
-- secondary_color  (hex string)
-- accent_color     (hex string)
-- text_color       (hex string)
-- heading_font     (font family name)
-- body_font        (font family name)
-- brand_style      (1–2 sentences describing visual tone / personality)
-- tagline          (short company tagline if present, else empty)
-- logo_style       (1 short phrase describing the logo)
-- industry         (industry / vertical)
-
-Return ONLY a valid JSON object with those keys — no prose, no code fences, no surrounding tags.
-`.trim();
-
-export const EXTRACT_GRAPHIC_TOKEN_USER_TEMPLATE = `
-HTML / markdown:
-{{clean_html}}
-
-Branding data (may be partial or empty):
-{{branding_json}}
-`.trim();
-
-/**
- * [playground-only]
- * Step 3 `generate_placeholder_description` (new flow only).
- * Stormbreaker reads the description from Postgres `page_info.images[*].description`;
- * in the playground we regenerate one so we can inject brand context.
- */
-export const GENERATE_PLACEHOLDER_DESCRIPTION_SYSTEM_PROMPT_NEW = `
-You are a copywriter for a B2B marketing site. Write a concise 1–2 sentence visual description that a photorealistic image generator can use as its input "description" for this company. Incorporate the brand identity from the graphic_token JSON (colors, style, tone) so the resulting description is visually specific to this company. Return only the description sentence(s) — no preamble, no labels.
-`.trim();
-
-export const GENERATE_PLACEHOLDER_DESCRIPTION_USER_TEMPLATE = `
-Business context:
-{{business_context_token}}
-
-Graphic token:
-{{graphic_token}}
-`.trim();
-
-// ╔════════════════════════════════════════════════════════════════════════╗
-// ║ Helpers                                                                ║
-// ╚════════════════════════════════════════════════════════════════════════╝
-
-/**
- * Format a graphic_token object into the `- Label: value` lines consumed by
- * BRAND_IDENTITY_BLOCK_TEMPLATE. Mirrors
- * scripts/test_infographic_graphic_token.py:80-100.
- */
 export function formatBrandLines(token: Record<string, unknown> | null | undefined): string {
   if (!token) return "";
   const lines: string[] = [];
@@ -320,7 +218,6 @@ export function formatBrandLines(token: Record<string, unknown> | null | undefin
       seen.add(key);
     }
   }
-  // Include any extra keys not in the label map
   for (const [key, val] of Object.entries(token)) {
     if (!seen.has(key) && val) {
       lines.push(`  - ${key}: ${typeof val === "string" ? val : JSON.stringify(val)}`);

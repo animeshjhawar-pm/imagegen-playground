@@ -6,13 +6,15 @@
 
 import {
   IMAGE_GENERATION_SYSTEM_PROMPT,
-  IMAGE_GENERATION_SYSTEM_PROMPT_WITH_BRAND,
   BUILD_IMAGE_PROMPT_USER_TEMPLATE,
+} from "./prompts-old-flow";
+import {
+  IMAGE_GENERATION_SYSTEM_PROMPT_WITH_BRAND,
   EXTRACT_GRAPHIC_TOKEN_SYSTEM_PROMPT,
   EXTRACT_GRAPHIC_TOKEN_USER_TEMPLATE,
-  GENERATE_PLACEHOLDER_DESCRIPTION_SYSTEM_PROMPT_NEW,
+  GENERATE_PLACEHOLDER_DESCRIPTION_SYSTEM_PROMPT,
   GENERATE_PLACEHOLDER_DESCRIPTION_USER_TEMPLATE,
-} from "./prompts";
+} from "./prompts-new-flow";
 
 export type PageType = "blog" | "service" | "category";
 
@@ -215,8 +217,8 @@ function makeSteps(_combinationKey: string): StepDefinition[] {
         },
       ],
       // Old flow is skipped for this step (stormbreaker has no equivalent);
-      // new flow pulls its prompt from the central repository.
-      systemPromptNew:    GENERATE_PLACEHOLDER_DESCRIPTION_SYSTEM_PROMPT_NEW,
+      // new flow pulls its prompt from the new-flow repository.
+      systemPromptNew:    GENERATE_PLACEHOLDER_DESCRIPTION_SYSTEM_PROMPT,
       userPromptTemplate: GENERATE_PLACEHOLDER_DESCRIPTION_USER_TEMPLATE,
       outputType: "text",
     },

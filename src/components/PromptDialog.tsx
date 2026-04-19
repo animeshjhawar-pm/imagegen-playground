@@ -11,6 +11,8 @@ interface PromptDialogProps {
   initialUserPrompt: string;
   /** Whether an override is currently active (for badge + reset button). */
   hasOverride: boolean;
+  /** When true, the dialog is view-only — editing/save/reset buttons are hidden. */
+  readOnly?: boolean;
   /** Closes the dialog with no state change. */
   onCancel: () => void;
   /** Save edits as an override. */
@@ -28,6 +30,7 @@ export function PromptDialog({
   initialSystemPrompt,
   initialUserPrompt,
   hasOverride,
+  readOnly = false,
   onCancel,
   onSave,
   onSaveAndRun,
@@ -67,7 +70,16 @@ export function PromptDialog({
           <span className="text-[10px] uppercase tracking-widest text-neutral-500">
             · {flowLabel}
           </span>
-          {hasOverride && (
+          {readOnly && (
+            <span
+              title="Old flow is the frozen stormbreaker baseline — view only. Edit the new-flow prompt to iterate."
+              className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded
+                bg-neutral-800 text-neutral-400 cursor-help"
+            >
+              READ-ONLY · BASELINE
+            </span>
+          )}
+          {!readOnly && hasOverride && (
             <span
               title="Prompt has been edited — running this step uses the edited version instead of the template."
               className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded
@@ -86,12 +98,13 @@ export function PromptDialog({
             </label>
             <textarea
               value={systemDraft}
+              readOnly={readOnly}
               onChange={(e) => setSystemDraft(e.target.value)}
               rows={8}
               className="w-full text-[11px] font-mono text-neutral-100 leading-relaxed
                 bg-neutral-950 border border-neutral-700 rounded p-2 resize-y
                 focus:outline-none focus:ring-1 focus:ring-violet-500
-                min-h-[140px]"
+                min-h-[140px] read-only:opacity-90 read-only:cursor-default"
               spellCheck={false}
             />
           </div>
@@ -102,25 +115,35 @@ export function PromptDialog({
             </label>
             <textarea
               value={userDraft}
+              readOnly={readOnly}
               onChange={(e) => setUserDraft(e.target.value)}
               rows={8}
               className="w-full text-[11px] font-mono text-neutral-100 leading-relaxed
                 bg-neutral-950 border border-neutral-700 rounded p-2 resize-y
                 focus:outline-none focus:ring-1 focus:ring-violet-500
-                min-h-[140px]"
+                min-h-[140px] read-only:opacity-90 read-only:cursor-default"
               spellCheck={false}
             />
-            <p className="text-[10px] text-neutral-500">
-              This is the fully-interpolated prompt that will be sent. Editing it
-              here bypasses the template — inputs will no longer rewrite it until
-              you Reset.
-            </p>
+            {readOnly ? (
+              <p className="text-[10px] text-neutral-500">
+                Old flow is locked to the stormbreaker baseline. To change it,
+                edit <code className="text-violet-300">src/config/prompts-old-flow.ts</code>{" "}
+                — but do so deliberately: changes invalidate past comparisons.
+              </p>
+            ) : (
+              <p className="text-[10px] text-neutral-500">
+                This is the fully-interpolated prompt that will be sent. Editing it
+                here bypasses the template — inputs will no longer rewrite it until
+                you Reset. For a permanent change, edit{" "}
+                <code className="text-violet-300">src/config/prompts-new-flow.ts</code>.
+              </p>
+            )}
           </div>
         </div>
 
         {/* Footer */}
         <div className="px-5 py-3 border-t border-neutral-800 flex items-center gap-2 flex-shrink-0">
-          {hasOverride && (
+          {!readOnly && hasOverride && (
             <button
               onClick={onResetToDefault}
               className="text-[11px] text-neutral-500 hover:text-red-400 underline transition-colors"
@@ -134,26 +157,30 @@ export function PromptDialog({
             className="px-3 py-1.5 text-sm rounded border border-neutral-700 bg-neutral-800
               text-neutral-300 hover:bg-neutral-700 transition-colors"
           >
-            Cancel
+            {readOnly ? "Close" : "Cancel"}
           </button>
-          <button
-            onClick={() => onSave(systemDraft, userDraft)}
-            disabled={!isDirty}
-            className="px-3 py-1.5 text-sm rounded border border-neutral-700 bg-neutral-800
-              text-neutral-300 hover:bg-neutral-700 transition-colors
-              disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Save
-          </button>
-          <button
-            onClick={() => onSaveAndRun(systemDraft, userDraft)}
-            disabled={!isDirty}
-            className="px-3 py-1.5 text-sm rounded font-medium
-              bg-violet-600 text-white hover:bg-violet-500 transition-colors
-              disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            ▶ Save & Re-run
-          </button>
+          {!readOnly && (
+            <>
+              <button
+                onClick={() => onSave(systemDraft, userDraft)}
+                disabled={!isDirty}
+                className="px-3 py-1.5 text-sm rounded border border-neutral-700 bg-neutral-800
+                  text-neutral-300 hover:bg-neutral-700 transition-colors
+                  disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => onSaveAndRun(systemDraft, userDraft)}
+                disabled={!isDirty}
+                className="px-3 py-1.5 text-sm rounded font-medium
+                  bg-violet-600 text-white hover:bg-violet-500 transition-colors
+                  disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                ▶ Save & Re-run
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
