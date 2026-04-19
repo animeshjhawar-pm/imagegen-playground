@@ -1,16 +1,18 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { usePlayground } from "@/context/PlaygroundContext";
 import type { StepDefinition, StepDiff, PageType, ImageType } from "@/config/pipelines";
 import type { StepState, ClientState } from "@/state/playgroundReducer";
 import { StatusDot } from "./StatusDot";
 import { CollapsibleField } from "./CollapsibleField";
+import { PromptDialog } from "./PromptDialog";
 import { runStep } from "@/lib/runStep";
 import { resolveInputs, getEffectiveInputValue } from "@/lib/resolveInputs";
+import { interpolate } from "@/lib/interpolate";
 
 // ---------------------------------------------------------------------------
-// Icons (inline SVG — no lucide-react dep)
+// Icons
 // ---------------------------------------------------------------------------
 function ErrorIcon() {
   return (
@@ -67,11 +69,8 @@ export function StepCell({
     status: "idle", isOutputOverride: false,
   };
 
-  // Fix 2: derive source-resolved inputs fresh on every render —
-  // when any upstream step output changes, these recompute immediately.
   const sourceResolved = useMemo(
     () => resolveInputs(step, client, flowType),
-    // client is the live object from context state
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [step, client, flowType]
   );
@@ -86,13 +85,44 @@ export function StepCell({
     .filter((i) => i.required)
     .some((i) => getEffectiveInputValue(i.name, stepState, sourceResolved).trim() === "");
 
+  // ── Effective prompts (override OR template) ───────────────────────────────
+  const hasPromptTemplate = !!(
+    (flowType === "old" ? step.systemPromptOld : step.systemPromptNew) ||
+    step.userPromptTemplate
+  );
+  const hasPromptOverride = !!stepState.promptOverride;
+
+  const effectivePrompts = useMemo(() => {
+    if (stepState.promptOverride) {
+      return {
+        systemPrompt: stepState.promptOverride.systemPrompt,
+        userPrompt:   stepState.promptOverride.userPrompt,
+      };
+    }
+    const systemPrompt =
+      (flowType === "old" ? step.systemPromptOld : step.systemPromptNew) ?? "";
+    const effectiveInputs = Object.fromEntries(
+      step.inputs.map((i) => [
+        i.name,
+        getEffectiveInputValue(i.name, stepState, sourceResolved),
+      ])
+    );
+    const userPrompt = step.userPromptTemplate
+      ? interpolate(step.userPromptTemplate, effectiveInputs)
+      : Object.entries(effectiveInputs)
+          .map(([k, v]) => `${k}:\n${v}`)
+          .join("\n\n");
+    return { systemPrompt, userPrompt };
+  }, [step, flowType, stepState, sourceResolved]);
+
+  const [promptDialogOpen, setPromptDialogOpen] = useState(false);
+
   // ---------------------------------------------------------------------------
   // Run handler
   // ---------------------------------------------------------------------------
-  async function handleRun() {
-    if (stepState.isOutputOverride) return; // output is locked by user
+  async function handleRun(opts?: { systemPrompt?: string; userPrompt?: string }) {
+    if (stepState.isOutputOverride) return;
 
-    // Build effective inputs: override wins over source-resolved
     const effectiveInputs = Object.fromEntries(
       step.inputs.map((i) => [
         i.name,
@@ -110,6 +140,8 @@ export function StepCell({
         isDryRun,
         clientId,
         pipelineKey,
+        systemPromptOverride: opts?.systemPrompt ?? stepState.promptOverride?.systemPrompt,
+        userPromptOverride:   opts?.userPrompt   ?? stepState.promptOverride?.userPrompt,
       });
       if (result.status === "completed") {
         dispatch({ type: "SET_STEP_RUN_OUTPUT", clientId, flowType, stepName: step.name, output: result.output });
@@ -121,7 +153,43 @@ export function StepCell({
     }
   }
 
-  // Fix 9: error cell styling
+  // ── Output rendering ─────────────────────────────────────────────────────
+  // If step declares outputFields, parse output JSON and render each key
+  // separately. Falls back to the single-field layout when parsing fails.
+  const parsedOutput = useMemo<Record<string, unknown> | null>(() => {
+    if (!step.outputFields || !stepState.output) return null;
+    try {
+      const v = JSON.parse(stepState.output);
+      return typeof v === "object" && v !== null ? (v as Record<string, unknown>) : null;
+    } catch {
+      return null;
+    }
+  }, [step.outputFields, stepState.output]);
+
+  function updateOutputField(fieldName: string, newValue: string) {
+    // Preserve any fields we don't know about; replace the edited one.
+    const base = parsedOutput ?? {};
+    let stored: unknown = newValue;
+    // If the sub-field is JSON, try to parse so we don't double-encode strings.
+    const fieldDef = step.outputFields?.find((f) => f.name === fieldName);
+    if (fieldDef?.outputType === "json") {
+      try { stored = JSON.parse(newValue); } catch { stored = newValue; }
+    }
+    const next = { ...base, [fieldName]: stored };
+    dispatch({
+      type: "UPDATE_STEP_OUTPUT", clientId, flowType, stepName: step.name,
+      output: JSON.stringify(next, null, 2),
+    });
+  }
+
+  function subFieldValue(fieldName: string, subOutputType: string): string {
+    if (!parsedOutput) return "";
+    const raw = parsedOutput[fieldName];
+    if (raw === undefined || raw === null) return "";
+    if (typeof raw === "string") return raw;
+    return subOutputType === "json" ? JSON.stringify(raw, null, 2) : String(raw);
+  }
+
   const cellBorderClass = isFailed ? "border-l-2 border-l-red-600/50" : "border-l border-neutral-800";
   const cellBgClass     = isFailed ? "bg-red-950/20" : "";
 
@@ -160,7 +228,6 @@ export function StepCell({
                 <span className="text-[9px] uppercase tracking-widest text-neutral-600">Inputs</span>
                 {step.inputs.map((inputDef) => {
                   const isOverridden = !!stepState.inputOverrides[inputDef.name];
-                  // Fix 2: display value = override value OR live-resolved value
                   const displayVal = getEffectiveInputValue(inputDef.name, stepState, sourceResolved);
 
                   return (
@@ -192,11 +259,37 @@ export function StepCell({
               </div>
             )}
 
-            {/* Output */}
+            {/* ── View Prompt CTA (LLM steps only) ──────────────────────── */}
+            {hasPromptTemplate && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPromptDialogOpen(true)}
+                  className="px-2 py-1 text-[10px] rounded border border-neutral-700
+                    bg-neutral-800/60 text-neutral-300 hover:text-violet-300 hover:border-violet-600/50
+                    transition-colors flex items-center gap-1.5"
+                  title="View the exact system + user prompt that will be sent for this step"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                    <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
+                    <path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0110 17c-4.257 0-7.893-2.66-9.336-6.41zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                  </svg>
+                  View Prompt Used
+                </button>
+                {hasPromptOverride && (
+                  <span
+                    title="Prompt has been edited. Running this step uses the edited version."
+                    className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-900/60 text-amber-400"
+                  >
+                    PROMPT EDITED
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* ── Output ────────────────────────────────────────────────── */}
             <div className="flex flex-col gap-2">
               <span className="text-[9px] uppercase tracking-widest text-neutral-600">Output</span>
 
-              {/* Error banner */}
               {isFailed && (
                 <div className="flex items-start gap-2 p-2 bg-red-900/30 border border-red-600/40 rounded text-red-200">
                   <ErrorIcon />
@@ -209,7 +302,29 @@ export function StepCell({
                 </div>
               )}
 
-              {!isFailed && (
+              {!isFailed && step.outputFields && parsedOutput ? (
+                // Multi-field output: render each declared field as its own block
+                <div className="flex flex-col gap-2">
+                  {step.outputFields.map((f) => (
+                    <CollapsibleField
+                      key={f.name}
+                      label={f.label}
+                      value={subFieldValue(f.name, f.outputType)}
+                      readOnly={false}
+                      outputType={f.outputType}
+                      isManualOverride={stepState.isOutputOverride}
+                      overrideBadgeLabel="EDITED"
+                      overrideBadgeTooltip="Output manually edited. Re-running this step is disabled until you reset."
+                      resetOverrideLabel="Reset Override"
+                      onChange={(v) => updateOutputField(f.name, v)}
+                      onResetOverride={() =>
+                        dispatch({ type: "RESET_STEP_OVERRIDE", clientId, flowType, stepName: step.name })
+                      }
+                      placeholder={isRunning ? "Running…" : "—"}
+                    />
+                  ))}
+                </div>
+              ) : !isFailed && (
                 <CollapsibleField
                   label="Result"
                   value={stepState.output}
@@ -232,7 +347,7 @@ export function StepCell({
 
             {/* Run button */}
             <button
-              onClick={handleRun}
+              onClick={() => handleRun()}
               disabled={isRunning || requiredInputsMissing || stepState.isOutputOverride}
               title={stepState.isOutputOverride ? "Output manually overridden — reset to re-run" : undefined}
               className="mt-auto px-3 py-1.5 text-xs rounded bg-violet-700 text-white hover:bg-violet-600
@@ -243,6 +358,40 @@ export function StepCell({
           </div>
         )}
       </div>
+
+      {/* ── Prompt Dialog ─────────────────────────────────────────────── */}
+      {hasPromptTemplate && (
+        <PromptDialog
+          isOpen={promptDialogOpen}
+          stepTitle={step.title}
+          flowLabel={flowType === "old" ? "Old flow" : "New flow"}
+          initialSystemPrompt={effectivePrompts.systemPrompt}
+          initialUserPrompt={effectivePrompts.userPrompt}
+          hasOverride={hasPromptOverride}
+          onCancel={() => setPromptDialogOpen(false)}
+          onSave={(sys, usr) => {
+            dispatch({
+              type: "SET_STEP_PROMPT_OVERRIDE", clientId, flowType,
+              stepName: step.name, systemPrompt: sys, userPrompt: usr,
+            });
+            setPromptDialogOpen(false);
+          }}
+          onSaveAndRun={(sys, usr) => {
+            dispatch({
+              type: "SET_STEP_PROMPT_OVERRIDE", clientId, flowType,
+              stepName: step.name, systemPrompt: sys, userPrompt: usr,
+            });
+            setPromptDialogOpen(false);
+            void handleRun({ systemPrompt: sys, userPrompt: usr });
+          }}
+          onResetToDefault={() => {
+            dispatch({
+              type: "RESET_STEP_PROMPT_OVERRIDE", clientId, flowType, stepName: step.name,
+            });
+            setPromptDialogOpen(false);
+          }}
+        />
+      )}
     </td>
   );
 }

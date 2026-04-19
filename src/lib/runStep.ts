@@ -14,6 +14,10 @@ interface RunStepParams {
   clientId: string;
   /** Phase 3: `${pageType}:${imageType}` — lets the route resolve the full StepDefinition server-side. */
   pipelineKey: string;
+  /** Optional: overrides the step's system prompt literally (skips template). */
+  systemPromptOverride?: string;
+  /** Optional: overrides the interpolated user prompt literally (skips template). */
+  userPromptOverride?: string;
 }
 
 interface RunStepResult {
@@ -26,6 +30,7 @@ export async function runStep(params: RunStepParams): Promise<RunStepResult> {
   const {
     pageType, imageType, flowType, step, resolvedInputs, aspectRatio,
     isDryRun, clientId, pipelineKey,
+    systemPromptOverride, userPromptOverride,
   } = params;
 
   const response = await fetch("/api/run-step", {
@@ -43,6 +48,8 @@ export async function runStep(params: RunStepParams): Promise<RunStepResult> {
       aspectRatio,
       clientId,
       pipelineKey,
+      systemPromptOverride,
+      userPromptOverride,
     }),
   });
 

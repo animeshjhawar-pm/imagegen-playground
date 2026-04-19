@@ -33,6 +33,13 @@ export interface StepInputDef {
   required: boolean;
 }
 
+export interface OutputFieldDef {
+  /** Top-level key in the step's JSON output. */
+  name: string;
+  label: string;
+  outputType: OutputType;
+}
+
 export interface StepDefinition {
   name: string;
   title: string;
@@ -46,6 +53,11 @@ export interface StepDefinition {
   systemPromptNew?: string;
   userPromptTemplate?: string;
   outputType: OutputType;
+  /**
+   * When present, the step's output is a JSON object and these named keys
+   * are rendered as separate editable sub-outputs in the UI.
+   */
+  outputFields?: OutputFieldDef[];
 }
 
 export interface ClientContextField {
@@ -170,6 +182,10 @@ function makeSteps(combinationKey: string): StepDefinition[] {
         },
       ],
       outputType: "json",
+      outputFields: [
+        { name: "clean_html",    label: "Cleaned HTML",  outputType: "text" },
+        { name: "branding_json", label: "Branding JSON", outputType: "json" },
+      ],
     },
     {
       name: "extract_graphic_token",

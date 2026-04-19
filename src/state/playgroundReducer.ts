@@ -9,6 +9,11 @@ import { PIPELINES } from "@/config/pipelines";
 // State interfaces
 // ---------------------------------------------------------------------------
 
+export interface PromptOverride {
+  systemPrompt: string;
+  userPrompt: string;
+}
+
 export interface StepState {
   /** Current raw values — only populated for inputs the user explicitly edited. */
   inputs: Record<string, string>;
@@ -21,6 +26,8 @@ export interface StepState {
   error?: string;
   /** Fix 2: renamed from isManualOverride. True when user edited the output manually. */
   isOutputOverride: boolean;
+  /** When set, both system + user prompts are sent literally (no template interpolation). */
+  promptOverride?: PromptOverride;
 }
 
 export interface FlowState {
@@ -202,6 +209,22 @@ export type PlaygroundAction =
   | {
       /** Clears isOutputOverride and restores lastRunOutput. */
       type: "RESET_STEP_OVERRIDE";
+      clientId: string;
+      flowType: "old" | "new";
+      stepName: string;
+    }
+  | {
+      /** Stores an edited system+user prompt pair for this step. */
+      type: "SET_STEP_PROMPT_OVERRIDE";
+      clientId: string;
+      flowType: "old" | "new";
+      stepName: string;
+      systemPrompt: string;
+      userPrompt: string;
+    }
+  | {
+      /** Clears any prompt override — subsequent runs use the template again. */
+      type: "RESET_STEP_PROMPT_OVERRIDE";
       clientId: string;
       flowType: "old" | "new";
       stepName: string;
@@ -401,6 +424,34 @@ export function playgroundReducer(
             output: s.lastRunOutput,
             isOutputOverride: false,
           })),
+        };
+      });
+
+    case "SET_STEP_PROMPT_OVERRIDE":
+      return updateClient(state, action.clientId, (c) => {
+        const flowKey = action.flowType === "old" ? "oldFlow" : "newFlow";
+        return {
+          ...c,
+          [flowKey]: updateFlowStep(c[flowKey], action.stepName, (s) => ({
+            ...s,
+            promptOverride: {
+              systemPrompt: action.systemPrompt,
+              userPrompt: action.userPrompt,
+            },
+          })),
+        };
+      });
+
+    case "RESET_STEP_PROMPT_OVERRIDE":
+      return updateClient(state, action.clientId, (c) => {
+        const flowKey = action.flowType === "old" ? "oldFlow" : "newFlow";
+        return {
+          ...c,
+          [flowKey]: updateFlowStep(c[flowKey], action.stepName, (s) => {
+            const next = { ...s };
+            delete next.promptOverride;
+            return next;
+          }),
         };
       });
 

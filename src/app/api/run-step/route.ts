@@ -27,6 +27,10 @@ interface RunStepRequest {
   aspectRatio?: string;
   clientId?: string;
   pipelineKey?: string;
+  /** If present, sent literally as the LLM system prompt (bypasses step definition). */
+  systemPromptOverride?: string;
+  /** If present, sent literally as the LLM user prompt (bypasses userPromptTemplate). */
+  userPromptOverride?: string;
 }
 
 interface RunStepResponse {
@@ -122,7 +126,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<RunStepRe
 async function runLiveStep(
   body: RunStepRequest
 ): Promise<NextResponse<RunStepResponse>> {
-  const { stepName, flowType, inputs, aspectRatio, clientId, pipelineKey } = body;
+  const {
+    stepName, flowType, inputs, aspectRatio, clientId, pipelineKey,
+    systemPromptOverride, userPromptOverride,
+  } = body;
 
   const key = pipelineKey ?? `${body.pageType}:${body.imageType}`;
   const stepDef = getStepDef(key, stepName);
@@ -140,16 +147,20 @@ async function runLiveStep(
     case "generate_placeholder_description":
     case "build_image_prompt": {
       const systemPrompt =
-        (flowType === "new" ? stepDef.systemPromptNew : stepDef.systemPromptOld) ?? "";
+        systemPromptOverride ??
+        (flowType === "new" ? stepDef.systemPromptNew : stepDef.systemPromptOld) ??
+        "";
       if (!systemPrompt) {
         return fail(`No system prompt defined for ${stepName} (${flowType} flow)`);
       }
 
-      const userPrompt = stepDef.userPromptTemplate
-        ? interpolate(stepDef.userPromptTemplate, inputs)
-        : Object.entries(inputs)
-            .map(([k, v]) => `${k}:\n${v}`)
-            .join("\n\n");
+      const userPrompt =
+        userPromptOverride ??
+        (stepDef.userPromptTemplate
+          ? interpolate(stepDef.userPromptTemplate, inputs)
+          : Object.entries(inputs)
+              .map(([k, v]) => `${k}:\n${v}`)
+              .join("\n\n"));
 
       const metadata = {
         step_name: stepName,
