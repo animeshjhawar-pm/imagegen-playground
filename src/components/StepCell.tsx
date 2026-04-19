@@ -10,6 +10,7 @@ import { PromptDialog } from "./PromptDialog";
 import { runStep } from "@/lib/runStep";
 import { resolveInputs, getEffectiveInputValue } from "@/lib/resolveInputs";
 import { interpolate } from "@/lib/interpolate";
+import { prepareLLMVars } from "@/lib/prepareLLMVars";
 
 // ---------------------------------------------------------------------------
 // Icons
@@ -99,16 +100,20 @@ export function StepCell({
         userPrompt:   stepState.promptOverride.userPrompt,
       };
     }
-    const systemPrompt =
-      (flowType === "old" ? step.systemPromptOld : step.systemPromptNew) ?? "";
     const effectiveInputs = Object.fromEntries(
       step.inputs.map((i) => [
         i.name,
         getEffectiveInputValue(i.name, stepState, sourceResolved),
       ])
     );
+    const vars = prepareLLMVars(effectiveInputs);
+
+    const systemTemplate =
+      (flowType === "old" ? step.systemPromptOld : step.systemPromptNew) ?? "";
+    const systemPrompt = systemTemplate ? interpolate(systemTemplate, vars) : "";
+
     const userPrompt = step.userPromptTemplate
-      ? interpolate(step.userPromptTemplate, effectiveInputs)
+      ? interpolate(step.userPromptTemplate, vars)
       : Object.entries(effectiveInputs)
           .map(([k, v]) => `${k}:\n${v}`)
           .join("\n\n");

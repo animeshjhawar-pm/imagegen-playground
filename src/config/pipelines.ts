@@ -1,7 +1,18 @@
 // ---------------------------------------------------------------------------
 // Pipeline type definitions and configuration.
 // Reference: docs/backend-context.md
+// All prompt strings live in ./prompts.ts — this file only references them.
 // ---------------------------------------------------------------------------
+
+import {
+  IMAGE_GENERATION_SYSTEM_PROMPT,
+  IMAGE_GENERATION_SYSTEM_PROMPT_WITH_BRAND,
+  BUILD_IMAGE_PROMPT_USER_TEMPLATE,
+  EXTRACT_GRAPHIC_TOKEN_SYSTEM_PROMPT,
+  EXTRACT_GRAPHIC_TOKEN_USER_TEMPLATE,
+  GENERATE_PLACEHOLDER_DESCRIPTION_SYSTEM_PROMPT_NEW,
+  GENERATE_PLACEHOLDER_DESCRIPTION_USER_TEMPLATE,
+} from "./prompts";
 
 export type PageType = "blog" | "service" | "category";
 
@@ -99,40 +110,6 @@ export const IMAGE_TYPE_LABELS: Record<ImageType, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Shared system prompts (verbatim from docs/backend-context.md §4 Step 3)
-// ---------------------------------------------------------------------------
-
-const IMAGE_GEN_SYSTEM_PROMPT_OLD = `You are an expert AI Prompt Engineer specializing in creating detailed, photorealistic prompts for commercial marketing imagery. Your function is to take a single, concise business need and translate it into a rich, descriptive prompt that a generative AI model (like Midjourney or DALL-E 3) can use to create a high-quality, high-conversion image.
-
-You will be given one input:
-1. description: A concise description of the desired scene, subject, and mood.
-
-Core Directives:
-1. Photorealism and Commercial Quality: photorealistic, professional commercial photography, high-detail, 4K resolution, sharp focus. Lighting: bright and welcoming natural light, soft studio lighting, or warm golden-hour sunlight. Color: vibrant, rich, and inviting. Composition: eye-level view, medium shot, close-up, bokeh background.
-2. The "Commercial Presence" Rule (Non-Negotiable): If people present — must look directly at camera, warm/confident/professional expression.
-3. Elaborate on the Core Concept: expand user's description into a full scene.
-
-Output Format:
-<final_prompt>[Your generated prompt here]</final_prompt>`;
-
-// New flow: same as old + BRAND IDENTITY block injected (mirrors test_infographic_graphic_token.py)
-const IMAGE_GEN_SYSTEM_PROMPT_NEW = `${IMAGE_GEN_SYSTEM_PROMPT_OLD}
-
-BRAND IDENTITY:
-- Primary Color: {{primary_color}}
-- Secondary Color: {{secondary_color}}
-- Accent Color: {{accent_color}}
-- Text Color: {{text_color}}
-- Heading Font: {{heading_font}}
-- Body Font: {{body_font}}
-- Brand Style: {{brand_style}}
-- Tagline: {{tagline}}
-- Logo Style: {{logo_style}}
-- Industry: {{industry}}
-
-Incorporate these brand values into the visual design where appropriate.`;
-
-// ---------------------------------------------------------------------------
 // Shared client context fields (Fix 2: removed aspect_ratio, renamed company_info)
 // ---------------------------------------------------------------------------
 
@@ -162,7 +139,7 @@ const SHARED_CLIENT_CONTEXT_FIELDS: ClientContextField[] = [
 // Shared 5-step template factory
 // ---------------------------------------------------------------------------
 
-function makeSteps(combinationKey: string): StepDefinition[] {
+function makeSteps(_combinationKey: string): StepDefinition[] {
   return [
     {
       name: "scrape_client_site",
@@ -210,12 +187,8 @@ function makeSteps(combinationKey: string): StepDefinition[] {
           required: true,
         },
       ],
-      // Placeholder prompt — backend uses a richer extraction pipeline; this keeps
-      // the playground self-contained for comparison runs.
-      systemPromptNew:
-        "You are a brand analyst. Given the page HTML/markdown and any branding data scraped from a company homepage, extract a graphic_token JSON with the following fields: primary_color, secondary_color, accent_color, text_color, heading_font, body_font, brand_style (1–2 sentences on tone), tagline, logo_style (1 short phrase), industry. Return ONLY valid JSON — no prose, no code fences.",
-      userPromptTemplate:
-        "HTML / markdown:\n{{clean_html}}\n\nBranding data (may be partial or empty):\n{{branding_json}}",
+      systemPromptNew:    EXTRACT_GRAPHIC_TOKEN_SYSTEM_PROMPT,
+      userPromptTemplate: EXTRACT_GRAPHIC_TOKEN_USER_TEMPLATE,
       outputType: "json",
     },
     {
@@ -241,12 +214,10 @@ function makeSteps(combinationKey: string): StepDefinition[] {
           required: false,
         },
       ],
-      // Placeholder prompts — backend uses per-image-type variants; these are
-      // generic stand-ins for comparison.
-      systemPromptOld: `[${combinationKey}] You are a copywriter for a B2B marketing site. Write a concise 1–2 sentence visual description that a photorealistic image generator can use. Focus on scene, subject, and mood. Do NOT reference brand colors, fonts, or typography. Return only the description — no preamble.`,
-      systemPromptNew: `[${combinationKey}] You are a copywriter for a B2B marketing site. Write a concise 1–2 sentence visual description that a photorealistic image generator can use. Incorporate the brand identity from the graphic_token JSON (colors, style, tone) to make the description visually specific to this company. Return only the description — no preamble.`,
-      userPromptTemplate:
-        "Business context:\n{{business_context_token}}\n\nGraphic token (may be empty for old flow):\n{{graphic_token}}",
+      // Old flow is skipped for this step (stormbreaker has no equivalent);
+      // new flow pulls its prompt from the central repository.
+      systemPromptNew:    GENERATE_PLACEHOLDER_DESCRIPTION_SYSTEM_PROMPT_NEW,
+      userPromptTemplate: GENERATE_PLACEHOLDER_DESCRIPTION_USER_TEMPLATE,
       outputType: "text",
     },
     {
@@ -275,9 +246,12 @@ function makeSteps(combinationKey: string): StepDefinition[] {
           required: false,
         },
       ],
-      systemPromptOld: IMAGE_GEN_SYSTEM_PROMPT_OLD,
-      systemPromptNew: IMAGE_GEN_SYSTEM_PROMPT_NEW,
-      userPromptTemplate: '{ "description": "{{placeholder_description}}" }',
+      // Verbatim stormbreaker prompts: old = image_generation_system_prompt,
+      // new = same + BRAND IDENTITY block from scripts/test_infographic_graphic_token.py.
+      // User template matches services/replicate/replicate.py:115-118.
+      systemPromptOld:    IMAGE_GENERATION_SYSTEM_PROMPT,
+      systemPromptNew:    IMAGE_GENERATION_SYSTEM_PROMPT_WITH_BRAND,
+      userPromptTemplate: BUILD_IMAGE_PROMPT_USER_TEMPLATE,
       outputType: "text_tagged",
     },
     {

@@ -17,6 +17,7 @@ import { PIPELINES, type StepDefinition } from "@/config/pipelines";
 import { scrapeClientSite } from "@/lib/providers/firecrawl";
 import { callPortkey } from "@/lib/providers/portkey";
 import { generateImage } from "@/lib/providers/replicate";
+import { prepareLLMVars } from "@/lib/prepareLLMVars";
 
 interface RunStepRequest {
   pageType: string;
@@ -146,10 +147,15 @@ async function runLiveStep(
     case "extract_graphic_token":
     case "generate_placeholder_description":
     case "build_image_prompt": {
+      // Derived vars (e.g. brand_lines from graphic_token JSON) are available
+      // to both system + user prompt templates.
+      const vars = prepareLLMVars(inputs);
+
+      const systemTemplate =
+        (flowType === "new" ? stepDef.systemPromptNew : stepDef.systemPromptOld) ?? "";
       const systemPrompt =
         systemPromptOverride ??
-        (flowType === "new" ? stepDef.systemPromptNew : stepDef.systemPromptOld) ??
-        "";
+        (systemTemplate ? interpolate(systemTemplate, vars) : "");
       if (!systemPrompt) {
         return fail(`No system prompt defined for ${stepName} (${flowType} flow)`);
       }
@@ -157,7 +163,7 @@ async function runLiveStep(
       const userPrompt =
         userPromptOverride ??
         (stepDef.userPromptTemplate
-          ? interpolate(stepDef.userPromptTemplate, inputs)
+          ? interpolate(stepDef.userPromptTemplate, vars)
           : Object.entries(inputs)
               .map(([k, v]) => `${k}:\n${v}`)
               .join("\n\n"));
