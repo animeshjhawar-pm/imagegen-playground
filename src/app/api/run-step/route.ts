@@ -153,6 +153,18 @@ async function runLiveStep(
 
       const systemTemplate =
         (flowType === "new" ? stepDef.systemPromptNew : stepDef.systemPromptOld) ?? "";
+
+      // renderOnly steps skip the LLM entirely — they interpolate the
+      // template and return it as the output. Used by blog:cover/thumbnail
+      // (hardcoded cover prompt) and blog:internal (raw description).
+      if (stepDef.renderOnly) {
+        const rendered = systemPromptOverride ?? interpolate(systemTemplate, vars);
+        if (!rendered) {
+          return fail(`No render template defined for ${stepName} (${flowType} flow)`);
+        }
+        return ok(rendered);
+      }
+
       const systemPrompt =
         systemPromptOverride ??
         (systemTemplate ? interpolate(systemTemplate, vars) : "");

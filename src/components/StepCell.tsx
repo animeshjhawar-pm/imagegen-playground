@@ -110,8 +110,15 @@ export function StepCell({
 
     const systemTemplate =
       (flowType === "old" ? step.systemPromptOld : step.systemPromptNew) ?? "";
-    const systemPrompt = systemTemplate ? interpolate(systemTemplate, vars) : "";
 
+    // renderOnly step: the "prompt" is just the interpolated template; no
+    // user-prompt pairing since nothing runs through an LLM.
+    if (step.renderOnly) {
+      const rendered = systemTemplate ? interpolate(systemTemplate, vars) : "";
+      return { systemPrompt: rendered, userPrompt: "" };
+    }
+
+    const systemPrompt = systemTemplate ? interpolate(systemTemplate, vars) : "";
     const userPrompt = step.userPromptTemplate
       ? interpolate(step.userPromptTemplate, vars)
       : Object.entries(effectiveInputs)

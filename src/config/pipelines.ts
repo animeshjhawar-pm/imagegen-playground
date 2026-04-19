@@ -1,15 +1,21 @@
 // ---------------------------------------------------------------------------
-// Pipeline type definitions and configuration.
-// Reference: docs/backend-context.md
-// All prompt strings live in ./prompts.ts — this file only references them.
+// Pipeline type definitions and per-image-type configuration.
+//
+// The nine (pageType × imageType) pipelines run through the same 5-step
+// skeleton but swap in different Step 4 definitions so each combination
+// follows stormbreaker's actual production flow (see docs/backend-context.md
+// §2 and the per-type breakdowns below). Prompts live in prompts-old-flow.ts
+// (frozen) and prompts-new-flow.ts (editable); this file only composes.
 // ---------------------------------------------------------------------------
 
 import {
   IMAGE_GENERATION_SYSTEM_PROMPT,
   BUILD_IMAGE_PROMPT_USER_TEMPLATE,
+  COVER_IMAGE_PROMPT_TEMPLATE,
 } from "./prompts-old-flow";
 import {
   IMAGE_GENERATION_SYSTEM_PROMPT_WITH_BRAND,
+  COVER_IMAGE_PROMPT_TEMPLATE_WITH_BRAND,
   EXTRACT_GRAPHIC_TOKEN_SYSTEM_PROMPT,
   EXTRACT_GRAPHIC_TOKEN_USER_TEMPLATE,
   GENERATE_PLACEHOLDER_DESCRIPTION_SYSTEM_PROMPT,
@@ -47,7 +53,6 @@ export interface StepInputDef {
 }
 
 export interface OutputFieldDef {
-  /** Top-level key in the step's JSON output. */
   name: string;
   label: string;
   outputType: OutputType;
@@ -71,6 +76,14 @@ export interface StepDefinition {
    * are rendered as separate editable sub-outputs in the UI.
    */
   outputFields?: OutputFieldDef[];
+  /**
+   * When true, the step skips the LLM call and returns its interpolated
+   * systemPromptOld/systemPromptNew directly as the output. Used for
+   * stormbreaker flows that don't run an LLM prompt-expansion step
+   * (blog covers/thumbnails = hardcoded prompt; blog internal = raw
+   * description passed straight to Replicate).
+   */
+  renderOnly?: boolean;
 }
 
 export interface ClientContextField {
@@ -85,8 +98,10 @@ export interface ClientContextField {
 export interface PipelineDefinition {
   steps: StepDefinition[];
   clientContextFields: ClientContextField[];
-  /** Fix 3: aspect ratio used for generate_image, not editable per-client. */
+  /** Aspect ratio passed to Replicate for this combination. */
   defaultAspectRatio: string;
+  /** Short note shown above the pipeline table — flags any gaps vs stormbreaker. */
+  alignmentNote?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -112,176 +127,249 @@ export const IMAGE_TYPE_LABELS: Record<ImageType, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Shared client context fields (Fix 2: removed aspect_ratio, renamed company_info)
+// Shared client context fields
 // ---------------------------------------------------------------------------
 
 const SHARED_CLIENT_CONTEXT_FIELDS: ClientContextField[] = [
   { name: "client_homepage_url", label: "Client Homepage URL", kind: "url", required: true },
   {
     name: "business_context_token",
-    label: "Business Context Token",
+    label: "Business Context / Blog Topic / Image Description",
     kind: "textarea",
     required: false,
   },
-  {
-    name: "company_logo_url",
-    label: "Company Logo URL",
-    kind: "url",
-    required: false,
-  },
-  {
-    name: "graphic_token",
-    label: "Graphic Token Override (JSON)",
-    kind: "json",
-    required: false,
-  },
+  { name: "company_logo_url", label: "Company Logo URL", kind: "url", required: false },
+  { name: "graphic_token",    label: "Graphic Token Override (JSON)", kind: "json", required: false },
 ];
 
 // ---------------------------------------------------------------------------
-// Shared 5-step template factory
+// Step factories — shared pieces (Steps 1, 2, 3, 5)
 // ---------------------------------------------------------------------------
 
-function makeSteps(_combinationKey: string): StepDefinition[] {
-  return [
+const scrapeStep: StepDefinition = {
+  name: "scrape_client_site",
+  title: "Scrape Client Site",
+  description:
+    "Crawls the client homepage with Firecrawl and extracts clean HTML + brand JSON. Playground-only helper for the new flow; stormbreaker reads this data from Postgres.",
+  model: "firecrawl",
+  provider: "firecrawl",
+  diffOld: "skipped",
+  diffNew: "new",
+  inputs: [
     {
-      name: "scrape_client_site",
-      title: "Scrape Client Site",
-      description:
-        "Crawls the client homepage with Firecrawl and extracts clean HTML and brand JSON.",
-      model: "firecrawl",
-      provider: "firecrawl",
-      diffOld: "skipped",
-      diffNew: "new",
-      inputs: [
-        {
-          name: "client_homepage_url",
-          label: "Client Homepage URL",
-          source: { kind: "client_context", field: "client_homepage_url" },
-          required: true,
-        },
-      ],
-      outputType: "json",
-      outputFields: [
-        { name: "clean_html",    label: "Cleaned HTML",  outputType: "text" },
-        { name: "branding_json", label: "Branding JSON", outputType: "json" },
-      ],
+      name: "client_homepage_url",
+      label: "Client Homepage URL",
+      source: { kind: "client_context", field: "client_homepage_url" },
+      required: true,
+    },
+  ],
+  outputType: "json",
+  outputFields: [
+    { name: "clean_html",    label: "Cleaned HTML",  outputType: "text" },
+    { name: "branding_json", label: "Branding JSON", outputType: "json" },
+  ],
+};
+
+const extractGraphicTokenStep: StepDefinition = {
+  name: "extract_graphic_token",
+  title: "Extract Graphic Token",
+  description:
+    "Uses Claude to extract a structured graphic_token JSON from the crawled page HTML + branding data. New-flow only.",
+  model: "claude-sonnet-4-5",
+  provider: "portkey",
+  diffOld: "skipped",
+  diffNew: "new",
+  inputs: [
+    {
+      name: "clean_html",
+      label: "Clean HTML",
+      source: { kind: "step_output", stepName: "scrape_client_site", field: "clean_html" },
+      required: true,
     },
     {
-      name: "extract_graphic_token",
-      title: "Extract Graphic Token",
-      description:
-        "Uses Claude to extract a structured graphic_token JSON from the crawled page HTML and branding data.",
-      model: "claude-sonnet-4-5",
-      provider: "portkey",
-      diffOld: "skipped",
-      diffNew: "new",
-      inputs: [
-        {
-          name: "clean_html",
-          label: "Clean HTML",
-          source: { kind: "step_output", stepName: "scrape_client_site", field: "clean_html" },
-          required: true,
-        },
-        {
-          name: "branding_json",
-          label: "Branding JSON",
-          source: { kind: "step_output", stepName: "scrape_client_site", field: "branding_json" },
-          required: true,
-        },
-      ],
-      systemPromptNew:    EXTRACT_GRAPHIC_TOKEN_SYSTEM_PROMPT,
-      userPromptTemplate: EXTRACT_GRAPHIC_TOKEN_USER_TEMPLATE,
-      outputType: "json",
+      name: "branding_json",
+      label: "Branding JSON",
+      source: { kind: "step_output", stepName: "scrape_client_site", field: "branding_json" },
+      required: true,
+    },
+  ],
+  systemPromptNew:    EXTRACT_GRAPHIC_TOKEN_SYSTEM_PROMPT,
+  userPromptTemplate: EXTRACT_GRAPHIC_TOKEN_USER_TEMPLATE,
+  outputType: "json",
+};
+
+const generatePlaceholderDescriptionStep: StepDefinition = {
+  name: "generate_placeholder_description",
+  title: "Generate Placeholder Description",
+  description:
+    "New-flow-only helper: enriches a short image description with graphic_token brand context. Stormbreaker reads the description from Postgres page_info in production.",
+  model: "claude-sonnet-4-5",
+  provider: "portkey",
+  diffOld: "skipped",
+  diffNew: "new",
+  inputs: [
+    {
+      name: "business_context_token",
+      label: "Business Context / Description",
+      source: { kind: "client_context", field: "business_context_token" },
+      required: false,
     },
     {
-      name: "generate_placeholder_description",
-      title: "Generate Placeholder Description",
-      description:
-        "New-flow-only helper: enriches a short image description with graphic_token brand context. Stormbreaker's production old-flow takes the description directly from Postgres page_info — the playground expects you to type it into the next step's input instead.",
-      model: "claude-sonnet-4-5",
-      provider: "portkey",
-      diffOld: "skipped",
-      diffNew: "new",
-      inputs: [
-        {
-          name: "business_context_token",
-          label: "Business Context Token",
-          source: { kind: "client_context", field: "business_context_token" },
-          required: false,
-        },
-        {
-          name: "graphic_token",
-          label: "Graphic Token",
-          source: { kind: "step_output", stepName: "extract_graphic_token" },
-          required: false,
-        },
-      ],
-      // Old flow is skipped for this step (stormbreaker has no equivalent);
-      // new flow pulls its prompt from the new-flow repository.
-      systemPromptNew:    GENERATE_PLACEHOLDER_DESCRIPTION_SYSTEM_PROMPT,
-      userPromptTemplate: GENERATE_PLACEHOLDER_DESCRIPTION_USER_TEMPLATE,
-      outputType: "text",
+      name: "graphic_token",
+      label: "Graphic Token",
+      source: { kind: "step_output", stepName: "extract_graphic_token" },
+      required: false,
+    },
+  ],
+  systemPromptNew:    GENERATE_PLACEHOLDER_DESCRIPTION_SYSTEM_PROMPT,
+  userPromptTemplate: GENERATE_PLACEHOLDER_DESCRIPTION_USER_TEMPLATE,
+  outputType: "text",
+};
+
+const generateImageStep: StepDefinition = {
+  name: "generate_image",
+  title: "Generate Image",
+  description:
+    "Sends the final prompt to Replicate (google/nano-banana-pro). Logo (if provided) is passed as image_input for img2img.",
+  model: "google/nano-banana-pro",
+  provider: "replicate",
+  diffOld: "same_as_old",
+  diffNew: "same_as_old",
+  inputs: [
+    {
+      name: "final_prompt",
+      label: "Final Prompt",
+      source: { kind: "step_output", stepName: "build_image_prompt" },
+      required: true,
     },
     {
-      name: "build_image_prompt",
-      title: "Build Image Prompt",
-      description:
-        "Mirrors stormbreaker's `generate_prompt` step — expands a short image description into a photorealistic prompt via Claude. Old flow: plain system prompt (matches production). New flow: BRAND IDENTITY block from graphic_token appended to the system prompt.",
-      model: "claude-sonnet-4-6",
-      provider: "portkey",
-      diffOld: "same_as_old",
-      diffNew: "modified",
-      inputs: [
-        {
-          name: "placeholder_description",
-          label: "Image Description",
-          source: {
-            kind: "step_output",
-            stepName: "generate_placeholder_description",
-          },
-          required: true,
-        },
-        {
-          name: "graphic_token",
-          label: "Graphic Token (new flow only)",
-          source: { kind: "step_output", stepName: "extract_graphic_token" },
-          required: false,
-        },
-      ],
-      // Verbatim stormbreaker prompts: old = image_generation_system_prompt,
-      // new = same + BRAND IDENTITY block from scripts/test_infographic_graphic_token.py.
-      // User template matches services/replicate/replicate.py:115-118.
-      systemPromptOld:    IMAGE_GENERATION_SYSTEM_PROMPT,
-      systemPromptNew:    IMAGE_GENERATION_SYSTEM_PROMPT_WITH_BRAND,
-      userPromptTemplate: BUILD_IMAGE_PROMPT_USER_TEMPLATE,
-      outputType: "text_tagged",
+      name: "image_input",
+      label: "Image Input URL (img2img, optional)",
+      source: { kind: "client_context", field: "company_logo_url" },
+      required: false,
+    },
+  ],
+  outputType: "image_url",
+};
+
+// ---------------------------------------------------------------------------
+// Step 4 variants — the only step that meaningfully differs per image type
+// ---------------------------------------------------------------------------
+
+/** Default Step 4: LLM expansion via Claude 4.6. Used by infographic,
+ *  generic, service:title, service:h2, category:industry, and (as an
+ *  approximation) blog:external. */
+const buildImagePromptStep_LLM: StepDefinition = {
+  name: "build_image_prompt",
+  title: "Build Image Prompt",
+  description:
+    "Mirrors stormbreaker's generate_prompt(amp_up=False) step — expands a short image description into a photorealistic prompt via Claude. Old flow: verbatim image_generation_system_prompt. New flow: same + BRAND IDENTITY block.",
+  model: "claude-sonnet-4-6",
+  provider: "portkey",
+  diffOld: "same_as_old",
+  diffNew: "modified",
+  inputs: [
+    {
+      name: "placeholder_description",
+      label: "Image Description",
+      source: { kind: "step_output", stepName: "generate_placeholder_description" },
+      required: true,
     },
     {
-      name: "generate_image",
-      title: "Generate Image",
-      description:
-        "Sends the final prompt to Replicate (google/nano-banana-pro) to generate the image. Falls back to Google Gemini SDK if Replicate fails.",
-      model: "google/nano-banana-pro",
-      provider: "replicate",
-      diffOld: "same_as_old",
-      diffNew: "same_as_old",
-      inputs: [
-        {
-          name: "final_prompt",
-          label: "Final Prompt",
-          source: { kind: "step_output", stepName: "build_image_prompt" },
-          required: true,
-        },
-        {
-          name: "image_input",
-          label: "Image Input URL (img2img, optional)",
-          source: { kind: "client_context", field: "company_logo_url" },
-          required: false,
-        },
-      ],
-      outputType: "image_url",
+      name: "graphic_token",
+      label: "Graphic Token (new flow only)",
+      source: { kind: "step_output", stepName: "extract_graphic_token" },
+      required: false,
     },
-  ];
+  ],
+  systemPromptOld:    IMAGE_GENERATION_SYSTEM_PROMPT,
+  systemPromptNew:    IMAGE_GENERATION_SYSTEM_PROMPT_WITH_BRAND,
+  userPromptTemplate: BUILD_IMAGE_PROMPT_USER_TEMPLATE,
+  outputType: "text_tagged",
+};
+
+/** Step 4 for blog:cover and blog:thumbnail — no LLM call. Matches
+ *  stormbreaker's handlers/create_blog_pages/image_operations/cover_image.py,
+ *  which passes the hardcoded template directly to Replicate. */
+const renderCoverPromptStep: StepDefinition = {
+  name: "build_image_prompt",
+  title: "Render Cover Prompt",
+  description:
+    "Stormbreaker's cover flow is deterministic — the hardcoded prompt from cover_image.py:create_cover_image_prompt() is sent straight to Replicate. No LLM enhancement. Old flow uses the template verbatim; new flow appends the BRAND IDENTITY block from the graphic_token.",
+  model: "(template — no LLM)",
+  provider: "none",
+  renderOnly: true,
+  diffOld: "same_as_old",
+  diffNew: "modified",
+  inputs: [
+    {
+      name: "blog_topic",
+      label: "Blog Topic",
+      source: { kind: "client_context", field: "business_context_token" },
+      required: true,
+    },
+    {
+      name: "graphic_token",
+      label: "Graphic Token (new flow only)",
+      source: { kind: "step_output", stepName: "extract_graphic_token" },
+      required: false,
+    },
+  ],
+  // For renderOnly steps, systemPromptOld/New hold the output template.
+  systemPromptOld: COVER_IMAGE_PROMPT_TEMPLATE,
+  systemPromptNew: COVER_IMAGE_PROMPT_TEMPLATE_WITH_BRAND,
+  outputType: "text",
+};
+
+/** Step 4 for blog:internal — no LLM call. Matches stormbreaker's
+ *  internal_images.py which passes the raw description to Replicate after
+ *  selecting the best Pinecone match via GPT-4o. (Pinecone selection is
+ *  not implemented in the playground; paste the chosen description into
+ *  the business-context field.) */
+const rawDescriptionStep: StepDefinition = {
+  name: "build_image_prompt",
+  title: "Pass-Through Description",
+  description:
+    "Stormbreaker's internal-image flow does NOT run an LLM prompt-expansion step — the raw description from the image_requirement tag is sent straight to Replicate. Playground approximation: type the description into the Business Context field on the client.",
+  model: "(no model — pass-through)",
+  provider: "none",
+  renderOnly: true,
+  diffOld: "same_as_old",
+  diffNew: "same_as_old",
+  inputs: [
+    {
+      name: "image_description",
+      label: "Image Description",
+      source: { kind: "client_context", field: "business_context_token" },
+      required: true,
+    },
+  ],
+  systemPromptOld: "{{image_description}}",
+  systemPromptNew: "{{image_description}}",
+  outputType: "text",
+};
+
+// ---------------------------------------------------------------------------
+// Pipeline composer
+// ---------------------------------------------------------------------------
+
+function makePipeline(opts: {
+  step4: StepDefinition;
+  defaultAspectRatio: string;
+  alignmentNote?: string;
+}): PipelineDefinition {
+  return {
+    steps: [
+      scrapeStep,
+      extractGraphicTokenStep,
+      generatePlaceholderDescriptionStep,
+      opts.step4,
+      generateImageStep,
+    ],
+    clientContextFields: SHARED_CLIENT_CONTEXT_FIELDS,
+    defaultAspectRatio: opts.defaultAspectRatio,
+    alignmentNote: opts.alignmentNote,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -289,49 +377,68 @@ function makeSteps(_combinationKey: string): StepDefinition[] {
 // ---------------------------------------------------------------------------
 
 export const PIPELINES: Record<string, PipelineDefinition> = {
-  "blog:thumbnail": {
-    steps: makeSteps("BLOG:THUMBNAIL"),
-    clientContextFields: SHARED_CLIENT_CONTEXT_FIELDS,
+  // Blog cover/thumbnail — hardcoded prompt flow (see cover_image.py).
+  "blog:cover": makePipeline({
+    step4: renderCoverPromptStep,
+    defaultAspectRatio: "16:9",
+    alignmentNote:
+      "Type the blog topic into Business Context. Old flow = stormbreaker's hardcoded cover prompt (no LLM). New flow appends a BRAND IDENTITY block, matching scripts/test_infographic_graphic_token.py.",
+  }),
+  "blog:thumbnail": makePipeline({
+    step4: renderCoverPromptStep,
     defaultAspectRatio: "1:1",
-  },
-  "blog:cover": {
-    steps: makeSteps("BLOG:COVER"),
-    clientContextFields: SHARED_CLIENT_CONTEXT_FIELDS,
-    defaultAspectRatio: "16:9",
-  },
-  "blog:internal": {
-    steps: makeSteps("BLOG:INTERNAL"),
-    clientContextFields: SHARED_CLIENT_CONTEXT_FIELDS,
+    alignmentNote:
+      "Same hardcoded-prompt flow as blog:cover but with a 1:1 aspect ratio (stormbreaker generates both in parallel from the same prompt).",
+  }),
+
+  // Blog internal — raw description, Pinecone-selected img2img in production.
+  "blog:internal": makePipeline({
+    step4: rawDescriptionStep,
     defaultAspectRatio: "4:3",
-  },
-  "blog:external": {
-    steps: makeSteps("BLOG:EXTERNAL"),
-    clientContextFields: SHARED_CLIENT_CONTEXT_FIELDS,
+    alignmentNote:
+      "Stormbreaker: Pinecone search → GPT-4o select best match → Replicate img2img with the raw description. Vector search isn't implemented in the playground — paste the description and (optionally) the matched image URL into Logo URL as image_input.",
+  }),
+
+  // Blog external — complex SERP flow; playground runs the LLM approximation.
+  "blog:external": makePipeline({
+    step4: buildImagePromptStep_LLM,
     defaultAspectRatio: "4:3",
-  },
-  "blog:infographic": {
-    steps: makeSteps("BLOG:INFOGRAPHIC"),
-    clientContextFields: SHARED_CLIENT_CONTEXT_FIELDS,
+    alignmentNote:
+      "Stormbreaker's external flow runs Serper image search + GPT-4o Vision + Claude Sonnet 4.5 selection + an EXTERNAL_IMAGE_UPDATION Portkey prompt before the final Replicate call. The playground uses the standard Claude 4.6 prompt-expansion step as an approximation — treat outputs accordingly.",
+  }),
+
+  // Blog infographic/generic — straight Claude 4.6 expansion + Replicate.
+  "blog:infographic": makePipeline({
+    step4: buildImagePromptStep_LLM,
     defaultAspectRatio: "1:1",
-  },
-  "blog:generic": {
-    steps: makeSteps("BLOG:GENERIC"),
-    clientContextFields: SHARED_CLIENT_CONTEXT_FIELDS,
+    alignmentNote:
+      "Matches stormbreaker's generic_images.py flow: Claude 4.6 expands the description, Replicate generates with company logo as image_input.",
+  }),
+  "blog:generic": makePipeline({
+    step4: buildImagePromptStep_LLM,
     defaultAspectRatio: "4:3",
-  },
-  "service:title": {
-    steps: makeSteps("SERVICE:TITLE"),
-    clientContextFields: SHARED_CLIENT_CONTEXT_FIELDS,
+    alignmentNote:
+      "Same handler as Infographic in stormbreaker (generic_images.py); differs only by the type attribute on the image_requirement tag.",
+  }),
+
+  // Service / Category — Pinecone path in production, LLM fallback here.
+  "service:title": makePipeline({
+    step4: buildImagePromptStep_LLM,
     defaultAspectRatio: "16:9",
-  },
-  "service:h2": {
-    steps: makeSteps("SERVICE:H2"),
-    clientContextFields: SHARED_CLIENT_CONTEXT_FIELDS,
+    alignmentNote:
+      "Stormbreaker: Pinecone search → if match, refine via amp-up prompt; if miss, Claude 4.6 expansion + Replicate (the path the playground implements).",
+  }),
+  "service:h2": makePipeline({
+    step4: buildImagePromptStep_LLM,
     defaultAspectRatio: "4:3",
-  },
-  "category:industry": {
-    steps: makeSteps("CATEGORY:INDUSTRY"),
-    clientContextFields: SHARED_CLIENT_CONTEXT_FIELDS,
+    alignmentNote:
+      "Same handler as service:title (update_images.py); the distinction only exists in the context field of the image object in page_info.",
+  }),
+
+  "category:industry": makePipeline({
+    step4: buildImagePromptStep_LLM,
     defaultAspectRatio: "16:9",
-  },
+    alignmentNote:
+      "Stormbreaker: Pinecone search → if match, upscale only (no re-generation); if miss, Claude 4.6 expansion + Replicate (the path the playground implements).",
+  }),
 };

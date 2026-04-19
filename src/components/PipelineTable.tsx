@@ -26,6 +26,13 @@ export function PipelineTable() {
 
   return (
     <div className="overflow-x-auto flex-1">
+      {pipeline.alignmentNote && (
+        <div className="px-6 py-2.5 bg-violet-950/20 border-b border-violet-900/40
+          text-[11px] text-violet-200/80 leading-relaxed flex items-start gap-2">
+          <span className="text-violet-400 mt-[1px]" title="Stormbreaker alignment note">ⓘ</span>
+          <span>{pipeline.alignmentNote}</span>
+        </div>
+      )}
       <table className="border-collapse min-w-full text-xs">
         <thead>
           <tr className="border-b border-neutral-700 bg-neutral-950 sticky top-0 z-10">

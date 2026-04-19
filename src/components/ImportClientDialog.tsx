@@ -23,6 +23,37 @@ const CSV_COLUMNS = [
 ] as const;
 
 // ---------------------------------------------------------------------------
+// Dummy template download
+// ---------------------------------------------------------------------------
+function csvEscape(v: string): string {
+  return /[,"\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+}
+
+function downloadCsvTemplate() {
+  const header = CSV_COLUMNS.join(",");
+  const sample = [
+    "Metro Wholesale SD",
+    "https://www.metrowholesalesd.com/",
+    "https://cdn.shopify.com/.../logo.png",
+    "Wholesale beverage and grocery distributor serving San Diego.",
+    "", // clean_html — optional; leave blank to let Firecrawl scrape
+    "", // branding_json — optional; leave blank to let Firecrawl extract
+  ].map(csvEscape).join(",");
+  const empty = ["", "", "", "", "", ""].join(",");
+  const csv = `${header}\n${sample}\n${empty}\n`;
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "imagegen-playground-clients-template.csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ---------------------------------------------------------------------------
 // Minimal RFC-4180-ish CSV parser (handles quoted fields + embedded commas +
 // escaped quotes ""). Good enough for an internal import form.
 // ---------------------------------------------------------------------------
@@ -327,21 +358,32 @@ export function ImportClientDialog({ isOpen, onCancel, onImport }: ImportClientD
                 Step 1, skipping the Firecrawl call.
               </p>
 
-              <label className="flex items-center gap-2 px-3 py-2 rounded border border-dashed
-                border-neutral-700 bg-neutral-950/40 cursor-pointer hover:border-violet-500/50 transition-colors">
-                <span className="text-xs text-neutral-300">
-                  {csvFilename ? `📄 ${csvFilename}` : "Choose CSV file…"}
-                </span>
-                <input
-                  type="file"
-                  accept=".csv,text/csv"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) void handleCsvFile(f);
-                  }}
-                />
-              </label>
+              <div className="flex items-center gap-3">
+                <label className="flex-1 flex items-center gap-2 px-3 py-2 rounded border border-dashed
+                  border-neutral-700 bg-neutral-950/40 cursor-pointer hover:border-violet-500/50 transition-colors">
+                  <span className="text-xs text-neutral-300">
+                    {csvFilename ? `📄 ${csvFilename}` : "Choose CSV file…"}
+                  </span>
+                  <input
+                    type="file"
+                    accept=".csv,text/csv"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) void handleCsvFile(f);
+                    }}
+                  />
+                </label>
+                <button
+                  onClick={downloadCsvTemplate}
+                  title="Download a CSV with the correct column headers and a sample row"
+                  className="px-3 py-2 text-[11px] rounded border border-neutral-700 bg-neutral-800
+                    text-violet-300 hover:text-violet-200 hover:border-violet-600/50
+                    hover:bg-neutral-700 transition-colors whitespace-nowrap"
+                >
+                  ↓ Download template
+                </button>
+              </div>
 
               {csvErrors.length > 0 && (
                 <div className="rounded border border-amber-900/60 bg-amber-950/30 p-2 text-[11px]

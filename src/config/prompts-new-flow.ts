@@ -34,6 +34,7 @@
 
 import {
   IMAGE_GENERATION_SYSTEM_PROMPT,
+  COVER_IMAGE_PROMPT_TEMPLATE,
   BRAND_IDENTITY_KEY_LABELS,
 } from "./prompts-old-flow";
 
@@ -420,6 +421,22 @@ export const IMAGE_GENERATION_SYSTEM_PROMPT_WITH_BRAND =
 BRAND IDENTITY (use these exact values — do not substitute):
 {{brand_lines}}
 `;
+
+// ───────────────────────────────────────────────────────────────────────────
+// Blog cover / thumbnail — NEW-flow variant of the hardcoded cover prompt.
+//
+// Pairs with the old-flow `COVER_IMAGE_PROMPT_TEMPLATE` from
+// prompts-old-flow.ts. Mirrors `create_cover_image_prompt_new` in
+// scripts/test_infographic_graphic_token.py: same body, then an appended
+// "BRAND IDENTITY" block built from the graphic_token keys.
+// Available tokens: {{blog_topic}}, {{brand_lines}}.
+// ───────────────────────────────────────────────────────────────────────────
+export const COVER_IMAGE_PROMPT_TEMPLATE_WITH_BRAND =
+  COVER_IMAGE_PROMPT_TEMPLATE +
+  `
+
+BRAND IDENTITY (use these exact values — do not substitute):
+{{brand_lines}}`;
 
 // Keep an explicit re-export in case a future experiment swaps to a
 // totally different key-label set per combination; today it matches the
