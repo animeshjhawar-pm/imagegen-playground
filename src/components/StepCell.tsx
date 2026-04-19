@@ -71,9 +71,9 @@ export function StepCell({
   };
 
   const sourceResolved = useMemo(
-    () => resolveInputs(step, client, flowType),
+    () => resolveInputs(step, client, flowType, imageType),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [step, client, flowType]
+    [step, client, flowType, imageType]
   );
 
   const diff: StepDiff = flowType === "old" ? step.diffOld : step.diffNew;

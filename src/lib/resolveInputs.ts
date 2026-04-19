@@ -1,5 +1,6 @@
-import type { StepDefinition } from "@/config/pipelines";
+import type { StepDefinition, ImageType } from "@/config/pipelines";
 import type { ClientState } from "@/state/playgroundReducer";
+import { extractImageRequirementDescription } from "./parseImageRequirement";
 
 /**
  * Resolves each input's value purely from its declared source — does NOT
@@ -15,7 +16,11 @@ import type { ClientState } from "@/state/playgroundReducer";
 export function resolveInputs(
   step: StepDefinition,
   client: ClientState,
-  flowType: "old" | "new"
+  flowType: "old" | "new",
+  /** When present, lets `generate_image_description` outputs auto-filter
+   *  to the <image_requirement type="..."> tag matching the target
+   *  pipeline. Downstream Step 4 then receives just one description. */
+  imageType?: ImageType
 ): Record<string, string> {
   const flow = flowType === "old" ? client.oldFlow : client.newFlow;
   const resolved: Record<string, string> = {};
@@ -35,6 +40,8 @@ export function resolveInputs(
         } catch {
           resolved[inputDef.name] = raw;
         }
+      } else if (raw && source.stepName === "generate_image_description") {
+        resolved[inputDef.name] = extractImageRequirementDescription(raw, imageType);
       } else {
         resolved[inputDef.name] = raw;
       }

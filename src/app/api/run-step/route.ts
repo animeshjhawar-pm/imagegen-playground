@@ -15,7 +15,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PIPELINES, type StepDefinition } from "@/config/pipelines";
 import { scrapeClientSite } from "@/lib/providers/firecrawl";
-import { callPortkey } from "@/lib/providers/portkey";
+import { callPortkey, callPortkeyStoredPrompt } from "@/lib/providers/portkey";
 import { generateImage } from "@/lib/providers/replicate";
 import { prepareLLMVars } from "@/lib/prepareLLMVars";
 
@@ -136,6 +136,29 @@ async function runLiveStep(
   const stepDef = getStepDef(key, stepName);
   if (!stepDef) return fail(`Unknown pipeline/step: ${key}/${stepName}`);
 
+  // Generic stored-prompt dispatch. When the step def carries a
+  // promptIdOld / promptIdNew, we call Portkey's stored-prompt endpoint
+  // (prompt body managed in dashboard) instead of the chat-completions
+  // path. Overrides fall through to the regular chat path below.
+  const storedPromptId = flowType === "new" ? stepDef.promptIdNew : stepDef.promptIdOld;
+  if (storedPromptId && !systemPromptOverride && !userPromptOverride) {
+    const varNames = stepDef.promptVariables ?? stepDef.inputs.map((i) => i.name);
+    const variables: Record<string, unknown> = {};
+    for (const name of varNames) {
+      variables[name] = inputs[name] ?? "";
+    }
+    const result = await callPortkeyStoredPrompt({
+      promptId: storedPromptId,
+      variables,
+      metadata: {
+        step_name: stepName,
+        flow_type: flowType,
+        client_id: clientId ?? "unknown",
+      },
+    });
+    return ok(result.text);
+  }
+
   switch (stepName) {
     case "scrape_client_site": {
       const url = inputs["client_homepage_url"]?.trim();
@@ -145,6 +168,7 @@ async function runLiveStep(
     }
 
     case "extract_graphic_token":
+    case "generate_image_description":
     case "generate_placeholder_description":
     case "build_image_prompt": {
       // Derived vars (e.g. brand_lines from graphic_token JSON) are available

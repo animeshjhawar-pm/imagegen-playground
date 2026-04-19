@@ -84,6 +84,21 @@ export interface StepDefinition {
    * description passed straight to Replicate).
    */
   renderOnly?: boolean;
+  /**
+   * When set, this step calls Portkey's stored-prompt endpoint
+   * (/v1/prompts/{id}/completions) with `promptVariables` mapped from
+   * inputs — the prompt body + model live in the Portkey dashboard.
+   * Matches stormbreaker's invoke_prompt_completion path for prompt IDs
+   * like IMAGE_PLACEHOLDER / SERVICE_PAGE_CONTENT_GEN.
+   */
+  promptIdOld?: string;
+  promptIdNew?: string;
+  /**
+   * Input names whose values are forwarded as Portkey prompt variables
+   * when promptIdOld/promptIdNew is set. Each name here must also appear
+   * in `inputs`. Defaults to every input's name.
+   */
+  promptVariables?: string[];
 }
 
 export interface ClientContextField {
@@ -196,6 +211,52 @@ const extractGraphicTokenStep: StepDefinition = {
   systemPromptNew:    EXTRACT_GRAPHIC_TOKEN_SYSTEM_PROMPT,
   userPromptTemplate: EXTRACT_GRAPHIC_TOKEN_USER_TEMPLATE,
   outputType: "json",
+};
+
+// ---------------------------------------------------------------------------
+// Stormbreaker stored-prompt IDs (prod). Mirrors utils/constants.py:PortKeyPromptIDs.
+// Every constant also has a dev counterpart (DevPortkeyPromptIDs); swap here
+// if we ever want to test against dev.
+// ---------------------------------------------------------------------------
+const STORMBREAKER_PROMPTS = {
+  IMAGE_PLACEHOLDER:            "pp-blog-image-07032e",
+  SERVICE_PAGE_CONTENT_GEN:     "pp-service-pa-ab5621",
+  CATEGORY_PAGE_CONTENT_GEN:    "pp-category-p-ba2554",
+  EXTERNAL_IMAGE_UPDATION:      "pp-external-i-88e4d4",
+  GOOGLE_SEARCH_QUERIES:        "pp-google-sea-dc6494",
+} as const;
+
+/** Blog-pipeline upstream step: mirrors stormbreaker's
+ *  handlers/create_blog_pages/create_image_placeholders.py. Calls the
+ *  `IMAGE_PLACEHOLDER` Portkey stored prompt with `{blog_content}` and
+ *  returns a string containing one or more `<image_requirement>` tags.
+ *  Downstream steps (Step 4 build/render/passthrough) extract the
+ *  description from those tags. */
+const generateBlogImagePlaceholdersStep: StepDefinition = {
+  name: "generate_image_description",
+  title: "Generate Image Placeholders",
+  description:
+    "Calls Portkey stored prompt IMAGE_PLACEHOLDER (pp-blog-image-07032e) exactly as stormbreaker's create_image_placeholders.py handler does. Input: the blog markdown. Output: one or more <image_requirement id type alt>description</image_requirement> tags, one per image the LLM decides to place.",
+  model: "claude-sonnet-4-6 (via Portkey stored prompt)",
+  provider: "portkey",
+  diffOld: "same_as_old",
+  diffNew: "same_as_old",
+  inputs: [
+    {
+      name: "blog_content",
+      label: "Blog Content (markdown)",
+      source: { kind: "client_context", field: "business_context_token" },
+      required: true,
+    },
+  ],
+  // Stored-prompt mode: prompt body lives in Portkey dashboard. The step
+  // runs the exact stormbreaker production prompt for both flows by default;
+  // flip diffNew → "modified" and populate systemPromptNew / userPromptTemplate
+  // here (or via the View / Edit Prompt dialog override) to iterate.
+  promptIdOld:     STORMBREAKER_PROMPTS.IMAGE_PLACEHOLDER,
+  promptIdNew:     STORMBREAKER_PROMPTS.IMAGE_PLACEHOLDER,
+  promptVariables: ["blog_content"],
+  outputType: "text",
 };
 
 const generatePlaceholderDescriptionStep: StepDefinition = {
@@ -323,14 +384,16 @@ const renderCoverPromptStep: StepDefinition = {
 
 /** Step 4 for blog:internal — no LLM call. Matches stormbreaker's
  *  internal_images.py which passes the raw description to Replicate after
- *  selecting the best Pinecone match via GPT-4o. (Pinecone selection is
- *  not implemented in the playground; paste the chosen description into
- *  the business-context field.) */
-const rawDescriptionStep: StepDefinition = {
+ *  selecting the best Pinecone match via GPT-4o. Input is sourced from
+ *  generate_image_description (the upstream IMAGE_PLACEHOLDER call) by
+ *  default — since IMAGE_PLACEHOLDER returns multiple <image_requirement>
+ *  tags, use the per-input override to pick the specific description
+ *  you want to send (or paste one into the Business Context field). */
+const rawDescriptionStep_blog: StepDefinition = {
   name: "build_image_prompt",
   title: "Pass-Through Description",
   description:
-    "Stormbreaker's internal-image flow does NOT run an LLM prompt-expansion step — the raw description from the image_requirement tag is sent straight to Replicate. Playground approximation: type the description into the Business Context field on the client.",
+    "Stormbreaker's internal-image flow does NOT run an LLM prompt-expansion step — the raw description from the <image_requirement> tag is sent straight to Replicate. The default input is the full output of Step 3 (all placeholder tags); override the input field to pick one description.",
   model: "(no model — pass-through)",
   provider: "none",
   renderOnly: true,
@@ -339,8 +402,8 @@ const rawDescriptionStep: StepDefinition = {
   inputs: [
     {
       name: "image_description",
-      label: "Image Description",
-      source: { kind: "client_context", field: "business_context_token" },
+      label: "Image Description (from <image_requirement>)",
+      source: { kind: "step_output", stepName: "generate_image_description" },
       required: true,
     },
   ],
@@ -349,11 +412,40 @@ const rawDescriptionStep: StepDefinition = {
   outputType: "text",
 };
 
+/** Blog-specific variant of buildImagePromptStep_LLM: pulls the
+ *  description from the IMAGE_PLACEHOLDER step output instead of the
+ *  playground-only placeholder step. Matches stormbreaker's
+ *  generic_images.py / external_images.py which read the description
+ *  straight out of the <image_requirement> tag. */
+const buildImagePromptStep_LLM_blog: StepDefinition = {
+  ...buildImagePromptStep_LLM,
+  inputs: [
+    {
+      name: "placeholder_description",
+      label: "Image Description (from <image_requirement>)",
+      source: { kind: "step_output", stepName: "generate_image_description" },
+      required: true,
+    },
+    {
+      name: "graphic_token",
+      label: "Graphic Token (new flow only)",
+      source: { kind: "step_output", stepName: "extract_graphic_token" },
+      required: false,
+    },
+  ],
+};
+
 // ---------------------------------------------------------------------------
 // Pipeline composer
 // ---------------------------------------------------------------------------
 
 function makePipeline(opts: {
+  /** Optional upstream description-generation step. Defaults to the
+   *  playground-only `generatePlaceholderDescriptionStep` (new-flow only).
+   *  Blog pipelines pass `generateBlogImagePlaceholdersStep` here so the
+   *  old flow runs Portkey's IMAGE_PLACEHOLDER stored prompt exactly as
+   *  stormbreaker's create_image_placeholders.py does. */
+  step3?: StepDefinition;
   step4: StepDefinition;
   defaultAspectRatio: string;
   alignmentNote?: string;
@@ -362,7 +454,7 @@ function makePipeline(opts: {
     steps: [
       scrapeStep,
       extractGraphicTokenStep,
-      generatePlaceholderDescriptionStep,
+      opts.step3 ?? generatePlaceholderDescriptionStep,
       opts.step4,
       generateImageStep,
     ],
@@ -393,40 +485,49 @@ export const PIPELINES: Record<string, PipelineDefinition> = {
 
   // Blog internal — raw description, Pinecone-selected img2img in production.
   "blog:internal": makePipeline({
-    step4: rawDescriptionStep,
+    step3: generateBlogImagePlaceholdersStep,
+    step4: rawDescriptionStep_blog,
     defaultAspectRatio: "4:3",
     alignmentNote:
-      "Stormbreaker: Pinecone search → GPT-4o select best match → Replicate img2img with the raw description. Vector search isn't implemented in the playground — paste the description and (optionally) the matched image URL into Logo URL as image_input.",
+      "Old flow: Step 3 runs stormbreaker's IMAGE_PLACEHOLDER Portkey prompt to generate <image_requirement> tags (same as create_image_placeholders.py). Stormbreaker's full production pipeline then Pinecone-searches + GPT-4o-selects a match for img2img — neither is implemented here, so paste the matched image URL into Logo URL if you want img2img behavior.",
   }),
 
   // Blog external — complex SERP flow; playground runs the LLM approximation.
   "blog:external": makePipeline({
-    step4: buildImagePromptStep_LLM,
+    step3: generateBlogImagePlaceholdersStep,
+    step4: buildImagePromptStep_LLM_blog,
     defaultAspectRatio: "4:3",
     alignmentNote:
-      "Stormbreaker's external flow runs Serper image search + GPT-4o Vision + Claude Sonnet 4.5 selection + an EXTERNAL_IMAGE_UPDATION Portkey prompt before the final Replicate call. The playground uses the standard Claude 4.6 prompt-expansion step as an approximation — treat outputs accordingly.",
+      "Old flow: Step 3 runs IMAGE_PLACEHOLDER; Step 4 expands via Claude 4.6. Stormbreaker's full external flow between these two runs Serper image search + GPT-4o Vision + Claude Sonnet 4.5 selection + the EXTERNAL_IMAGE_UPDATION Portkey prompt — those are not yet wired in the playground.",
   }),
 
   // Blog infographic/generic — straight Claude 4.6 expansion + Replicate.
   "blog:infographic": makePipeline({
-    step4: buildImagePromptStep_LLM,
+    step3: generateBlogImagePlaceholdersStep,
+    step4: buildImagePromptStep_LLM_blog,
     defaultAspectRatio: "1:1",
     alignmentNote:
-      "Matches stormbreaker's generic_images.py flow: Claude 4.6 expands the description, Replicate generates with company logo as image_input.",
+      "Matches stormbreaker end-to-end: Step 3 runs IMAGE_PLACEHOLDER (create_image_placeholders.py), Step 4 runs generate_prompt (replicate.py), Step 5 runs Replicate with the logo as image_input.",
   }),
   "blog:generic": makePipeline({
-    step4: buildImagePromptStep_LLM,
+    step3: generateBlogImagePlaceholdersStep,
+    step4: buildImagePromptStep_LLM_blog,
     defaultAspectRatio: "4:3",
     alignmentNote:
-      "Same handler as Infographic in stormbreaker (generic_images.py); differs only by the type attribute on the image_requirement tag.",
+      "Same handler as Infographic in stormbreaker (generic_images.py); differs only by the `type` attribute on the <image_requirement> tag the LLM produces in Step 3.",
   }),
 
   // Service / Category — Pinecone path in production, LLM fallback here.
+  // TODO: wire SERVICE_PAGE_CONTENT_GEN / CATEGORY_PAGE_CONTENT_GEN stored
+  // prompts as a Step 3 upstream description source. Those prompts need four
+  // variables each (topic, paa_data, service_catalog|product_information,
+  // company_info) so they require new client-context fields to hold the JSON
+  // blobs. See utils/page_structure.py:{get_service,get_category}_prompt_params.
   "service:title": makePipeline({
     step4: buildImagePromptStep_LLM,
     defaultAspectRatio: "16:9",
     alignmentNote:
-      "Stormbreaker: Pinecone search → if match, refine via amp-up prompt; if miss, Claude 4.6 expansion + Replicate (the path the playground implements).",
+      "Stormbreaker: Pinecone search → if match, refine via amp-up prompt; if miss, SERVICE_PAGE_CONTENT_GEN produces page_info with image descriptions, then Claude 4.6 expansion + Replicate. The upstream SERVICE_PAGE_CONTENT_GEN call (prompt pp-service-pa-ab5621) is not yet wired in the playground — type the image description into Business Context for now.",
   }),
   "service:h2": makePipeline({
     step4: buildImagePromptStep_LLM,
@@ -439,6 +540,6 @@ export const PIPELINES: Record<string, PipelineDefinition> = {
     step4: buildImagePromptStep_LLM,
     defaultAspectRatio: "16:9",
     alignmentNote:
-      "Stormbreaker: Pinecone search → if match, upscale only (no re-generation); if miss, Claude 4.6 expansion + Replicate (the path the playground implements).",
+      "Stormbreaker: Pinecone search → if match, upscale only (no re-generation); if miss, CATEGORY_PAGE_CONTENT_GEN produces page_info with image descriptions, then Claude 4.6 expansion + Replicate. The upstream CATEGORY_PAGE_CONTENT_GEN call (prompt pp-category-p-ba2554) is not yet wired in the playground — type the image description into Business Context for now.",
   }),
 };

@@ -58,7 +58,7 @@ function PlaygroundInner() {
               status: "running",
             });
 
-            const resolved = resolveInputs(step, client, flowType);
+            const resolved = resolveInputs(step, client, flowType, imageType ?? undefined);
 
             try {
               const result = await runStep({

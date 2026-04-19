@@ -85,3 +85,81 @@ export async function callPortkey(params: {
   const text = json.choices?.[0]?.message?.content ?? "";
   return { text, rawResponse: json };
 }
+
+// ---------------------------------------------------------------------------
+// Portkey stored-prompt completion — mirrors stormbreaker's
+// services/portkey/prompt_completions.py:invoke_prompt_completion.
+//
+// Calls POST /v1/prompts/{prompt_id}/completions with the Portkey SDK's
+// stored prompt. The prompt body + model are managed in the Portkey
+// dashboard — we only send variables. Identical to how stormbreaker
+// production invokes IMAGE_PLACEHOLDER / SERVICE_PAGE_CONTENT_GEN /
+// CATEGORY_PAGE_CONTENT_GEN etc.
+// ---------------------------------------------------------------------------
+export async function callPortkeyStoredPrompt(params: {
+  promptId: string;
+  variables: Record<string, unknown>;
+  metadata: PortkeyMetadata;
+}): Promise<PortkeyResult> {
+  const apiKey   = process.env.PORTKEY_API_KEY;
+  const configId = process.env.PORTKEY_CONFIG_ID ?? "pc-portke-0dd3de";
+
+  if (!apiKey) {
+    throw new Error(
+      "PORTKEY_API_KEY is not set. Local: add to .env.local and restart `npm run dev`. Vercel: add in Project Settings → Environment Variables, then redeploy."
+    );
+  }
+
+  const { promptId, variables, metadata } = params;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 55_000);
+
+  let response: Response;
+  try {
+    response = await fetch(
+      `https://api.portkey.ai/v1/prompts/${encodeURIComponent(promptId)}/completions`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization":                       `Bearer ${apiKey}`,
+          "X-Portkey-Config":                    configId,
+          "x-portkey-strict-open-ai-compliance": "false",
+          "X-Portkey-Metadata":                  JSON.stringify(metadata),
+          "Content-Type":                        "application/json",
+        },
+        body: JSON.stringify({ variables }),
+        signal: controller.signal,
+      }
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  if (response.status === 401 || response.status === 403) {
+    throw new Error(
+      `Portkey auth error (${response.status}) on stored prompt ${promptId}. Check PORTKEY_API_KEY / PORTKEY_CONFIG_ID and that the prompt ID is visible to your account.`
+    );
+  }
+  if (response.status === 404) {
+    throw new Error(
+      `Portkey stored prompt not found: ${promptId}. Check utils/constants.py in stormbreaker — dev vs prod IDs differ.`
+    );
+  }
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`Portkey stored-prompt error ${response.status}: ${body.slice(0, 300)}`);
+  }
+
+  const json = (await response.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+    error?: { message?: string };
+  };
+
+  if (json.error) {
+    throw new Error(`Portkey stored-prompt error: ${json.error.message ?? JSON.stringify(json.error)}`);
+  }
+
+  const text = json.choices?.[0]?.message?.content ?? "";
+  return { text, rawResponse: json };
+}
