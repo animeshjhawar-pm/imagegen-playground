@@ -133,6 +133,10 @@ function updateClient(
   };
 }
 
+function safeParseJson(raw: string): unknown {
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
 function updateFlowStep(
   flow: FlowState,
   stepName: string,
@@ -149,10 +153,21 @@ function updateFlowStep(
 // Action types
 // ---------------------------------------------------------------------------
 
+export interface ImportedClientSeed {
+  name: string;
+  context: Record<string, string>;
+  /** Optional: pre-populate Step 1 (scrape_client_site) output in newFlow. */
+  scrapeSeed?: {
+    clean_html: string;
+    branding_json: Record<string, unknown> | string;
+  };
+}
+
 export type PlaygroundAction =
   | { type: "SELECT_PAGE_TYPE"; pageType: PageType }
   | { type: "SELECT_IMAGE_TYPE"; imageType: ImageType }
   | { type: "ADD_CLIENT" }
+  | { type: "IMPORT_CLIENTS"; seeds: ImportedClientSeed[] }
   | { type: "REMOVE_CLIENT"; clientId: string }
   | { type: "UPDATE_CLIENT_NAME"; clientId: string; name: string }
   | { type: "UPDATE_CLIENT_CONTEXT"; clientId: string; field: string; value: string }
@@ -282,6 +297,53 @@ export function playgroundReducer(
         clients: [...state.clients, makeNewClient(pipeline, id, name)],
         nextClientId: state.nextClientId + 1,
         lastAddedClientId: id,
+      };
+    }
+
+    case "IMPORT_CLIENTS": {
+      const pipeline = getPipeline(state.pageType, state.imageType);
+      if (!pipeline || action.seeds.length === 0) return state;
+
+      let nextId = state.nextClientId;
+      const added: ClientState[] = action.seeds.map((seed) => {
+        const id = `client_${nextId}`;
+        const fallbackName = `Client ${nextId}`;
+        nextId += 1;
+
+        const base = makeNewClient(pipeline, id, seed.name.trim() || fallbackName);
+        const mergedContext = {
+          ...base.context,
+          ...Object.fromEntries(
+            Object.entries(seed.context).filter(([, v]) => v !== undefined)
+          ),
+        };
+
+        let newFlow = base.newFlow;
+        if (seed.scrapeSeed) {
+          const bjRaw = seed.scrapeSeed.branding_json;
+          const bjObj = typeof bjRaw === "string" ? safeParseJson(bjRaw) : bjRaw;
+          const payload = JSON.stringify({
+            clean_html: seed.scrapeSeed.clean_html,
+            branding_json: bjObj ?? {},
+          });
+          newFlow = updateFlowStep(newFlow, "scrape_client_site", (s) => ({
+            ...s,
+            output: payload,
+            lastRunOutput: payload,
+            status: "completed",
+            isOutputOverride: false,
+            error: undefined,
+          }));
+        }
+
+        return { ...base, context: mergedContext, newFlow };
+      });
+
+      return {
+        ...state,
+        clients: [...state.clients, ...added],
+        nextClientId: nextId,
+        lastAddedClientId: added[added.length - 1]?.id ?? state.lastAddedClientId,
       };
     }
 

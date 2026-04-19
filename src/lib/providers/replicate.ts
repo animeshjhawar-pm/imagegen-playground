@@ -11,7 +11,9 @@ export interface ReplicateResult {
 // the initial POST + retry sleep + response serialization.
 const MAX_WAIT_MS   = 50_000; // 50s polling budget
 const POLL_INTERVAL = 2_000;  // 2 seconds between polls
-const MAX_RETRIES   = 2;      // one retry on transient POST failure
+// Matches stormbreaker's services/replicate/replicate.py:
+// @backoff.on_exception(backoff.expo, Exception, max_tries=3)
+const MAX_RETRIES   = 3;
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));

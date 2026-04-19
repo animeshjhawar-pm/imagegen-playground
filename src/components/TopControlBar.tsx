@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { usePlayground } from "@/context/PlaygroundContext";
 import {
   IMAGE_TYPES_BY_PAGE,
@@ -7,6 +8,7 @@ import {
   type PageType,
   type ImageType,
 } from "@/config/pipelines";
+import { ImportClientDialog } from "./ImportClientDialog";
 
 const PAGE_TYPE_OPTIONS: { value: PageType; label: string }[] = [
   { value: "blog",     label: "Blog" },
@@ -22,6 +24,7 @@ interface TopControlBarProps {
 export function TopControlBar({ onRunAll, isRunningAll }: TopControlBarProps) {
   const { state, dispatch } = usePlayground();
   const { pageType, imageType, clients } = state;
+  const [importOpen, setImportOpen] = useState(false);
 
   const imageTypeOptions = pageType ? IMAGE_TYPES_BY_PAGE[pageType] : [];
   const hasSelection    = pageType !== null && imageType !== null;
@@ -88,6 +91,20 @@ export function TopControlBar({ onRunAll, isRunningAll }: TopControlBarProps) {
 
       <div className="flex-1" />
 
+      {/* Import Clients — single form or bulk CSV */}
+      <button
+        onClick={() => setImportOpen(true)}
+        disabled={!canAddClient}
+        title={canAddClient ? "Add clients via form or bulk CSV" : "Select Page Type and Image Type first"}
+        className="px-3 py-1.5 text-sm rounded
+          border border-neutral-700 bg-neutral-800
+          text-neutral-300 hover:text-violet-300 hover:border-violet-600/50 hover:bg-neutral-700
+          disabled:opacity-40 disabled:cursor-not-allowed
+          transition-colors"
+      >
+        ⇪ Import…
+      </button>
+
       {/* Add Client — disabled until both dropdowns selected (Fix 7) */}
       <button
         onClick={() => dispatch({ type: "ADD_CLIENT" })}
@@ -99,7 +116,7 @@ export function TopControlBar({ onRunAll, isRunningAll }: TopControlBarProps) {
           disabled:opacity-40 disabled:cursor-not-allowed
           transition-colors"
       >
-        + Add Client
+        + Add Blank
       </button>
 
       {/* Run All — violet primary CTA */}
@@ -113,6 +130,15 @@ export function TopControlBar({ onRunAll, isRunningAll }: TopControlBarProps) {
       >
         {isRunningAll ? "Running…" : "▶ Run All"}
       </button>
+
+      <ImportClientDialog
+        isOpen={importOpen}
+        onCancel={() => setImportOpen(false)}
+        onImport={(seeds) => {
+          dispatch({ type: "IMPORT_CLIENTS", seeds });
+          setImportOpen(false);
+        }}
+      />
     </div>
   );
 }

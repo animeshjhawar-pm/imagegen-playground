@@ -178,7 +178,10 @@ async function runLiveStep(
         model: stepDef.model,
         systemPrompt,
         userPrompt,
-        maxTokens: 4096,
+        // Match stormbreaker's services/replicate/replicate.py:generate_prompt()
+        // (max_tokens=64000). Claude stops at natural end-of-turn, so this is
+        // just a ceiling — no cost impact, keeps parity with production.
+        maxTokens: 64000,
         metadata,
       });
       return ok(result.text);
