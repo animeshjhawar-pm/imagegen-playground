@@ -33,10 +33,13 @@ export async function callPortkey(params: {
 
   const { model, systemPrompt, userPrompt, maxTokens = 4096, metadata } = params;
 
-  // Capped at 55s to fit inside Vercel Hobby's 60s function limit.
-  // Claude Sonnet at ~4K tokens typically completes in <30s.
+  // Client-side timeout is generous (5 min) — matches stormbreaker's
+  // aiohttp.ClientTimeout(total=600). On Vercel Hobby the function is
+  // hard-killed at 60s regardless; on Pro we have up to 300s. Locally
+  // there's no cap, which is where heavy prompts (e.g. 20KB
+  // EXTRACT_GRAPHIC_TOKEN_SYSTEM_PROMPT + 100KB cleaned HTML) need it.
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 55_000);
+  const timeout = setTimeout(() => controller.abort(), 300_000);
 
   let response: Response;
   try {
@@ -112,8 +115,9 @@ export async function callPortkeyStoredPrompt(params: {
 
   const { promptId, variables, metadata } = params;
 
+  // See the note in callPortkey above; same 5-minute client timeout here.
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 55_000);
+  const timeout = setTimeout(() => controller.abort(), 300_000);
 
   let response: Response;
   try {
