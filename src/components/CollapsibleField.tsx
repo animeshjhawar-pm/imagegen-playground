@@ -109,7 +109,15 @@ export function CollapsibleField({
           )}
         </>
       )}
-      {showExpand && value && (
+      {showExpand && !readOnly && (
+        <button
+          onClick={handleOpen}
+          className="text-[10px] text-indigo-400 hover:text-indigo-300 ml-auto flex-shrink-0"
+        >
+          {value ? "Expand" : "Edit"}
+        </button>
+      )}
+      {showExpand && readOnly && value && (
         <button
           onClick={handleOpen}
           className="text-[10px] text-indigo-400 hover:text-indigo-300 ml-auto flex-shrink-0"
@@ -139,7 +147,18 @@ export function CollapsibleField({
             {preview}
           </p>
         ) : (
-          <p className="text-[11px] text-neutral-700 italic">{placeholder ?? "—"}</p>
+          // Empty state — clickable when editable so users can start typing
+          // a value directly without any upstream step having run.
+          <p
+            className={`text-[11px] italic ${
+              readOnly
+                ? "text-neutral-700"
+                : "text-neutral-600 cursor-pointer hover:text-indigo-300 underline decoration-neutral-800 decoration-dotted underline-offset-4"
+            }`}
+            onClick={readOnly ? undefined : handleOpen}
+          >
+            {readOnly ? (placeholder ?? "—") : "— click to type a value —"}
+          </p>
         )}
       </div>
     );
