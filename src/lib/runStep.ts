@@ -18,6 +18,10 @@ interface RunStepParams {
   systemPromptOverride?: string;
   /** Optional: overrides the interpolated user prompt literally (skips template). */
   userPromptOverride?: string;
+  /** Aborts the client-side fetch when triggered. The server-side request
+   *  to the upstream provider may still complete (we can't cancel that);
+   *  the UI just stops listening. */
+  signal?: AbortSignal;
 }
 
 interface RunStepResult {
@@ -31,6 +35,7 @@ export async function runStep(params: RunStepParams): Promise<RunStepResult> {
     pageType, imageType, flowType, step, resolvedInputs, aspectRatio,
     isDryRun, clientId, pipelineKey,
     systemPromptOverride, userPromptOverride,
+    signal,
   } = params;
 
   const response = await fetch("/api/run-step", {
@@ -51,6 +56,7 @@ export async function runStep(params: RunStepParams): Promise<RunStepResult> {
       systemPromptOverride,
       userPromptOverride,
     }),
+    signal,
   });
 
   if (!response.ok) {

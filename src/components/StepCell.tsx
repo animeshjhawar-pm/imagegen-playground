@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePlayground } from "@/context/PlaygroundContext";
 import type { StepDefinition, StepDiff, PageType, ImageType } from "@/config/pipelines";
 import type { StepState, ClientState } from "@/state/playgroundReducer";
@@ -129,6 +129,21 @@ export function StepCell({
 
   const [promptDialogOpen, setPromptDialogOpen] = useState(false);
 
+  // Holds the AbortController for the step's in-flight run, so the Stop
+  // button can cancel it. Cleared on completion / failure / unmount.
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => () => {
+    // Unmount cleanup — cancel any in-flight request.
+    abortRef.current?.abort();
+    abortRef.current = null;
+  }, []);
+
+  function handleStop() {
+    abortRef.current?.abort();
+    abortRef.current = null;
+  }
+
   // ---------------------------------------------------------------------------
   // Run handler
   // ---------------------------------------------------------------------------
@@ -142,6 +157,11 @@ export function StepCell({
       ])
     );
 
+    // Cancel any previous in-flight run before starting a new one.
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     dispatch({ type: "SET_STEP_STATUS", clientId, flowType, stepName: step.name, status: "running" });
 
     try {
@@ -154,14 +174,25 @@ export function StepCell({
         pipelineKey,
         systemPromptOverride: opts?.systemPrompt ?? stepState.promptOverride?.systemPrompt,
         userPromptOverride:   opts?.userPrompt   ?? stepState.promptOverride?.userPrompt,
+        signal: controller.signal,
       });
+      if (controller.signal.aborted) return; // Aborted — abort handler already dispatched.
       if (result.status === "completed") {
         dispatch({ type: "SET_STEP_RUN_OUTPUT", clientId, flowType, stepName: step.name, output: result.output });
       } else {
         dispatch({ type: "SET_STEP_ERROR", clientId, flowType, stepName: step.name, error: result.error ?? "Unknown error" });
       }
     } catch (err) {
-      dispatch({ type: "SET_STEP_ERROR", clientId, flowType, stepName: step.name, error: err instanceof Error ? err.message : String(err) });
+      const isAbort =
+        err instanceof DOMException && err.name === "AbortError" ||
+        (err instanceof Error && /aborted/i.test(err.message));
+      dispatch({
+        type: "SET_STEP_ERROR",
+        clientId, flowType, stepName: step.name,
+        error: isAbort ? "Stopped by user." : (err instanceof Error ? err.message : String(err)),
+      });
+    } finally {
+      if (abortRef.current === controller) abortRef.current = null;
     }
   }
 
@@ -361,16 +392,36 @@ export function StepCell({
               )}
             </div>
 
-            {/* Run button */}
-            <button
-              onClick={() => handleRun()}
-              disabled={isRunning || requiredInputsMissing || stepState.isOutputOverride}
-              title={stepState.isOutputOverride ? "Output manually overridden — reset to re-run" : undefined}
-              className="mt-auto px-3 py-1.5 text-xs rounded bg-violet-700 text-white hover:bg-violet-600
-                disabled:opacity-40 disabled:cursor-not-allowed transition-colors self-start"
-            >
-              {isRunning ? "Running…" : stepState.isOutputOverride ? "🔒 Overridden" : "▶ Run Step"}
-            </button>
+            {/* Run / Stop buttons */}
+            <div className="mt-auto flex items-center gap-2 self-start">
+              {isRunning ? (
+                <>
+                  <button
+                    onClick={handleStop}
+                    title="Abort the in-flight request. Server-side provider call may still complete in the background."
+                    className="px-3 py-1.5 text-xs rounded bg-red-700 text-white hover:bg-red-600
+                      transition-colors inline-flex items-center gap-1.5"
+                  >
+                    <span className="w-2 h-2 rounded-sm bg-white" />
+                    Stop
+                  </button>
+                  <span className="text-[11px] text-neutral-500 inline-flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-violet-500 animate-pulse" />
+                    Running…
+                  </span>
+                </>
+              ) : (
+                <button
+                  onClick={() => handleRun()}
+                  disabled={requiredInputsMissing || stepState.isOutputOverride}
+                  title={stepState.isOutputOverride ? "Output manually overridden — reset to re-run" : undefined}
+                  className="px-3 py-1.5 text-xs rounded bg-violet-700 text-white hover:bg-violet-600
+                    disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {stepState.isOutputOverride ? "🔒 Overridden" : "▶ Run Step"}
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
