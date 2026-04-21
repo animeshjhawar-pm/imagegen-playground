@@ -4,7 +4,14 @@ import { usePlayground } from "@/context/PlaygroundContext";
 import { PIPELINES } from "@/config/pipelines";
 import { ClientGroup } from "./ClientGroup";
 
-export function PipelineTable() {
+interface PipelineTableProps {
+  /** Fire a run-all for a single step across every client (both flows). */
+  onRunStep: (stepName: string) => void;
+  /** null | "all" | stepName — drives the per-step header button state. */
+  runningScope: null | "all" | string;
+}
+
+export function PipelineTable({ onRunStep, runningScope }: PipelineTableProps) {
   const { state } = usePlayground();
   const { pageType, imageType, clients, lastAddedClientId } = state;
 
@@ -20,6 +27,9 @@ export function PipelineTable() {
       </div>
     );
   }
+
+  const isRunning = runningScope !== null;
+  const canRun    = clients.length > 0 && !isRunning;
 
   // colSpan = Flow label col + N step cols + Final Output col
   const colSpan = 1 + pipeline.steps.length + 1;
@@ -41,17 +51,35 @@ export function PipelineTable() {
               Flow
             </th>
             {/* Step headers */}
-            {pipeline.steps.map((step, i) => (
-              <th
-                key={step.name}
-                className="px-3 py-2 text-left border-l border-neutral-800 min-w-[360px] max-w-[360px]"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-neutral-600 font-mono">{i + 1}.</span>
-                  <span className="text-neutral-300 font-semibold truncate">{step.title}</span>
-                </div>
-              </th>
-            ))}
+            {pipeline.steps.map((step, i) => {
+              const isThisRunning = runningScope === step.name;
+              return (
+                <th
+                  key={step.name}
+                  className="px-3 py-2 text-left border-l border-neutral-800 min-w-[360px] max-w-[360px]"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-neutral-600 font-mono">{i + 1}.</span>
+                    <span className="text-neutral-300 font-semibold truncate flex-1">{step.title}</span>
+                    <button
+                      onClick={() => onRunStep(step.name)}
+                      disabled={!canRun}
+                      title={
+                        !canRun
+                          ? (isRunning ? "Another run is in progress" : "Add at least one client first")
+                          : `Run this step for all ${clients.length} client${clients.length === 1 ? "" : "s"}`
+                      }
+                      className="px-2 py-0.5 text-[10px] rounded font-medium
+                        bg-violet-700/70 text-violet-50 hover:bg-violet-600
+                        disabled:opacity-30 disabled:cursor-not-allowed
+                        transition-colors whitespace-nowrap"
+                    >
+                      {isThisRunning ? "Running…" : "▶ Run all"}
+                    </button>
+                  </div>
+                </th>
+              );
+            })}
             {/* Final output header */}
             <th className="px-3 py-2 text-left border-l border-neutral-800 min-w-[200px] max-w-[220px]">
               <span className="text-neutral-300 font-semibold">Final Output</span>

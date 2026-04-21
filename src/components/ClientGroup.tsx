@@ -95,7 +95,7 @@ export function ClientGroup({
     <>
       <tr
         ref={headerRowRef}
-        className="border-b border-neutral-800 bg-neutral-900/60 sticky top-[41px] z-[5]"
+        className="border-b border-neutral-800 bg-neutral-900 sticky top-[41px] z-[5]"
       >
         <td colSpan={colSpan} className="px-5 py-4">
           <div className="flex items-center gap-0">

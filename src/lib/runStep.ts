@@ -28,6 +28,8 @@ interface RunStepResult {
   output: string;
   status: "completed" | "failed";
   error?: string;
+  /** Non-fatal notice from the server (e.g. input truncation). */
+  warning?: string;
 }
 
 export async function runStep(params: RunStepParams): Promise<RunStepResult> {
@@ -68,6 +70,7 @@ export async function runStep(params: RunStepParams): Promise<RunStepResult> {
     output: string;
     status: "completed" | "failed";
     error?: string;
+    warning?: string;
     completedAt: string;
   };
 
@@ -75,5 +78,5 @@ export async function runStep(params: RunStepParams): Promise<RunStepResult> {
     return { output: data.error ?? "Unknown error", status: "failed", error: data.error };
   }
 
-  return { output: data.output, status: "completed" };
+  return { output: data.output, status: "completed", warning: data.warning };
 }

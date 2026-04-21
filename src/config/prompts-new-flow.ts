@@ -21,8 +21,10 @@
 // baseline; dialog edits are throwaway.
 //
 // Tokens you can use in templates:
-//   {{clean_html}}             — from Step 1's output.clean_html
-//   {{branding_json}}          — from Step 1's output.branding_json
+//   {{markdown}}               — from Step 1's output.markdown (page markdown)
+//   {{branding}}               — from Step 1's output.branding  (Firecrawl v2
+//                                branding profile: colors, fonts, typography,
+//                                spacing, components, images, personality)
 //   {{business_context_token}} — from client context
 //   {{graphic_token}}          — from Step 2's output (raw JSON string)
 //   {{brand_lines}}            — derived from graphic_token, rendered as
@@ -40,7 +42,7 @@ import {
 
 // ───────────────────────────────────────────────────────────────────────────
 // Step 2 — extract_graphic_token  (Portkey → Claude Sonnet 4.5)
-// Inputs available:  {{clean_html}}, {{branding_json}}
+// Inputs available:  {{markdown}}, {{branding}}
 // Output expected:   a JSON object consumed by later steps; keys are
 //                    typically the ones listed in BRAND_IDENTITY_KEY_LABELS
 // ───────────────────────────────────────────────────────────────────────────
@@ -371,11 +373,11 @@ Expected response format:
 `.trim();
 
 export const EXTRACT_GRAPHIC_TOKEN_USER_TEMPLATE = `
-HTML / markdown:
-{{clean_html}}
+Page markdown:
+{{markdown}}
 
-Branding data (may be partial or empty):
-{{branding_json}}
+Branding profile (Firecrawl v2 — colors, fonts, typography, images, personality):
+{{branding}}
 `.trim();
 
 // ───────────────────────────────────────────────────────────────────────────

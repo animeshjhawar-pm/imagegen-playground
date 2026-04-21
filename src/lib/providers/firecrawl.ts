@@ -1,11 +1,47 @@
 // ---------------------------------------------------------------------------
 // Firecrawl provider — Step 1: scrape_client_site
-// Reference: docs/backend-context.md §5 (External API Integrations)
+//
+// Uses Firecrawl v2 /scrape with the `branding` format (which returns the
+// rich structured branding profile natively — colors, fonts, typography,
+// spacing, components, images, personality). We do NOT parse HTML/CSS
+// locally; we pass Firecrawl's output through.
+//
+// Reference: https://docs.firecrawl.dev/features/scrape#extract-brand-identity
 // ---------------------------------------------------------------------------
 
+export interface FirecrawlFont {
+  family: string;
+  /** Derived from typography.fontFamilies — "heading" or "body" when we can
+   *  tell, otherwise omitted (we don't fabricate). */
+  role?: "heading" | "body";
+}
+
+export interface FirecrawlBranding {
+  colorScheme?: string;
+  logo?: string;
+  colors?: Record<string, string>;
+  fonts?: FirecrawlFont[];
+  typography?: {
+    fontFamilies?: Record<string, string>;
+    fontSizes?: Record<string, string>;
+    fontWeights?: Record<string, number | string>;
+    lineHeights?: Record<string, string>;
+  };
+  spacing?: Record<string, unknown>;
+  components?: Record<string, unknown>;
+  images?: {
+    logo?: string;
+    favicon?: string;
+    ogImage?: string;
+  };
+  personality?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 export interface FirecrawlResult {
-  clean_html: string;
-  branding_json: object;
+  branding: FirecrawlBranding;
+  metadata: Record<string, unknown>;
+  markdown: string;
 }
 
 export async function scrapeClientSite(url: string): Promise<FirecrawlResult> {
@@ -22,7 +58,7 @@ export async function scrapeClientSite(url: string): Promise<FirecrawlResult> {
 
   let response: Response;
   try {
-    response = await fetch("https://api.firecrawl.dev/v1/scrape", {
+    response = await fetch("https://api.firecrawl.dev/v2/scrape", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -30,23 +66,7 @@ export async function scrapeClientSite(url: string): Promise<FirecrawlResult> {
       },
       body: JSON.stringify({
         url,
-        formats: ["html", "markdown", "extract"],
-        extract: {
-          schema: {
-            type: "object",
-            properties: {
-              primary_color:   { type: "string" },
-              secondary_color: { type: "string" },
-              accent_color:    { type: "string" },
-              text_color:      { type: "string" },
-              heading_font:    { type: "string" },
-              body_font:       { type: "string" },
-              logo_url:        { type: "string" },
-              tagline:         { type: "string" },
-              industry:        { type: "string" },
-            },
-          },
-        },
+        formats: ["branding", "markdown"],
       }),
       signal: controller.signal,
     });
@@ -68,9 +88,9 @@ export async function scrapeClientSite(url: string): Promise<FirecrawlResult> {
   const json = (await response.json()) as {
     success: boolean;
     data?: {
-      html?: string;
+      branding?: FirecrawlBranding;
+      metadata?: Record<string, unknown>;
       markdown?: string;
-      extract?: Record<string, unknown>;
     };
     error?: string;
   };
@@ -80,9 +100,44 @@ export async function scrapeClientSite(url: string): Promise<FirecrawlResult> {
   }
 
   const data = json.data ?? {};
-  // Prefer markdown for LLM processing (cleaner than raw HTML); fall back to html
-  const clean_html = data.markdown ?? data.html ?? "";
-  const branding_json = data.extract ?? {};
+  const rawBranding = data.branding ?? {};
+  const metadata = data.metadata ?? {};
+  const markdown = data.markdown ?? "";
 
-  return { clean_html, branding_json };
+  const branding: FirecrawlBranding = {
+    ...rawBranding,
+    fonts: annotateFontRoles(rawBranding),
+  };
+
+  return { branding, metadata, markdown };
+}
+
+/** Tag each font with role="heading" or role="body" by matching its family
+ *  against typography.fontFamilies.{heading,primary,body}. Families that
+ *  match neither are left without a role. */
+function annotateFontRoles(branding: FirecrawlBranding): FirecrawlFont[] {
+  const fonts = branding.fonts ?? [];
+  const ff = branding.typography?.fontFamilies ?? {};
+  const headingFamily = normalize(ff.heading);
+  const bodyFamilies = new Set(
+    [ff.primary, ff.body].map(normalize).filter((s): s is string => !!s)
+  );
+
+  return fonts.map((f) => {
+    const key = normalize(f.family);
+    if (!key) return f;
+    if (headingFamily && key === headingFamily) return { ...f, role: "heading" };
+    if (bodyFamilies.has(key)) return { ...f, role: "body" };
+    return f;
+  });
+}
+
+function normalize(s: string | undefined): string | undefined {
+  if (!s) return undefined;
+  // Strip quotes + fallback stack ("Halyard Display", sans-serif → halyard display)
+  return s
+    .split(",")[0]
+    .replace(/['"]/g, "")
+    .trim()
+    .toLowerCase();
 }

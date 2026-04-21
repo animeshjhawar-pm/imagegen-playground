@@ -5,10 +5,12 @@ import { usePlayground } from "@/context/PlaygroundContext";
 import {
   IMAGE_TYPES_BY_PAGE,
   IMAGE_TYPE_LABELS,
+  PIPELINES,
   type PageType,
   type ImageType,
 } from "@/config/pipelines";
 import { ImportClientDialog } from "./ImportClientDialog";
+import { ExportCsvDialog } from "./ExportCsvDialog";
 
 const PAGE_TYPE_OPTIONS: { value: PageType; label: string }[] = [
   { value: "blog",     label: "Blog" },
@@ -25,6 +27,8 @@ export function TopControlBar({ onRunAll, isRunningAll }: TopControlBarProps) {
   const { state, dispatch } = usePlayground();
   const { pageType, imageType, clients } = state;
   const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const pipeline = pageType && imageType ? PIPELINES[`${pageType}:${imageType}`] : null;
 
   const imageTypeOptions = pageType ? IMAGE_TYPES_BY_PAGE[pageType] : [];
   const hasSelection    = pageType !== null && imageType !== null;
@@ -119,6 +123,26 @@ export function TopControlBar({ onRunAll, isRunningAll }: TopControlBarProps) {
         + Add Blank
       </button>
 
+      {/* Export CSV — opens dialog to pick clients / steps / flows. */}
+      <button
+        onClick={() => setExportOpen(true)}
+        disabled={!hasSelection || clients.length === 0}
+        title={
+          !hasSelection
+            ? "Select Page Type and Image Type first"
+            : clients.length === 0
+              ? "Add at least one client first"
+              : "Pick which clients, steps, and flows to include in the CSV"
+        }
+        className="px-3 py-1.5 text-sm rounded
+          border border-neutral-700 bg-neutral-800
+          text-neutral-300 hover:text-violet-300 hover:border-violet-600/50 hover:bg-neutral-700
+          disabled:opacity-40 disabled:cursor-not-allowed
+          transition-colors"
+      >
+        ⤓ Export CSV
+      </button>
+
       {/* Run All — violet primary CTA */}
       <button
         onClick={onRunAll}
@@ -138,6 +162,15 @@ export function TopControlBar({ onRunAll, isRunningAll }: TopControlBarProps) {
           dispatch({ type: "IMPORT_CLIENTS", seeds });
           setImportOpen(false);
         }}
+      />
+
+      <ExportCsvDialog
+        isOpen={exportOpen}
+        clients={clients}
+        pipeline={pipeline}
+        pageType={pageType}
+        imageType={imageType}
+        onCancel={() => setExportOpen(false)}
       />
     </div>
   );

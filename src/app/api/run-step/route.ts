@@ -18,6 +18,13 @@ import { scrapeClientSite } from "@/lib/providers/firecrawl";
 import { callPortkey, callPortkeyStoredPrompt } from "@/lib/providers/portkey";
 import { generateImage } from "@/lib/providers/replicate";
 import { prepareLLMVars } from "@/lib/prepareLLMVars";
+import { truncateToTokenBudget } from "@/lib/tokenBudget";
+
+/** Max tokens to send the Step-2 (extract_graphic_token) LLM as page markdown.
+ *  Claude Sonnet's context window is ~200K — we leave headroom for system
+ *  prompt + branding JSON + response. 150K is generous for well-structured
+ *  marketing pages; truncation triggers only for pathological cases. */
+const GRAPHIC_TOKEN_MARKDOWN_MAX_TOKENS = 150_000;
 
 interface RunStepRequest {
   pageType: string;
@@ -38,6 +45,8 @@ interface RunStepResponse {
   output: string;
   status: "completed" | "failed";
   error?: string;
+  /** Non-fatal notice (e.g. "markdown truncated to fit 150K-token limit"). */
+  warning?: string;
   completedAt: string;
 }
 
@@ -49,8 +58,13 @@ function now(): string {
   return new Date().toISOString();
 }
 
-function ok(output: string): NextResponse<RunStepResponse> {
-  return NextResponse.json({ output, status: "completed", completedAt: now() });
+function ok(output: string, warning?: string): NextResponse<RunStepResponse> {
+  return NextResponse.json({
+    output,
+    status: "completed",
+    ...(warning ? { warning } : {}),
+    completedAt: now(),
+  });
 }
 
 function fail(error: string): NextResponse<RunStepResponse> {
@@ -171,9 +185,24 @@ async function runLiveStep(
     case "generate_image_description":
     case "generate_placeholder_description":
     case "build_image_prompt": {
+      // Cap Step 2's `markdown` input so a pathologically large scrape
+      // (WordPress pages can hit multi-MB) doesn't blow the LLM context.
+      // Other steps aren't at risk — they take short derived strings.
+      let truncationWarning: string | null = null;
+      const effectiveInputs = { ...inputs };
+      if (stepName === "extract_graphic_token" && effectiveInputs["markdown"]) {
+        const { text, warning } = truncateToTokenBudget(
+          effectiveInputs["markdown"],
+          GRAPHIC_TOKEN_MARKDOWN_MAX_TOKENS,
+          "Page markdown"
+        );
+        effectiveInputs["markdown"] = text;
+        truncationWarning = warning;
+      }
+
       // Derived vars (e.g. brand_lines from graphic_token JSON) are available
       // to both system + user prompt templates.
-      const vars = prepareLLMVars(inputs);
+      const vars = prepareLLMVars(effectiveInputs);
 
       const systemTemplate =
         (flowType === "new" ? stepDef.systemPromptNew : stepDef.systemPromptOld) ?? "";
@@ -200,7 +229,7 @@ async function runLiveStep(
         userPromptOverride ??
         (stepDef.userPromptTemplate
           ? interpolate(stepDef.userPromptTemplate, vars)
-          : Object.entries(inputs)
+          : Object.entries(effectiveInputs)
               .map(([k, v]) => `${k}:\n${v}`)
               .join("\n\n"));
 
@@ -220,7 +249,7 @@ async function runLiveStep(
         maxTokens: 64000,
         metadata,
       });
-      return ok(result.text);
+      return ok(result.text, truncationWarning ?? undefined);
     }
 
     case "generate_image": {
@@ -281,15 +310,56 @@ function buildMockOutput(
   switch (stepName) {
     case "scrape_client_site": {
       const url = inputs["client_homepage_url"] || "https://example.com";
+      const host = (() => {
+        try { return new URL(url).hostname; } catch { return "example.com"; }
+      })();
       return JSON.stringify({
-        clean_html: `<html><head><title>Example Corp</title></head><body><h1>Welcome to Example Corp</h1><p>We provide professional B2B services.</p></body></html>`,
-        branding_json: {
-          primary_color: "#0066CC",
-          secondary_color: "#003D7A",
-          font: "Inter",
-          logo_url: `${url}/logo.png`,
-          brand_name: "Example Corp",
+        branding: {
+          colorScheme: "light",
+          logo: `https://${host}/assets/logo.svg`,
+          colors: {
+            primary: "#2A4B7C",
+            secondary: "#F2A341",
+            accent: "#E63946",
+            background: "#FAFAFA",
+            textPrimary: "#1A1A2E",
+            textSecondary: "#4A4A68",
+            link: "#2A4B7C",
+          },
+          fonts: [
+            { family: "Source Serif Pro", role: "heading" },
+            { family: "Source Sans Pro", role: "body" },
+          ],
+          typography: {
+            fontFamilies: {
+              primary: "Source Sans Pro",
+              heading: "Source Serif Pro",
+            },
+            fontSizes: { h1: "48px", h2: "36px", body: "16px" },
+            fontWeights: { regular: 400, bold: 700 },
+          },
+          spacing: { baseUnit: 8, borderRadius: "6px" },
+          components: {
+            buttonPrimary: { background: "#2A4B7C", textColor: "#FFFFFF", borderRadius: "6px" },
+          },
+          images: {
+            logo: `https://${host}/assets/logo.svg`,
+            favicon: `https://${host}/favicon.ico`,
+          },
+          personality: {
+            tone: "professional",
+            energy: "calm",
+            targetAudience: "enterprise B2B",
+          },
         },
+        metadata: {
+          title: `${host} — Mock Page`,
+          ogTitle: `${host}`,
+          ogSiteName: host,
+          favicon: `https://${host}/favicon.ico`,
+          sourceURL: url,
+        },
+        markdown: `# ${host}\n\nMock scrape output for dry-run mode. Toggle off "Dry run" to call Firecrawl for real.`,
       });
     }
 

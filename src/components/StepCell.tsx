@@ -178,7 +178,7 @@ export function StepCell({
       });
       if (controller.signal.aborted) return; // Aborted — abort handler already dispatched.
       if (result.status === "completed") {
-        dispatch({ type: "SET_STEP_RUN_OUTPUT", clientId, flowType, stepName: step.name, output: result.output });
+        dispatch({ type: "SET_STEP_RUN_OUTPUT", clientId, flowType, stepName: step.name, output: result.output, warning: result.warning });
       } else {
         dispatch({ type: "SET_STEP_ERROR", clientId, flowType, stepName: step.name, error: result.error ?? "Unknown error" });
       }
@@ -346,6 +346,13 @@ export function StepCell({
                       {stepState.error ?? stepState.output ?? "Unknown error"}
                     </div>
                   </div>
+                </div>
+              )}
+
+              {!isFailed && stepState.warning && (
+                <div className="flex items-start gap-2 px-2 py-1.5 bg-amber-900/20 border border-amber-700/40 rounded text-amber-200 text-[10px]">
+                  <span aria-hidden="true" className="mt-[1px]">⚠</span>
+                  <span className="font-mono break-all">{stepState.warning}</span>
                 </div>
               )}
 

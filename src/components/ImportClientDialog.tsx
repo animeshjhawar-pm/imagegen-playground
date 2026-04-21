@@ -10,7 +10,7 @@ interface ImportClientDialogProps {
   onImport: (seeds: ImportedClientSeed[]) => void;
 }
 
-type Tab = "single" | "csv";
+type Tab = "single" | "csv" | "presets";
 
 // Column names the CSV importer understands. Match the client context
 // field names so they flow straight through with no remapping.
@@ -19,8 +19,9 @@ const CSV_COLUMNS = [
   "client_homepage_url",
   "company_logo_url",
   "business_context_token",
-  "clean_html",
-  "branding_json",
+  "markdown",
+  "branding",
+  "metadata",
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -37,10 +38,11 @@ function downloadCsvTemplate() {
     "https://www.metrowholesalesd.com/",
     "https://cdn.shopify.com/.../logo.png",
     "Wholesale beverage and grocery distributor serving San Diego.",
-    "", // clean_html — optional; leave blank to let Firecrawl scrape
-    "", // branding_json — optional; leave blank to let Firecrawl extract
+    "", // markdown — optional; leave blank to let Firecrawl scrape
+    "", // branding — optional; leave blank to let Firecrawl extract
+    "", // metadata — optional; leave blank to let Firecrawl extract
   ].map(csvEscape).join(",");
-  const empty = ["", "", "", "", "", ""].join(",");
+  const empty = ["", "", "", "", "", "", ""].join(",");
   const csv = `${header}\n${sample}\n${empty}\n`;
 
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
@@ -120,11 +122,12 @@ function csvToSeeds(text: string): { seeds: ImportedClientSeed[]; errors: string
     if (idx.company_logo_url       >= 0 && row[idx.company_logo_url]?.trim())       context.company_logo_url       = row[idx.company_logo_url].trim();
     if (idx.business_context_token >= 0 && row[idx.business_context_token]?.trim()) context.business_context_token = row[idx.business_context_token].trim();
 
-    const cleanHtml   = idx.clean_html    >= 0 ? row[idx.clean_html] ?? ""   : "";
-    const brandingRaw = idx.branding_json >= 0 ? row[idx.branding_json] ?? "" : "";
+    const markdown    = idx.markdown >= 0 ? row[idx.markdown] ?? "" : "";
+    const brandingRaw = idx.branding >= 0 ? row[idx.branding] ?? "" : "";
+    const metadataRaw = idx.metadata >= 0 ? row[idx.metadata] ?? "" : "";
     const scrapeSeed =
-      cleanHtml.trim() || brandingRaw.trim()
-        ? { clean_html: cleanHtml, branding_json: brandingRaw }
+      markdown.trim() || brandingRaw.trim() || metadataRaw.trim()
+        ? { markdown, branding: brandingRaw, metadata: metadataRaw }
         : undefined;
 
     seeds.push({
@@ -148,8 +151,9 @@ export function ImportClientDialog({ isOpen, onCancel, onImport }: ImportClientD
   const [homepage, setHomepage]               = useState("");
   const [logoUrl, setLogoUrl]                 = useState("");
   const [businessContext, setBusinessContext] = useState("");
-  const [cleanHtml, setCleanHtml]             = useState("");
+  const [markdown, setMarkdown]               = useState("");
   const [brandingJson, setBrandingJson]       = useState("");
+  const [metadataJson, setMetadataJson]       = useState("");
   const [seedOpen, setSeedOpen]               = useState(false);
   const [singleError, setSingleError]         = useState<string | null>(null);
   // Advanced stormbreaker variables — populated when a Preset client is
@@ -162,13 +166,53 @@ export function ImportClientDialog({ isOpen, onCancel, onImport }: ImportClientD
   const [csvSeeds, setCsvSeeds]         = useState<ImportedClientSeed[]>([]);
   const [csvErrors, setCsvErrors]       = useState<string[]>([]);
 
+  // Preset multi-select state — slugs of client samples the user has checked.
+  const [selectedPresetSlugs, setSelectedPresetSlugs] =
+    useState<Set<string>>(new Set());
+
   function resetAll() {
     setName(""); setHomepage(""); setLogoUrl("");
-    setBusinessContext(""); setCleanHtml(""); setBrandingJson("");
+    setBusinessContext(""); setMarkdown(""); setBrandingJson(""); setMetadataJson("");
     setSeedOpen(false); setSingleError(null);
     setAdvanced({});
     setCsvFilename(""); setCsvSeeds([]); setCsvErrors([]);
+    setSelectedPresetSlugs(new Set());
     setTab("single");
+  }
+
+  function togglePreset(slug: string) {
+    setSelectedPresetSlugs((prev) => {
+      const next = new Set(prev);
+      if (next.has(slug)) next.delete(slug); else next.add(slug);
+      return next;
+    });
+  }
+
+  function handlePresetsImport() {
+    if (selectedPresetSlugs.size === 0) return;
+    const seeds: ImportedClientSeed[] = [];
+    for (const slug of selectedPresetSlugs) {
+      const sample = getClientSampleBySlug(slug);
+      if (!sample) continue;
+      const context: Record<string, string> = {
+        client_homepage_url:      sample.url,
+        company_logo_url:         sample.primaryLogoUrl,
+        business_context_token:
+          sample.sampleServiceTopic ||
+          sample.sampleCategoryTopic ||
+          sample.sampleBlogTopic ||
+          "",
+        design_tokens_json:       sample.designTokensJson,
+        company_info_json:        sample.companyInfoJson,
+        paa_data_json:            sample.paaDataJson,
+        service_catalog_json:     sample.serviceCatalogJson,
+        product_information_json: sample.productInformationJson,
+      };
+      seeds.push({ name: sample.name, context });
+    }
+    if (seeds.length === 0) return;
+    onImport(seeds);
+    resetAll();
   }
 
   function handleCancel() {
@@ -185,6 +229,10 @@ export function ImportClientDialog({ isOpen, onCancel, onImport }: ImportClientD
       try { JSON.parse(brandingJson); }
       catch { setSingleError("Branding JSON is not valid JSON."); return; }
     }
+    if (metadataJson.trim()) {
+      try { JSON.parse(metadataJson); }
+      catch { setSingleError("Metadata JSON is not valid JSON."); return; }
+    }
     const context: Record<string, string> = { client_homepage_url: homepage.trim() };
     if (logoUrl.trim())         context.company_logo_url       = logoUrl.trim();
     if (businessContext.trim()) context.business_context_token = businessContext.trim();
@@ -194,8 +242,12 @@ export function ImportClientDialog({ isOpen, onCancel, onImport }: ImportClientD
     }
 
     const scrapeSeed =
-      cleanHtml.trim() || brandingJson.trim()
-        ? { clean_html: cleanHtml, branding_json: brandingJson || "{}" }
+      markdown.trim() || brandingJson.trim() || metadataJson.trim()
+        ? {
+            markdown,
+            branding: brandingJson || "{}",
+            metadata: metadataJson || "{}",
+          }
         : undefined;
 
     onImport([{ name: name.trim(), context, scrapeSeed }]);
@@ -251,12 +303,65 @@ export function ImportClientDialog({ isOpen, onCancel, onImport }: ImportClientD
           <h2 className="text-sm font-semibold text-neutral-100">Import Clients</h2>
           <div className="flex-1" />
           {TAB_BTN("single", "Single Client")}
+          {TAB_BTN("presets", "Presets")}
           {TAB_BTN("csv", "Bulk CSV")}
         </div>
 
         {/* Body */}
         <div className="px-5 py-4 overflow-auto flex-1">
-          {tab === "single" ? (
+          {tab === "presets" ? (
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-neutral-400">
+                  Pick one or more of the 10 real prod clients. Each becomes its own client row, pre-filled with design tokens, company info, service catalog, PAA, and products.
+                </p>
+                <div className="flex items-center gap-2 shrink-0 ml-3">
+                  <button
+                    onClick={() => setSelectedPresetSlugs(new Set(CLIENT_SAMPLES.map((s) => s.slug)))}
+                    className="text-[11px] text-violet-300 hover:text-violet-200"
+                  >
+                    Select all
+                  </button>
+                  <span className="text-neutral-700">·</span>
+                  <button
+                    onClick={() => setSelectedPresetSlugs(new Set())}
+                    className="text-[11px] text-neutral-400 hover:text-neutral-200"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded border border-neutral-800 bg-neutral-950/40 max-h-[340px] overflow-auto">
+                <ul className="divide-y divide-neutral-800/70">
+                  {CLIENT_SAMPLES.map((s) => {
+                    const checked = selectedPresetSlugs.has(s.slug);
+                    return (
+                      <li key={s.slug}>
+                        <label className="flex items-start gap-3 px-3 py-2 cursor-pointer hover:bg-neutral-900/60 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => togglePreset(s.slug)}
+                            className="mt-[2px] accent-violet-500"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs text-neutral-200 truncate">{s.name}</div>
+                            <div className="text-[10px] text-neutral-500 font-mono truncate">{s.url}</div>
+                          </div>
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+
+              <p className="text-[11px] text-neutral-500">
+                {selectedPresetSlugs.size} of {CLIENT_SAMPLES.length} selected.
+                Step 1 (Firecrawl scrape) will run for each when you click “Run All”.
+              </p>
+            </div>
+          ) : tab === "single" ? (
             <div className="flex flex-col gap-3">
               {/* Preset picker — fills every field with real prod data for one of the 10 sample clients. */}
               <div className="flex items-center gap-2 px-3 py-2 rounded border border-violet-900/50 bg-violet-950/20">
@@ -366,13 +471,13 @@ export function ImportClientDialog({ isOpen, onCancel, onImport }: ImportClientD
                   <div className="px-3 pb-3 flex flex-col gap-3">
                     <div className="flex flex-col gap-1">
                       <label className="text-[10px] uppercase tracking-widest text-neutral-500">
-                        Cleaned HTML / Markdown
+                        Page Markdown
                       </label>
                       <textarea
-                        value={cleanHtml}
-                        onChange={(e) => setCleanHtml(e.target.value)}
+                        value={markdown}
+                        onChange={(e) => setMarkdown(e.target.value)}
                         rows={4}
-                        placeholder="Paste the scraped HTML / markdown."
+                        placeholder="Paste the scraped page markdown."
                         className={INPUT_CLASS + " resize-y"}
                       />
                     </div>
@@ -384,7 +489,19 @@ export function ImportClientDialog({ isOpen, onCancel, onImport }: ImportClientD
                         value={brandingJson}
                         onChange={(e) => setBrandingJson(e.target.value)}
                         rows={4}
-                        placeholder={'{\n  "primary_color": "#...",\n  ...\n}'}
+                        placeholder={'{\n  "colors": { "primary": "#..." },\n  "fonts": [...],\n  ...\n}'}
+                        className={INPUT_CLASS + " resize-y"}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] uppercase tracking-widest text-neutral-500">
+                        Metadata JSON
+                      </label>
+                      <textarea
+                        value={metadataJson}
+                        onChange={(e) => setMetadataJson(e.target.value)}
+                        rows={3}
+                        placeholder={'{\n  "ogTitle": "...",\n  "favicon": "..."\n}'}
                         className={INPUT_CLASS + " resize-y"}
                       />
                     </div>
@@ -405,10 +522,12 @@ export function ImportClientDialog({ isOpen, onCancel, onImport }: ImportClientD
                 (required),{" "}
                 <code className="text-violet-300 text-[11px]">company_logo_url</code>,{" "}
                 <code className="text-violet-300 text-[11px]">business_context_token</code>,{" "}
-                <code className="text-violet-300 text-[11px]">clean_html</code>,{" "}
-                <code className="text-violet-300 text-[11px]">branding_json</code>. Rows with
-                <code className="text-violet-300 text-[11px]"> clean_html</code> /
-                <code className="text-violet-300 text-[11px]"> branding_json</code> pre-seed
+                <code className="text-violet-300 text-[11px]">markdown</code>,{" "}
+                <code className="text-violet-300 text-[11px]">branding</code>,{" "}
+                <code className="text-violet-300 text-[11px]">metadata</code>. Rows with
+                <code className="text-violet-300 text-[11px]"> markdown</code> /
+                <code className="text-violet-300 text-[11px]"> branding</code> /
+                <code className="text-violet-300 text-[11px]"> metadata</code> pre-seed
                 Step 1, skipping the Firecrawl call.
               </p>
 
@@ -498,6 +617,16 @@ export function ImportClientDialog({ isOpen, onCancel, onImport }: ImportClientD
                 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               + Add Client
+            </button>
+          ) : tab === "presets" ? (
+            <button
+              onClick={handlePresetsImport}
+              disabled={selectedPresetSlugs.size === 0}
+              className="px-3 py-1.5 text-sm rounded font-medium
+                bg-violet-600 text-white hover:bg-violet-500 transition-colors
+                disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Import {selectedPresetSlugs.size || ""} client{selectedPresetSlugs.size === 1 ? "" : "s"}
             </button>
           ) : (
             <button

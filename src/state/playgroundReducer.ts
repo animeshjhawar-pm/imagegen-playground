@@ -24,6 +24,8 @@ export interface StepState {
   lastRunOutput: string;
   status: StepStatus;
   error?: string;
+  /** Non-fatal notice surfaced alongside a successful output (e.g. input truncation). */
+  warning?: string;
   /** Fix 2: renamed from isManualOverride. True when user edited the output manually. */
   isOutputOverride: boolean;
   /** When set, both system + user prompts are sent literally (no template interpolation). */
@@ -158,8 +160,9 @@ export interface ImportedClientSeed {
   context: Record<string, string>;
   /** Optional: pre-populate Step 1 (scrape_client_site) output in newFlow. */
   scrapeSeed?: {
-    clean_html: string;
-    branding_json: Record<string, unknown> | string;
+    markdown: string;
+    branding: Record<string, unknown> | string;
+    metadata?: Record<string, unknown> | string;
   };
 }
 
@@ -205,6 +208,8 @@ export type PlaygroundAction =
       flowType: "old" | "new";
       stepName: string;
       output: string;
+      /** Non-fatal server notice to surface alongside the output. */
+      warning?: string;
     }
   | {
       type: "SET_STEP_STATUS";
@@ -320,11 +325,14 @@ export function playgroundReducer(
 
         let newFlow = base.newFlow;
         if (seed.scrapeSeed) {
-          const bjRaw = seed.scrapeSeed.branding_json;
-          const bjObj = typeof bjRaw === "string" ? safeParseJson(bjRaw) : bjRaw;
+          const bRaw = seed.scrapeSeed.branding;
+          const bObj = typeof bRaw === "string" ? safeParseJson(bRaw) : bRaw;
+          const mRaw = seed.scrapeSeed.metadata;
+          const mObj = typeof mRaw === "string" ? safeParseJson(mRaw) : mRaw;
           const payload = JSON.stringify({
-            clean_html: seed.scrapeSeed.clean_html,
-            branding_json: bjObj ?? {},
+            branding: bObj ?? {},
+            metadata: mObj ?? {},
+            markdown: seed.scrapeSeed.markdown,
           });
           newFlow = updateFlowStep(newFlow, "scrape_client_site", (s) => ({
             ...s,
@@ -436,6 +444,7 @@ export function playgroundReducer(
             status: "completed",
             isOutputOverride: false,
             error: undefined,
+            warning: action.warning,
           })),
         };
       });
@@ -448,7 +457,7 @@ export function playgroundReducer(
           [flowKey]: updateFlowStep(c[flowKey], action.stepName, (s) => ({
             ...s,
             status: action.status,
-            ...(action.status === "running" ? { error: undefined } : {}),
+            ...(action.status === "running" ? { error: undefined, warning: undefined } : {}),
           })),
         };
       });

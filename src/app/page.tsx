@@ -22,94 +22,144 @@ export default function PlaygroundPage() {
 
 function PlaygroundInner() {
   const { state, dispatch, isDryRun } = usePlayground();
-  const [isRunningAll, setIsRunningAll] = useState(false);
+  // null = idle; "all" = full Run All in flight; otherwise the step-name
+  // being batched across all clients. Mutually exclusive so the UI can't
+  // fire two parallel run waves over the same steps.
+  const [runningScope, setRunningScope] = useState<null | "all" | string>(null);
   const [pendingConfirm, setPendingConfirm] = useState<{
     stepCount: number;
     estimatedCost: number;
+    /** What to execute when the user confirms. */
+    onConfirm: () => void;
   } | null>(null);
 
   const { pageType, imageType, clients } = state;
   const hasSelection = pageType !== null && imageType !== null;
+  const isRunning = runningScope !== null;
+
+  /** Execute a single step for one (client, flow) — shared between
+   *  full-pipeline run and per-step run-all. */
+  async function runOne(
+    step: (typeof PIPELINES)[string]["steps"][number],
+    client: (typeof clients)[number],
+    flowType: "old" | "new",
+    pipelineKey: string,
+    defaultAspectRatio: string
+  ): Promise<void> {
+    const diff = flowType === "old" ? step.diffOld : step.diffNew;
+    if (diff === "skipped") return;
+
+    const flow = flowType === "old" ? client.oldFlow : client.newFlow;
+    const stepState = flow.stepStates[step.name];
+    if (stepState?.isOutputOverride && stepState.output) return;
+
+    dispatch({
+      type: "SET_STEP_STATUS",
+      clientId: client.id,
+      flowType,
+      stepName: step.name,
+      status: "running",
+    });
+
+    const resolved = resolveInputs(step, client, flowType, imageType ?? undefined);
+
+    try {
+      const result = await runStep({
+        pageType: pageType!,
+        imageType: imageType!,
+        flowType,
+        step,
+        resolvedInputs: resolved,
+        aspectRatio:
+          step.name === "generate_image" ? defaultAspectRatio : undefined,
+        isDryRun,
+        clientId: client.id,
+        pipelineKey,
+      });
+
+      if (result.status === "completed") {
+        dispatch({
+          type: "SET_STEP_RUN_OUTPUT",
+          clientId: client.id,
+          flowType,
+          stepName: step.name,
+          output: result.output,
+          warning: result.warning,
+        });
+      } else {
+        dispatch({
+          type: "SET_STEP_ERROR",
+          clientId: client.id,
+          flowType,
+          stepName: step.name,
+          error: result.error ?? "Unknown error",
+        });
+      }
+    } catch (err) {
+      dispatch({
+        type: "SET_STEP_ERROR",
+        clientId: client.id,
+        flowType,
+        stepName: step.name,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
 
   async function executeRunAll() {
-    if (!hasSelection || clients.length === 0 || isRunningAll) return;
+    if (!hasSelection || clients.length === 0 || isRunning) return;
     const pipeline = PIPELINES[`${pageType}:${imageType}`];
     if (!pipeline) return;
 
     const pipelineKey = `${pageType}:${imageType}`;
 
-    setIsRunningAll(true);
+    setRunningScope("all");
     try {
-      for (const client of clients) {
-        for (const flowType of ["old", "new"] as const) {
-          for (const step of pipeline.steps) {
-            const diff = flowType === "old" ? step.diffOld : step.diffNew;
-            if (diff === "skipped") continue;
-
-            const flow = flowType === "old" ? client.oldFlow : client.newFlow;
-            const stepState = flow.stepStates[step.name];
-            if (stepState?.isOutputOverride && stepState.output) continue;
-
-            dispatch({
-              type: "SET_STEP_STATUS",
-              clientId: client.id,
-              flowType,
-              stepName: step.name,
-              status: "running",
-            });
-
-            const resolved = resolveInputs(step, client, flowType, imageType ?? undefined);
-
-            try {
-              const result = await runStep({
-                pageType: pageType!,
-                imageType: imageType!,
-                flowType,
-                step,
-                resolvedInputs: resolved,
-                aspectRatio:
-                  step.name === "generate_image" ? pipeline.defaultAspectRatio : undefined,
-                isDryRun,
-                clientId: client.id,
-                pipelineKey,
-              });
-
-              if (result.status === "completed") {
-                dispatch({
-                  type: "SET_STEP_RUN_OUTPUT",
-                  clientId: client.id,
-                  flowType,
-                  stepName: step.name,
-                  output: result.output,
-                });
-              } else {
-                dispatch({
-                  type: "SET_STEP_ERROR",
-                  clientId: client.id,
-                  flowType,
-                  stepName: step.name,
-                  error: result.error ?? "Unknown error",
-                });
+      // Clients parallel, flows parallel, steps serial (Step N+1 reads
+      // Step N's output via resolveInputs).
+      await Promise.all(
+        clients.map((client) =>
+          Promise.all(
+            (["old", "new"] as const).map(async (flowType) => {
+              for (const step of pipeline.steps) {
+                await runOne(step, client, flowType, pipelineKey, pipeline.defaultAspectRatio);
               }
-            } catch (err) {
-              dispatch({
-                type: "SET_STEP_ERROR",
-                clientId: client.id,
-                flowType,
-                stepName: step.name,
-                error: err instanceof Error ? err.message : String(err),
-              });
-            }
-          }
-        }
-      }
+            })
+          )
+        )
+      );
     } finally {
-      setIsRunningAll(false);
+      setRunningScope(null);
+    }
+  }
+
+  async function executeRunStep(stepName: string) {
+    if (!hasSelection || clients.length === 0 || isRunning) return;
+    const pipeline = PIPELINES[`${pageType}:${imageType}`];
+    if (!pipeline) return;
+    const step = pipeline.steps.find((s) => s.name === stepName);
+    if (!step) return;
+
+    const pipelineKey = `${pageType}:${imageType}`;
+
+    setRunningScope(stepName);
+    try {
+      await Promise.all(
+        clients.map((client) =>
+          Promise.all(
+            (["old", "new"] as const).map((flowType) =>
+              runOne(step, client, flowType, pipelineKey, pipeline.defaultAspectRatio)
+            )
+          )
+        )
+      );
+    } finally {
+      setRunningScope(null);
     }
   }
 
   function handleRunAll() {
-    if (!hasSelection || clients.length === 0 || isRunningAll) return;
+    if (!hasSelection || clients.length === 0 || isRunning) return;
     const pipeline = PIPELINES[`${pageType}:${imageType}`];
     if (!pipeline) return;
 
@@ -130,11 +180,40 @@ function PlaygroundInner() {
           }
         }
       }
-      setPendingConfirm({ stepCount, estimatedCost });
+      setPendingConfirm({ stepCount, estimatedCost, onConfirm: () => void executeRunAll() });
       return;
     }
 
     void executeRunAll();
+  }
+
+  function handleRunStep(stepName: string) {
+    if (!hasSelection || clients.length === 0 || isRunning) return;
+    const pipeline = PIPELINES[`${pageType}:${imageType}`];
+    if (!pipeline) return;
+    const step = pipeline.steps.find((s) => s.name === stepName);
+    if (!step) return;
+
+    if (!isDryRun) {
+      let stepCount = 0;
+      let estimatedCost = 0;
+      for (const client of clients) {
+        for (const flowType of ["old", "new"] as const) {
+          const diff = flowType === "old" ? step.diffOld : step.diffNew;
+          if (diff === "skipped") continue;
+          const flow = flowType === "old" ? client.oldFlow : client.newFlow;
+          const stepState = flow.stepStates[step.name];
+          if (stepState?.isOutputOverride && stepState.output) continue;
+          stepCount += 1;
+          estimatedCost += estimateCost(step.name);
+        }
+      }
+      if (stepCount === 0) return;
+      setPendingConfirm({ stepCount, estimatedCost, onConfirm: () => void executeRunStep(stepName) });
+      return;
+    }
+
+    void executeRunStep(stepName);
   }
 
   return (
@@ -176,11 +255,16 @@ function PlaygroundInner() {
       </header>
 
       {/* ── Control bar ────────────────────────────────────────────────────── */}
-      <TopControlBar onRunAll={handleRunAll} isRunningAll={isRunningAll} />
+      <TopControlBar onRunAll={handleRunAll} isRunningAll={isRunning} />
 
       {/* ── Main content ───────────────────────────────────────────────────── */}
       <main className="flex-1 overflow-auto flex flex-col">
-        {!hasSelection ? <EmptyState /> : <PipelineTable />}
+        {!hasSelection ? <EmptyState /> : (
+          <PipelineTable
+            onRunStep={handleRunStep}
+            runningScope={runningScope}
+          />
+        )}
       </main>
 
       {/* ── Confirm modal (live mode only) ─────────────────────────────────── */}
@@ -190,8 +274,9 @@ function PlaygroundInner() {
         estimatedCost={pendingConfirm?.estimatedCost ?? 0}
         onCancel={() => setPendingConfirm(null)}
         onConfirm={() => {
+          const next = pendingConfirm;
           setPendingConfirm(null);
-          void executeRunAll();
+          next?.onConfirm();
         }}
       />
     </div>

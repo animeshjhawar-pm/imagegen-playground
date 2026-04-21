@@ -184,7 +184,7 @@ const scrapeStep: StepDefinition = {
   name: "scrape_client_site",
   title: "Scrape Client Site",
   description:
-    "Crawls the client homepage with Firecrawl and extracts clean HTML + brand JSON. Playground-only helper for the new flow; stormbreaker reads this data from Postgres.",
+    "Crawls the client homepage with Firecrawl v2 `branding` format and returns the structured brand profile (colors, fonts, typography, logo, personality) plus page metadata and markdown. Playground-only helper for the new flow; stormbreaker reads this data from Postgres.",
   model: "firecrawl",
   provider: "firecrawl",
   diffOld: "skipped",
@@ -199,8 +199,9 @@ const scrapeStep: StepDefinition = {
   ],
   outputType: "json",
   outputFields: [
-    { name: "clean_html",    label: "Cleaned HTML",  outputType: "text" },
-    { name: "branding_json", label: "Branding JSON", outputType: "json" },
+    { name: "branding", label: "Branding", outputType: "json" },
+    { name: "metadata", label: "Metadata", outputType: "json" },
+    { name: "markdown", label: "Markdown", outputType: "text" },
   ],
 };
 
@@ -215,15 +216,15 @@ const extractGraphicTokenStep: StepDefinition = {
   diffNew: "new",
   inputs: [
     {
-      name: "clean_html",
-      label: "Clean HTML",
-      source: { kind: "step_output", stepName: "scrape_client_site", field: "clean_html" },
+      name: "markdown",
+      label: "Markdown",
+      source: { kind: "step_output", stepName: "scrape_client_site", field: "markdown" },
       required: true,
     },
     {
-      name: "branding_json",
-      label: "Branding JSON",
-      source: { kind: "step_output", stepName: "scrape_client_site", field: "branding_json" },
+      name: "branding",
+      label: "Branding",
+      source: { kind: "step_output", stepName: "scrape_client_site", field: "branding" },
       required: true,
     },
   ],
