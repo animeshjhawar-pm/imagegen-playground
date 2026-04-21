@@ -37,19 +37,25 @@ function PlaygroundInner() {
   const hasSelection = pageType !== null && imageType !== null;
   const isRunning = runningScope !== null;
 
-  /** Execute a single step for one (client, flow) — shared between
-   *  full-pipeline run and per-step run-all. */
+  /** Execute a single step for one (client, flow, lane) — shared between
+   *  full-pipeline run and per-step run-all. `flowIndex` is 0 for Old (ignored)
+   *  and 0-based lane index for New. */
   async function runOne(
     step: (typeof PIPELINES)[string]["steps"][number],
     client: (typeof clients)[number],
     flowType: "old" | "new",
+    flowIndex: number,
     pipelineKey: string,
     defaultAspectRatio: string
   ): Promise<void> {
     const diff = flowType === "old" ? step.diffOld : step.diffNew;
     if (diff === "skipped") return;
 
-    const flow = flowType === "old" ? client.oldFlow : client.newFlow;
+    const flow =
+      flowType === "old"
+        ? client.oldFlow
+        : client.newFlows[flowIndex];
+    if (!flow) return;
     const stepState = flow.stepStates[step.name];
     if (stepState?.isOutputOverride && stepState.output) return;
 
@@ -57,11 +63,12 @@ function PlaygroundInner() {
       type: "SET_STEP_STATUS",
       clientId: client.id,
       flowType,
+      flowIndex,
       stepName: step.name,
       status: "running",
     });
 
-    const resolved = resolveInputs(step, client, flowType, imageType ?? undefined);
+    const resolved = resolveInputs(step, client, flowType, imageType ?? undefined, flowIndex);
 
     try {
       const result = await runStep({
@@ -82,6 +89,7 @@ function PlaygroundInner() {
           type: "SET_STEP_RUN_OUTPUT",
           clientId: client.id,
           flowType,
+          flowIndex,
           stepName: step.name,
           output: result.output,
           warning: result.warning,
@@ -91,6 +99,7 @@ function PlaygroundInner() {
           type: "SET_STEP_ERROR",
           clientId: client.id,
           flowType,
+          flowIndex,
           stepName: step.name,
           error: result.error ?? "Unknown error",
         });
@@ -100,6 +109,7 @@ function PlaygroundInner() {
         type: "SET_STEP_ERROR",
         clientId: client.id,
         flowType,
+        flowIndex,
         stepName: step.name,
         error: err instanceof Error ? err.message : String(err),
       });
@@ -115,18 +125,22 @@ function PlaygroundInner() {
 
     setRunningScope("all");
     try {
-      // Clients parallel, flows parallel, steps serial (Step N+1 reads
-      // Step N's output via resolveInputs).
+      // Clients parallel, flows parallel (Old + every New lane), steps serial
+      // (Step N+1 reads Step N's output via resolveInputs).
       await Promise.all(
-        clients.map((client) =>
-          Promise.all(
-            (["old", "new"] as const).map(async (flowType) => {
+        clients.map((client) => {
+          const lanes: Array<{ flowType: "old" | "new"; flowIndex: number }> = [
+            { flowType: "old", flowIndex: 0 },
+            ...client.newFlows.map((_, i) => ({ flowType: "new" as const, flowIndex: i })),
+          ];
+          return Promise.all(
+            lanes.map(async ({ flowType, flowIndex }) => {
               for (const step of pipeline.steps) {
-                await runOne(step, client, flowType, pipelineKey, pipeline.defaultAspectRatio);
+                await runOne(step, client, flowType, flowIndex, pipelineKey, pipeline.defaultAspectRatio);
               }
             })
-          )
-        )
+          );
+        })
       );
     } finally {
       setRunningScope(null);
@@ -145,13 +159,17 @@ function PlaygroundInner() {
     setRunningScope(stepName);
     try {
       await Promise.all(
-        clients.map((client) =>
-          Promise.all(
-            (["old", "new"] as const).map((flowType) =>
-              runOne(step, client, flowType, pipelineKey, pipeline.defaultAspectRatio)
+        clients.map((client) => {
+          const lanes: Array<{ flowType: "old" | "new"; flowIndex: number }> = [
+            { flowType: "old", flowIndex: 0 },
+            ...client.newFlows.map((_, i) => ({ flowType: "new" as const, flowIndex: i })),
+          ];
+          return Promise.all(
+            lanes.map(({ flowType, flowIndex }) =>
+              runOne(step, client, flowType, flowIndex, pipelineKey, pipeline.defaultAspectRatio)
             )
-          )
-        )
+          );
+        })
       );
     } finally {
       setRunningScope(null);
@@ -168,11 +186,14 @@ function PlaygroundInner() {
       let stepCount = 0;
       let estimatedCost = 0;
       for (const client of clients) {
-        for (const flowType of ["old", "new"] as const) {
+        const lanes: Array<{ flowType: "old" | "new"; flow: typeof client.oldFlow }> = [
+          { flowType: "old", flow: client.oldFlow },
+          ...client.newFlows.map((f) => ({ flowType: "new" as const, flow: f })),
+        ];
+        for (const { flowType, flow } of lanes) {
           for (const step of pipeline.steps) {
             const diff = flowType === "old" ? step.diffOld : step.diffNew;
             if (diff === "skipped") continue;
-            const flow = flowType === "old" ? client.oldFlow : client.newFlow;
             const stepState = flow.stepStates[step.name];
             if (stepState?.isOutputOverride && stepState.output) continue;
             stepCount += 1;
@@ -198,10 +219,13 @@ function PlaygroundInner() {
       let stepCount = 0;
       let estimatedCost = 0;
       for (const client of clients) {
-        for (const flowType of ["old", "new"] as const) {
+        const lanes: Array<{ flowType: "old" | "new"; flow: typeof client.oldFlow }> = [
+          { flowType: "old", flow: client.oldFlow },
+          ...client.newFlows.map((f) => ({ flowType: "new" as const, flow: f })),
+        ];
+        for (const { flowType, flow } of lanes) {
           const diff = flowType === "old" ? step.diffOld : step.diffNew;
           if (diff === "skipped") continue;
-          const flow = flowType === "old" ? client.oldFlow : client.newFlow;
           const stepState = flow.stepStates[step.name];
           if (stepState?.isOutputOverride && stepState.output) continue;
           stepCount += 1;

@@ -43,11 +43,29 @@ function flowStepSummary(
   return `${done}/${stepNames.length}`;
 }
 
+/** Aggregate completion across every new-flow lane. */
+function newFlowsSummary(
+  flows: ClientState["newFlows"],
+  stepNames: string[]
+): string {
+  if (flows.length === 0) return "0/0";
+  const totalCells = stepNames.length * flows.length;
+  let done = 0;
+  for (const flow of flows) {
+    for (const n of stepNames) {
+      if (flow.stepStates[n]?.status === "completed") done += 1;
+    }
+  }
+  return `${done}/${totalCells}`;
+}
+
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
 interface ClientGroupProps {
   client: ClientState;
+  /** Display-only 1-based position in the client list (prefixed to the name). */
+  position: number;
   pipeline: PipelineDefinition;
   pageType: PageType;
   imageType: ImageType;
@@ -59,7 +77,7 @@ interface ClientGroupProps {
 // Component
 // ---------------------------------------------------------------------------
 export function ClientGroup({
-  client, pipeline, pageType, imageType, colSpan, isLastAdded,
+  client, position, pipeline, pageType, imageType, colSpan, isLastAdded,
 }: ClientGroupProps) {
   const { dispatch } = usePlayground();
   const [editingName, setEditingName] = useState(false);
@@ -77,7 +95,8 @@ export function ClientGroup({
 
   const stepNames = pipeline.steps.map((s) => s.name);
   const oldSummary = flowStepSummary(client.oldFlow, stepNames);
-  const newSummary = flowStepSummary(client.newFlow, stepNames);
+  const newSummary = newFlowsSummary(client.newFlows, stepNames);
+  const laneCount = client.newFlows.length;
 
   // Fix 3: count filled context fields for the panel header badge
   const filledCtx = pipeline.clientContextFields.filter(
@@ -132,7 +151,10 @@ export function ClientGroup({
                   text-neutral-100 hover:text-violet-300 transition-colors"
                 title="Click to rename"
               >
-                {client.name}
+                <span className="text-neutral-500 font-mono text-base tabular-nums">
+                  {position}.
+                </span>
+                <span>{client.name}</span>
                 {/* pencil icon — visible on hover */}
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
                   className="w-3.5 h-3.5 text-neutral-600 group-hover:text-violet-400 transition-colors">
@@ -209,11 +231,43 @@ export function ClientGroup({
             </tr>
           )}
 
-          {/* Old + New flow rows */}
+          {/* Old flow — always exactly one lane. */}
           <FlowRow flowType="old" client={client} pipeline={pipeline}
             pageType={pageType} imageType={imageType} />
-          <FlowRow flowType="new" client={client} pipeline={pipeline}
-            pageType={pageType} imageType={imageType} />
+
+          {/* New flow lanes — one row per entry in client.newFlows.
+           *  The last lane's label carries the "+ Add lane" button. */}
+          {client.newFlows.map((_, idx) => {
+            const isLast = idx === laneCount - 1;
+            return (
+              <FlowRow
+                key={`new-${idx}`}
+                flowType="new"
+                flowIndex={idx}
+                client={client}
+                pipeline={pipeline}
+                pageType={pageType}
+                imageType={imageType}
+                labelAdornment={
+                  isLast ? (
+                    <button
+                      onClick={() => dispatch({ type: "ADD_NEW_FLOW", clientId: client.id })}
+                      title={`Add another New lane (will be labeled "New ${laneCount + 1}")`}
+                      aria-label="Add another new flow lane"
+                      className="w-5 h-5 flex items-center justify-center rounded
+                        text-indigo-400 hover:text-indigo-200 hover:bg-indigo-900/40
+                        border border-dashed border-indigo-900/60 transition-colors"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
+                        className="w-3 h-3">
+                        <path d="M8 2a.75.75 0 01.75.75V7.25h4.5a.75.75 0 010 1.5h-4.5v4.5a.75.75 0 01-1.5 0v-4.5h-4.5a.75.75 0 010-1.5h4.5V2.75A.75.75 0 018 2z" />
+                      </svg>
+                    </button>
+                  ) : null
+                }
+              />
+            );
+          })}
         </>
       )}
     </>

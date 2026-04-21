@@ -41,7 +41,10 @@ export interface ClientState {
   name: string;
   context: Record<string, string>;
   oldFlow: FlowState;
-  newFlow: FlowState;
+  /** One or more "New"-flow lanes. Index 0 is the original "New"; index 1
+   *  is "New 2", etc. Users can stack additional new flows per client to
+   *  compare prompt/flow variants side-by-side. Old flow stays singleton. */
+  newFlows: FlowState[];
   /** Chevron A — collapse entire client group (header + context + flow rows). */
   isCollapsed: boolean;
   /** Chevron B — collapse only the context panel. */
@@ -101,7 +104,7 @@ function makeNewClient(
     name,
     context: pipeline ? makeDefaultContext(pipeline) : {},
     oldFlow: pipeline ? makeEmptyFlowState(pipeline) : empty,
-    newFlow: pipeline ? makeEmptyFlowState(pipeline) : empty,
+    newFlows: [pipeline ? makeEmptyFlowState(pipeline) : empty],
     isCollapsed: false,
     isContextCollapsed: false,
   };
@@ -116,11 +119,14 @@ function getPipeline(
 }
 
 function reinitClient(client: ClientState, pipeline: PipelineDefinition): ClientState {
+  // Preserve the number of "New" lanes across pipeline switches — the user
+  // likely wants to keep comparing N variants, even if inner state is wiped.
+  const laneCount = Math.max(1, client.newFlows?.length ?? 1);
   return {
     ...client,
     context: { ...makeDefaultContext(pipeline), ...client.context },
     oldFlow: makeEmptyFlowState(pipeline),
-    newFlow: makeEmptyFlowState(pipeline),
+    newFlows: Array.from({ length: laneCount }, () => makeEmptyFlowState(pipeline)),
   };
 }
 
@@ -148,6 +154,27 @@ function updateFlowStep(
   return {
     ...flow,
     stepStates: { ...flow.stepStates, [stepName]: updater(existing) },
+  };
+}
+
+/** Dispatch a step-state update to either `oldFlow` or a specific
+ *  `newFlows[flowIndex]` lane, based on the action's flowType/flowIndex. */
+function updateTargetFlow(
+  client: ClientState,
+  flowType: "old" | "new",
+  flowIndex: number | undefined,
+  stepName: string,
+  updater: (s: StepState) => StepState
+): ClientState {
+  if (flowType === "old") {
+    return { ...client, oldFlow: updateFlowStep(client.oldFlow, stepName, updater) };
+  }
+  const idx = flowIndex ?? 0;
+  return {
+    ...client,
+    newFlows: client.newFlows.map((f, i) =>
+      i === idx ? updateFlowStep(f, stepName, updater) : f
+    ),
   };
 }
 
@@ -181,6 +208,8 @@ export type PlaygroundAction =
       type: "UPDATE_STEP_INPUT";
       clientId: string;
       flowType: "old" | "new";
+      /** For flowType "new", which lane (0 = original, 1 = "New 2", …). Ignored for "old". */
+      flowIndex?: number;
       stepName: string;
       inputName: string;
       value: string;
@@ -190,6 +219,8 @@ export type PlaygroundAction =
       type: "RESET_STEP_INPUT_OVERRIDE";
       clientId: string;
       flowType: "old" | "new";
+      /** For flowType "new", which lane (0 = original, 1 = "New 2", …). Ignored for "old". */
+      flowIndex?: number;
       stepName: string;
       inputName: string;
     }
@@ -198,6 +229,8 @@ export type PlaygroundAction =
       type: "UPDATE_STEP_OUTPUT";
       clientId: string;
       flowType: "old" | "new";
+      /** For flowType "new", which lane (0 = original, 1 = "New 2", …). Ignored for "old". */
+      flowIndex?: number;
       stepName: string;
       output: string;
     }
@@ -206,6 +239,8 @@ export type PlaygroundAction =
       type: "SET_STEP_RUN_OUTPUT";
       clientId: string;
       flowType: "old" | "new";
+      /** For flowType "new", which lane (0 = original, 1 = "New 2", …). Ignored for "old". */
+      flowIndex?: number;
       stepName: string;
       output: string;
       /** Non-fatal server notice to surface alongside the output. */
@@ -215,6 +250,8 @@ export type PlaygroundAction =
       type: "SET_STEP_STATUS";
       clientId: string;
       flowType: "old" | "new";
+      /** For flowType "new", which lane (0 = original, 1 = "New 2", …). Ignored for "old". */
+      flowIndex?: number;
       stepName: string;
       status: StepStatus;
     }
@@ -222,15 +259,30 @@ export type PlaygroundAction =
       type: "SET_STEP_ERROR";
       clientId: string;
       flowType: "old" | "new";
+      /** For flowType "new", which lane (0 = original, 1 = "New 2", …). Ignored for "old". */
+      flowIndex?: number;
       stepName: string;
       error: string;
     }
-  | { type: "RESET_STEP"; clientId: string; flowType: "old" | "new"; stepName: string }
+  | {
+      type: "RESET_STEP";
+      clientId: string;
+      flowType: "old" | "new";
+      flowIndex?: number;
+      stepName: string;
+    }
+  | {
+      /** Appends a new empty lane to client.newFlows. Old flow can't be multiplied. */
+      type: "ADD_NEW_FLOW";
+      clientId: string;
+    }
   | {
       /** Clears isOutputOverride and restores lastRunOutput. */
       type: "RESET_STEP_OVERRIDE";
       clientId: string;
       flowType: "old" | "new";
+      /** For flowType "new", which lane (0 = original, 1 = "New 2", …). Ignored for "old". */
+      flowIndex?: number;
       stepName: string;
     }
   | {
@@ -238,6 +290,8 @@ export type PlaygroundAction =
       type: "SET_STEP_PROMPT_OVERRIDE";
       clientId: string;
       flowType: "old" | "new";
+      /** For flowType "new", which lane (0 = original, 1 = "New 2", …). Ignored for "old". */
+      flowIndex?: number;
       stepName: string;
       systemPrompt: string;
       userPrompt: string;
@@ -247,6 +301,8 @@ export type PlaygroundAction =
       type: "RESET_STEP_PROMPT_OVERRIDE";
       clientId: string;
       flowType: "old" | "new";
+      /** For flowType "new", which lane (0 = original, 1 = "New 2", …). Ignored for "old". */
+      flowIndex?: number;
       stepName: string;
     };
 
@@ -280,7 +336,7 @@ export function playgroundReducer(
         clients: state.clients.map((c) => ({
           ...c,
           oldFlow: { stepStates: {} },
-          newFlow: { stepStates: {} },
+          newFlows: c.newFlows.map(() => ({ stepStates: {} })),
         })),
       };
 
@@ -323,7 +379,7 @@ export function playgroundReducer(
           ),
         };
 
-        let newFlow = base.newFlow;
+        let newFlows = base.newFlows;
         if (seed.scrapeSeed) {
           const bRaw = seed.scrapeSeed.branding;
           const bObj = typeof bRaw === "string" ? safeParseJson(bRaw) : bRaw;
@@ -334,17 +390,22 @@ export function playgroundReducer(
             metadata: mObj ?? {},
             markdown: seed.scrapeSeed.markdown,
           });
-          newFlow = updateFlowStep(newFlow, "scrape_client_site", (s) => ({
-            ...s,
-            output: payload,
-            lastRunOutput: payload,
-            status: "completed",
-            isOutputOverride: false,
-            error: undefined,
-          }));
+          // Seed the primary lane (index 0) only.
+          newFlows = newFlows.map((f, i) =>
+            i === 0
+              ? updateFlowStep(f, "scrape_client_site", (s) => ({
+                  ...s,
+                  output: payload,
+                  lastRunOutput: payload,
+                  status: "completed",
+                  isOutputOverride: false,
+                  error: undefined,
+                }))
+              : f
+          );
         }
 
-        return { ...base, context: mergedContext, newFlow };
+        return { ...base, context: mergedContext, newFlows };
       });
 
       return {
@@ -389,142 +450,111 @@ export function playgroundReducer(
 
     // Fix 2: mark this specific input as manually overridden
     case "UPDATE_STEP_INPUT":
-      return updateClient(state, action.clientId, (c) => {
-        const flowKey = action.flowType === "old" ? "oldFlow" : "newFlow";
-        return {
-          ...c,
-          [flowKey]: updateFlowStep(c[flowKey], action.stepName, (s) => ({
-            ...s,
-            inputs: { ...s.inputs, [action.inputName]: action.value },
-            inputOverrides: { ...s.inputOverrides, [action.inputName]: true },
-          })),
-        };
-      });
+      return updateClient(state, action.clientId, (c) =>
+        updateTargetFlow(c, action.flowType, action.flowIndex, action.stepName, (s) => ({
+          ...s,
+          inputs: { ...s.inputs, [action.inputName]: action.value },
+          inputOverrides: { ...s.inputOverrides, [action.inputName]: true },
+        }))
+      );
 
     // Fix 2: clear the override for a specific input
     case "RESET_STEP_INPUT_OVERRIDE":
-      return updateClient(state, action.clientId, (c) => {
-        const flowKey = action.flowType === "old" ? "oldFlow" : "newFlow";
-        return {
-          ...c,
-          [flowKey]: updateFlowStep(c[flowKey], action.stepName, (s) => ({
-            ...s,
-            inputs: { ...s.inputs, [action.inputName]: "" },
-            inputOverrides: { ...s.inputOverrides, [action.inputName]: false },
-          })),
-        };
-      });
+      return updateClient(state, action.clientId, (c) =>
+        updateTargetFlow(c, action.flowType, action.flowIndex, action.stepName, (s) => ({
+          ...s,
+          inputs: { ...s.inputs, [action.inputName]: "" },
+          inputOverrides: { ...s.inputOverrides, [action.inputName]: false },
+        }))
+      );
 
     // User manually edited the output → isOutputOverride = true
     case "UPDATE_STEP_OUTPUT":
-      return updateClient(state, action.clientId, (c) => {
-        const flowKey = action.flowType === "old" ? "oldFlow" : "newFlow";
-        return {
-          ...c,
-          [flowKey]: updateFlowStep(c[flowKey], action.stepName, (s) => ({
-            ...s,
-            output: action.output,
-            status: "completed",
-            isOutputOverride: true,
-            error: undefined,
-          })),
-        };
-      });
+      return updateClient(state, action.clientId, (c) =>
+        updateTargetFlow(c, action.flowType, action.flowIndex, action.stepName, (s) => ({
+          ...s,
+          output: action.output,
+          status: "completed",
+          isOutputOverride: true,
+          error: undefined,
+        }))
+      );
 
     // API returned a result → store in output + lastRunOutput, clear override
     case "SET_STEP_RUN_OUTPUT":
-      return updateClient(state, action.clientId, (c) => {
-        const flowKey = action.flowType === "old" ? "oldFlow" : "newFlow";
-        return {
-          ...c,
-          [flowKey]: updateFlowStep(c[flowKey], action.stepName, (s) => ({
-            ...s,
-            output: action.output,
-            lastRunOutput: action.output,
-            status: "completed",
-            isOutputOverride: false,
-            error: undefined,
-            warning: action.warning,
-          })),
-        };
-      });
+      return updateClient(state, action.clientId, (c) =>
+        updateTargetFlow(c, action.flowType, action.flowIndex, action.stepName, (s) => ({
+          ...s,
+          output: action.output,
+          lastRunOutput: action.output,
+          status: "completed",
+          isOutputOverride: false,
+          error: undefined,
+          warning: action.warning,
+        }))
+      );
 
     case "SET_STEP_STATUS":
-      return updateClient(state, action.clientId, (c) => {
-        const flowKey = action.flowType === "old" ? "oldFlow" : "newFlow";
-        return {
-          ...c,
-          [flowKey]: updateFlowStep(c[flowKey], action.stepName, (s) => ({
-            ...s,
-            status: action.status,
-            ...(action.status === "running" ? { error: undefined, warning: undefined } : {}),
-          })),
-        };
-      });
+      return updateClient(state, action.clientId, (c) =>
+        updateTargetFlow(c, action.flowType, action.flowIndex, action.stepName, (s) => ({
+          ...s,
+          status: action.status,
+          ...(action.status === "running" ? { error: undefined, warning: undefined } : {}),
+        }))
+      );
 
     case "SET_STEP_ERROR":
-      return updateClient(state, action.clientId, (c) => {
-        const flowKey = action.flowType === "old" ? "oldFlow" : "newFlow";
-        return {
-          ...c,
-          [flowKey]: updateFlowStep(c[flowKey], action.stepName, (s) => ({
-            ...s,
-            status: "failed",
-            error: action.error,
-          })),
-        };
-      });
+      return updateClient(state, action.clientId, (c) =>
+        updateTargetFlow(c, action.flowType, action.flowIndex, action.stepName, (s) => ({
+          ...s,
+          status: "failed",
+          error: action.error,
+        }))
+      );
 
     case "RESET_STEP":
-      return updateClient(state, action.clientId, (c) => {
-        const flowKey = action.flowType === "old" ? "oldFlow" : "newFlow";
-        return {
-          ...c,
-          [flowKey]: updateFlowStep(c[flowKey], action.stepName, () => makeEmptyStepState()),
-        };
-      });
+      return updateClient(state, action.clientId, (c) =>
+        updateTargetFlow(c, action.flowType, action.flowIndex, action.stepName, () => makeEmptyStepState())
+      );
 
     // Restore lastRunOutput, clear isOutputOverride
     case "RESET_STEP_OVERRIDE":
-      return updateClient(state, action.clientId, (c) => {
-        const flowKey = action.flowType === "old" ? "oldFlow" : "newFlow";
-        return {
-          ...c,
-          [flowKey]: updateFlowStep(c[flowKey], action.stepName, (s) => ({
-            ...s,
-            output: s.lastRunOutput,
-            isOutputOverride: false,
-          })),
-        };
-      });
+      return updateClient(state, action.clientId, (c) =>
+        updateTargetFlow(c, action.flowType, action.flowIndex, action.stepName, (s) => ({
+          ...s,
+          output: s.lastRunOutput,
+          isOutputOverride: false,
+        }))
+      );
 
     case "SET_STEP_PROMPT_OVERRIDE":
-      return updateClient(state, action.clientId, (c) => {
-        const flowKey = action.flowType === "old" ? "oldFlow" : "newFlow";
-        return {
-          ...c,
-          [flowKey]: updateFlowStep(c[flowKey], action.stepName, (s) => ({
-            ...s,
-            promptOverride: {
-              systemPrompt: action.systemPrompt,
-              userPrompt: action.userPrompt,
-            },
-          })),
-        };
-      });
+      return updateClient(state, action.clientId, (c) =>
+        updateTargetFlow(c, action.flowType, action.flowIndex, action.stepName, (s) => ({
+          ...s,
+          promptOverride: {
+            systemPrompt: action.systemPrompt,
+            userPrompt: action.userPrompt,
+          },
+        }))
+      );
 
     case "RESET_STEP_PROMPT_OVERRIDE":
-      return updateClient(state, action.clientId, (c) => {
-        const flowKey = action.flowType === "old" ? "oldFlow" : "newFlow";
-        return {
-          ...c,
-          [flowKey]: updateFlowStep(c[flowKey], action.stepName, (s) => {
-            const next = { ...s };
-            delete next.promptOverride;
-            return next;
-          }),
-        };
-      });
+      return updateClient(state, action.clientId, (c) =>
+        updateTargetFlow(c, action.flowType, action.flowIndex, action.stepName, (s) => {
+          const next = { ...s };
+          delete next.promptOverride;
+          return next;
+        })
+      );
+
+    case "ADD_NEW_FLOW": {
+      const pipeline = getPipeline(state.pageType, state.imageType);
+      if (!pipeline) return state;
+      return updateClient(state, action.clientId, (c) => ({
+        ...c,
+        newFlows: [...c.newFlows, makeEmptyFlowState(pipeline)],
+      }));
+    }
 
     default:
       return state;

@@ -34,22 +34,24 @@ export function buildOutputsCsv(
     .map((s) => s.name)
     .filter((n) => opts.stepNames.has(n));
 
-  const header = ["client_id", "client_name", "flow_type", ...stepNames];
+  // flow_label: human-readable ("Old", "New", "New 2", …).
+  const header = ["client_id", "client_name", "flow_type", "flow_label", ...stepNames];
   const rows: string[][] = [header];
-
-  const flows: Array<"old" | "new"> = [];
-  if (opts.includeOldFlow) flows.push("old");
-  if (opts.includeNewFlow) flows.push("new");
 
   for (const client of clients) {
     if (!opts.clientIds.has(client.id)) continue;
-    for (const flowType of flows) {
-      const flow = flowType === "old" ? client.oldFlow : client.newFlow;
-      const cells = [client.id, client.name, flowType];
-      for (const stepName of stepNames) {
-        cells.push(flow.stepStates[stepName]?.output ?? "");
-      }
+    if (opts.includeOldFlow) {
+      const cells = [client.id, client.name, "old", "Old"];
+      for (const n of stepNames) cells.push(client.oldFlow.stepStates[n]?.output ?? "");
       rows.push(cells);
+    }
+    if (opts.includeNewFlow) {
+      client.newFlows.forEach((flow, idx) => {
+        const label = idx === 0 ? "New" : `New ${idx + 1}`;
+        const cells = [client.id, client.name, "new", label];
+        for (const n of stepNames) cells.push(flow.stepStates[n]?.output ?? "");
+        rows.push(cells);
+      });
     }
   }
 
@@ -62,10 +64,13 @@ export function countExportRows(
   clients: ClientState[],
   opts: CsvExportOptions
 ): number {
-  const perClient = (opts.includeOldFlow ? 1 : 0) + (opts.includeNewFlow ? 1 : 0);
-  let selectedClients = 0;
-  for (const c of clients) if (opts.clientIds.has(c.id)) selectedClients += 1;
-  return selectedClients * perClient;
+  let total = 0;
+  for (const c of clients) {
+    if (!opts.clientIds.has(c.id)) continue;
+    if (opts.includeOldFlow) total += 1;
+    if (opts.includeNewFlow) total += c.newFlows.length;
+  }
+  return total;
 }
 
 export function downloadCsv(filename: string, csv: string): void {

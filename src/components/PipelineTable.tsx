@@ -98,10 +98,11 @@ export function PipelineTable({ onRunStep, runningScope }: PipelineTableProps) {
               </td>
             </tr>
           ) : (
-            clients.map((client) => (
+            clients.map((client, index) => (
               <ClientGroup
                 key={client.id}
                 client={client}
+                position={index + 1}
                 pipeline={pipeline}
                 pageType={pageType}
                 imageType={imageType}

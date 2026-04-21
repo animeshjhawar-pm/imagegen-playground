@@ -23,9 +23,15 @@ export function resolveInputs(
   /** When present, lets `generate_image_description` outputs auto-filter
    *  to the <image_requirement type="..."> tag matching the target
    *  pipeline. Downstream Step 4 then receives just one description. */
-  imageType?: ImageType
+  imageType?: ImageType,
+  /** Which "new" lane to resolve from (0 = original New, 1 = New 2, …).
+   *  Ignored when flowType === "old". */
+  flowIndex: number = 0
 ): Record<string, string> {
-  const flow = flowType === "old" ? client.oldFlow : client.newFlow;
+  const flow =
+    flowType === "old"
+      ? client.oldFlow
+      : client.newFlows[flowIndex] ?? client.newFlows[0] ?? { stepStates: {} };
   const resolved: Record<string, string> = {};
 
   for (const inputDef of step.inputs) {

@@ -48,6 +48,8 @@ const PROVIDER_COLOR: Record<string, string> = {
 interface StepCellProps {
   step: StepDefinition;
   flowType: "old" | "new";
+  /** For flowType "new", which lane (0 = original, 1 = "New 2", …). */
+  flowIndex?: number;
   clientId: string;
   client: ClientState;
   pageType: PageType;
@@ -59,21 +61,24 @@ interface StepCellProps {
 // Component
 // ---------------------------------------------------------------------------
 export function StepCell({
-  step, flowType, clientId, client, pageType, imageType, defaultAspectRatio,
+  step, flowType, flowIndex = 0, clientId, client, pageType, imageType, defaultAspectRatio,
 }: StepCellProps) {
   const { dispatch, isDryRun } = usePlayground();
   const pipelineKey = `${pageType}:${imageType}`;
 
-  const flow = flowType === "old" ? client.oldFlow : client.newFlow;
+  const flow =
+    flowType === "old"
+      ? client.oldFlow
+      : client.newFlows[flowIndex] ?? { stepStates: {} };
   const stepState: StepState = flow.stepStates[step.name] ?? {
     inputs: {}, inputOverrides: {}, output: "", lastRunOutput: "",
     status: "idle", isOutputOverride: false,
   };
 
   const sourceResolved = useMemo(
-    () => resolveInputs(step, client, flowType, imageType),
+    () => resolveInputs(step, client, flowType, imageType, flowIndex),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [step, client, flowType, imageType]
+    [step, client, flowType, imageType, flowIndex]
   );
 
   const diff: StepDiff = flowType === "old" ? step.diffOld : step.diffNew;
@@ -162,7 +167,7 @@ export function StepCell({
     const controller = new AbortController();
     abortRef.current = controller;
 
-    dispatch({ type: "SET_STEP_STATUS", clientId, flowType, stepName: step.name, status: "running" });
+    dispatch({ type: "SET_STEP_STATUS", clientId, flowType, flowIndex, stepName: step.name, status: "running" });
 
     try {
       const result = await runStep({
@@ -178,9 +183,9 @@ export function StepCell({
       });
       if (controller.signal.aborted) return; // Aborted — abort handler already dispatched.
       if (result.status === "completed") {
-        dispatch({ type: "SET_STEP_RUN_OUTPUT", clientId, flowType, stepName: step.name, output: result.output, warning: result.warning });
+        dispatch({ type: "SET_STEP_RUN_OUTPUT", clientId, flowType, flowIndex, stepName: step.name, output: result.output, warning: result.warning });
       } else {
-        dispatch({ type: "SET_STEP_ERROR", clientId, flowType, stepName: step.name, error: result.error ?? "Unknown error" });
+        dispatch({ type: "SET_STEP_ERROR", clientId, flowType, flowIndex, stepName: step.name, error: result.error ?? "Unknown error" });
       }
     } catch (err) {
       const isAbort =
@@ -188,7 +193,7 @@ export function StepCell({
         (err instanceof Error && /aborted/i.test(err.message));
       dispatch({
         type: "SET_STEP_ERROR",
-        clientId, flowType, stepName: step.name,
+        clientId, flowType, flowIndex, stepName: step.name,
         error: isAbort ? "Stopped by user." : (err instanceof Error ? err.message : String(err)),
       });
     } finally {
@@ -220,7 +225,7 @@ export function StepCell({
     }
     const next = { ...base, [fieldName]: stored };
     dispatch({
-      type: "UPDATE_STEP_OUTPUT", clientId, flowType, stepName: step.name,
+      type: "UPDATE_STEP_OUTPUT", clientId, flowType, flowIndex, stepName: step.name,
       output: JSON.stringify(next, null, 2),
     });
   }
@@ -285,13 +290,13 @@ export function StepCell({
                       resetOverrideLabel="Reset to upstream"
                       onChange={(v) =>
                         dispatch({
-                          type: "UPDATE_STEP_INPUT", clientId, flowType,
+                          type: "UPDATE_STEP_INPUT", clientId, flowType, flowIndex,
                           stepName: step.name, inputName: inputDef.name, value: v,
                         })
                       }
                       onResetOverride={() =>
                         dispatch({
-                          type: "RESET_STEP_INPUT_OVERRIDE", clientId, flowType,
+                          type: "RESET_STEP_INPUT_OVERRIDE", clientId, flowType, flowIndex,
                           stepName: step.name, inputName: inputDef.name,
                         })
                       }
@@ -372,7 +377,7 @@ export function StepCell({
                       resetOverrideLabel="Reset Override"
                       onChange={(v) => updateOutputField(f.name, v)}
                       onResetOverride={() =>
-                        dispatch({ type: "RESET_STEP_OVERRIDE", clientId, flowType, stepName: step.name })
+                        dispatch({ type: "RESET_STEP_OVERRIDE", clientId, flowType, flowIndex, stepName: step.name })
                       }
                       placeholder={isRunning ? "Running…" : "—"}
                     />
@@ -388,10 +393,10 @@ export function StepCell({
                   overrideBadgeTooltip="Output manually edited. Re-running this step is disabled until you reset."
                   resetOverrideLabel="Reset Override"
                   onChange={(v) =>
-                    dispatch({ type: "UPDATE_STEP_OUTPUT", clientId, flowType, stepName: step.name, output: v })
+                    dispatch({ type: "UPDATE_STEP_OUTPUT", clientId, flowType, flowIndex, stepName: step.name, output: v })
                   }
                   onResetOverride={() =>
-                    dispatch({ type: "RESET_STEP_OVERRIDE", clientId, flowType, stepName: step.name })
+                    dispatch({ type: "RESET_STEP_OVERRIDE", clientId, flowType, flowIndex, stepName: step.name })
                   }
                   outputType={step.outputType}
                   placeholder={isRunning ? "Running…" : "—"}
@@ -438,7 +443,11 @@ export function StepCell({
         <PromptDialog
           isOpen={promptDialogOpen}
           stepTitle={step.title}
-          flowLabel={flowType === "old" ? "Old flow" : "New flow"}
+          flowLabel={
+            flowType === "old"
+              ? "Old flow"
+              : flowIndex === 0 ? "New flow" : `New flow ${flowIndex + 1}`
+          }
           initialSystemPrompt={effectivePrompts.systemPrompt}
           initialUserPrompt={effectivePrompts.userPrompt}
           hasOverride={hasPromptOverride}
@@ -446,14 +455,14 @@ export function StepCell({
           onCancel={() => setPromptDialogOpen(false)}
           onSave={(sys, usr) => {
             dispatch({
-              type: "SET_STEP_PROMPT_OVERRIDE", clientId, flowType,
+              type: "SET_STEP_PROMPT_OVERRIDE", clientId, flowType, flowIndex,
               stepName: step.name, systemPrompt: sys, userPrompt: usr,
             });
             setPromptDialogOpen(false);
           }}
           onSaveAndRun={(sys, usr) => {
             dispatch({
-              type: "SET_STEP_PROMPT_OVERRIDE", clientId, flowType,
+              type: "SET_STEP_PROMPT_OVERRIDE", clientId, flowType, flowIndex,
               stepName: step.name, systemPrompt: sys, userPrompt: usr,
             });
             setPromptDialogOpen(false);
@@ -461,7 +470,7 @@ export function StepCell({
           }}
           onResetToDefault={() => {
             dispatch({
-              type: "RESET_STEP_PROMPT_OVERRIDE", clientId, flowType, stepName: step.name,
+              type: "RESET_STEP_PROMPT_OVERRIDE", clientId, flowType, flowIndex, stepName: step.name,
             });
             setPromptDialogOpen(false);
           }}
