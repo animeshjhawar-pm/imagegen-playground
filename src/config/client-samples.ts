@@ -7085,6 +7085,594 @@ const CLIENT_TRINU_POWDER_COATING: ClientSample = {
 ]`,
 };
 
+const CLIENT_7BROWN: ClientSample = {
+  id: `4e8a2e1b-6ba9-4a00-8ea9-5a1a07b4d2ca`,
+  slug: `7brown`,
+  name: `7 Brown`,
+  url: `https://7brown.com/`,
+  primaryLogoUrl: `https://file-host.link/website/7brown-injpl7/assets/logo/logo.webp`,
+  sampleServiceTopic: ``,
+  sampleCategoryTopic: ``,
+  sampleBlogTopic: ``,
+  designTokensJson: `{
+  "fonts": {
+    "body_font_url": "https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap",
+    "heading_font_url": "https://fonts.googleapis.com/css2?family=Urbanist:wght@300..700&display=swap"
+  },
+  "css_variables": {
+    "--color-brand-text": "#1A1A1A",
+    "--font-family-body": "Inter, ui-sans-serif, system-ui, sans-serif",
+    "--color-brand-primary": "#1A1A1A",
+    "--font-family-heading": "Urbanist, ui-sans-serif, system-ui, sans-serif",
+    "--color-brand-secondary": "#4A4A4A",
+    "--color-brand-text-muted": "#9E9E9E",
+    "--color-brand-primary-dark": "#000000",
+    "--color-brand-text-inverse": "#ffffff",
+    "--color-brand-text-primary": "#111111",
+    "--color-brand-primary-hover": "#0D0D0D",
+    "--color-brand-primary-light": "rgba(26, 26, 26, 0.05)",
+    "--color-brand-text-tertiary": "#6B6B6B",
+    "--color-brand-primary-medium": "rgba(26, 26, 26, 0.1)",
+    "--color-brand-secondary-dark": "#2E2E2E",
+    "--color-brand-text-secondary": "#3D3D3D",
+    "--color-brand-secondary-hover": "#333333",
+    "--color-brand-secondary-light": "rgba(74, 74, 74, 0.05)",
+    "--color-brand-secondary-medium": "rgba(74, 74, 74, 0.1)",
+    "--color-brand-primary-foreground": "#ffffff",
+    "--color-brand-secondary-foreground": "#ffffff"
+  }
+}`,
+  companyInfoJson: `{
+  "name": {
+    "dba_name": null,
+    "legal_name": null,
+    "company_name": "7 Brown Farms"
+  },
+  "founded": {
+    "founded_date_year": 1885,
+    "years_in_business": "Seven generations strong"
+  },
+  "locations": {
+    "branch_locations": [],
+    "headquarters_address": "26985 State Rd Z, St Mary MO 63673"
+  },
+  "credentials": {
+    "memberships": [],
+    "accreditations": [],
+    "certifications": [
+      "USDA inspected"
+    ],
+    "business_licenses": []
+  },
+  "company_size": {
+    "employee_count": null,
+    "annual_turnover": null
+  },
+  "service_team": {
+    "team_members": [
+      {
+        "bio": "Contact person for farm operations, custom orders, and steakhouse partnerships. Available at 314-540-5515.",
+        "name": "Farmer Brown",
+        "title": "Farmer/Owner",
+        "headshot_image": null
+      }
+    ],
+    "employee_count": null,
+    "years_of_experience": null
+  },
+  "company_story": {
+    "milestones": [
+      "1885: Farm founded in Missouri Ozarks",
+      "Started selling and shipping direct to consumers and restaurants",
+      "Acquired Italian Stagionello 200 kg dry aging cabinet for premium steakhouse service"
+    ],
+    "founding_story": "The farm's name, 7 Brown Farms, nods back to early American revolutionary settlers that tilled, defended, and produced the best proteins that the Ozarks could make under the sun.",
+    "company_history": "7 Brown Farms is a family legacy farm founded in the Missouri Ozarks in 1885. The name nods back to early American revolutionary settlers that tilled, defended, and produced the best proteins that the Ozarks could make under the sun. The family remains farmers, merchants, and veterans today, committed to raising the best meats and farm products in the most sustainable way.",
+    "growth_narrative": "The farm started selling and shipping direct to consumers and restaurants as a smarter way to craft the best meat proteins. They evolved from traditional farming to offering specialized services including 45-day dry aging for steakhouses, custom bulk orders, and nationwide shipping. The family invested in sustainable grazing improvements, nutritional quality labels, and solutions to demanding pasture climates while maintaining their commitment to small craft batch production."
+  },
+  "phone_numbers": [
+    "314-540-5515",
+    "+1 314-540-5515"
+  ],
+  "service_areas": [
+    "Missouri Ozarks",
+    "Within 100 miles of St Mary, MO 63673 for bulk deliveries",
+    "Two-day shipping zone for direct shipments"
+  ],
+  "working_hours": {
+    "Friday": [
+      "8AM-5PM"
+    ],
+    "Monday": [
+      "8AM-5PM"
+    ],
+    "Sunday": [
+      "Closed"
+    ],
+    "Tuesday": [
+      "9AM-5PM"
+    ],
+    "Saturday": [
+      "9AM-12PM"
+    ],
+    "Thursday": [
+      "8AM-5PM"
+    ],
+    "Wednesday": [
+      "8AM-5PM"
+    ]
+  },
+  "email_addresses": [],
+  "major_customers": [
+    {
+      "customer_name": "Knife (Dallas steakhouse)",
+      "customer_logo_url": null
+    }
+  ],
+  "ratings_reviews": {
+    "GBP": {
+      "rating": 5,
+      "review_count": 1
+    }
+  },
+  "business_category": [
+    "Meat products store"
+  ],
+  "value_propositions": {
+    "key_benefits": [
+      "Know exactly where your food comes from and how it was raised",
+      "Superior marbling for exceptional taste",
+      "Convenient packaging for easy storage",
+      "Fair prices that help family farms",
+      "On-time, frozen-tight shipping",
+      "Loaded for Omega 6 and 3 balance for brain, body, and spirit fuel",
+      "Custom cut sheets available for bulk orders"
+    ],
+    "market_positioning": "Premium craft beef producer serving small but mighty buyers who demand uncompromised quality through direct-from-farm, sustainably-raised, dry-aged American Black Angus beef.",
+    "competitive_advantages": [
+      "Seven generations of farming experience since 1885",
+      "Direct farm-to-consumer shipping model",
+      "Single estate, limited release production",
+      "Craft seam butcher processing",
+      "Sustainable pasture-raised practices",
+      "Custom wrapped cuts",
+      "White glove appointment delivery service within 100 miles"
+    ],
+    "unique_selling_propositions": [
+      "100% American Black Angus from single estate",
+      "Always marbled and 14-day dry-aged",
+      "Only Pure Ozark American Black Angus Protein",
+      "Never imported, mixed, or long-hauled",
+      "No hormones, antibiotics, mRNA vaccines, or additives",
+      "Custom grain finish unique to the Missouri Ozarks",
+      "45-day dry aging service using Italian Stagionello cabinets with University of Florence methods",
+      "Less than 15% shrink loss on dry-aged primals"
+    ]
+  },
+  "awards_recognitions": [],
+  "social_media_profiles": {
+    "other": [],
+    "yelp_url": null,
+    "twitter_url": null,
+    "youtube_url": null,
+    "facebook_url": null,
+    "linkedin_url": null,
+    "whatsapp_url": null,
+    "instagram_url": null
+  },
+  "target_customer_segments": [
+    "Families seeking premium beef",
+    "Athletes requiring high-protein diets",
+    "Steakhouses and fine dining restaurants",
+    "Dining clubs",
+    "Health-conscious consumers",
+    "Customers seeking farm-direct meats",
+    "Gift buyers for special occasions"
+  ],
+  "mission_statement_company_values": {
+    "vision": "At 7 Brown, we cannot fix all of the food system challenges that exist today in America. However, we are confident that we can solve your family's protein needs by trying our craft products today.",
+    "taglines": [
+      "Family Direct Meats Quality Black Angus Beef Crafted from Field to Fork",
+      "Exceptionally-Marbled Ozark Cuts, Because You are Worth It"
+    ],
+    "core_values": [
+      "Sustainable grazing practices",
+      "High care, low stress cattle management",
+      "Quality diet for cattle",
+      "Uncompromised quality through small craft batch beef",
+      "Direct-to-consumer transparency"
+    ],
+    "mission_statement": "We remain a family of farmers, merchants, and veterans today, who are committed to raising the best meats and farm products in the most sustainable way."
+  }
+}`,
+  logoUrlsJson: `{
+  "favicon": "https://file-host.link/website/7brown-injpl7/assets/logo/1774995829126898_fa3e99287e584d5b8c06d830c68762ba.jpg",
+  "gbp_url": "https://file-host.link/website/7brown-injpl7/assets/logo/1774995631193353_1d5c3896a43a487fa64dc1d39f8eb6b1.webp",
+  "primary_logo": "https://file-host.link/website/7brown-injpl7/assets/logo/logo.webp"
+}`,
+  serviceCatalogJson: `[]`,
+  productInformationJson: `[]`,
+  paaDataJson: `{}`,
+};
+
+const CLIENT_ABBAHVAC: ClientSample = {
+  id: `0aaea6a9-be94-4fda-9d83-db684b899f0c`,
+  slug: `abbahvac`,
+  name: `Abba HVAC`,
+  url: `https://abbahvac.com/`,
+  primaryLogoUrl: `https://file-host.link/website/abbahvac-26qufs/assets/uploaded-assets/1765366762364000_6e39d050f2fc47d1b5363ec6bce5bb43`,
+  sampleServiceTopic: ``,
+  sampleCategoryTopic: ``,
+  sampleBlogTopic: ``,
+  designTokensJson: `{
+  "fonts": {
+    "body_font_url": "https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap",
+    "heading_font_url": "https://fonts.googleapis.com/css2?family=Urbanist:wght@300..700&display=swap"
+  },
+  "css_variables": {
+    "--color-brand-text": "#232629",
+    "--font-family-body": "Inter, ui-sans-serif, system-ui, sans-serif",
+    "--color-brand-primary": "#3265A8",
+    "--font-family-heading": "Urbanist, ui-sans-serif, system-ui, sans-serif",
+    "--color-brand-secondary": "#F38D64",
+    "--color-brand-text-muted": "#9BA1A8",
+    "--color-brand-primary-dark": "#1E3A66",
+    "--color-brand-text-inverse": "#ffffff",
+    "--color-brand-text-primary": "#232629",
+    "--color-brand-primary-hover": "#284F87",
+    "--color-brand-primary-light": "rgba(50, 101, 168, 0.05)",
+    "--color-brand-text-tertiary": "#6B7178",
+    "--color-brand-primary-medium": "rgba(50, 101, 168, 0.1)",
+    "--color-brand-secondary-dark": "#D96843",
+    "--color-brand-text-secondary": "#4A4E52",
+    "--color-brand-secondary-hover": "#E6754A",
+    "--color-brand-secondary-light": "rgba(243, 141, 100, 0.05)",
+    "--color-brand-secondary-medium": "rgba(243, 141, 100, 0.1)",
+    "--color-brand-primary-foreground": "#ffffff",
+    "--color-brand-secondary-foreground": "#ffffff"
+  }
+}`,
+  companyInfoJson: `{
+  "name": {
+    "dba_name": null,
+    "legal_name": "Abba HVAC",
+    "company_name": "Abba HVAC"
+  },
+  "founded": {
+    "founded_date_year": 2025,
+    "years_in_business": "35"
+  },
+  "locations": {
+    "branch_locations": [],
+    "headquarters_address": "Austin, Texas"
+  },
+  "credentials": {
+    "memberships": [],
+    "accreditations": [],
+    "certifications": [
+      "Energy Audit Certified"
+    ],
+    "business_licenses": [
+      "Texas Licensed Contractor"
+    ]
+  },
+  "company_size": {
+    "employee_count": 10,
+    "annual_turnover": null
+  },
+  "service_team": {
+    "team_members": [
+      {
+        "bio": "Sascha is the guy who gets excited about fixing problems that make other technicians scratch their heads. With 20+ years of experience in HVAC and construction, he's built a reputation for delivering energy-efficient solutions that actually work. As a proud girl-dad, Sascha has zero patience for systems that don't run right. Whether your setup is ancient or brand new, he treats every job like it's for his own family—because that's just who he is. Beyond the job site, Sascha is an educator and the founder of The HVAC Game on YouTube, Instagram, and Skool. He helps growth-minded HVAC techs build confidence in their troubleshooting skills and grow in the industry.",
+        "name": "Sascha Hinz",
+        "title": "Founder",
+        "headshot_image": "https://cdn.prod.website-files.com/68e7913aa58f5b95db115158/6901fc308064cdef5f7541e5_WhatsApp%20Image%202025-10-21%20at%2022.22.44%20(1).jpeg"
+      },
+      {
+        "bio": "Alice is the one who makes sure everything actually works behind the scenes. With over two decades of experience in real estate development & business operations across Canada, Australia, the UK, and the US, she knows what it takes to build companies that last. Now she's bringing that expertise into building the HVAC company she always wanted to work with. Alice is the reason you'll get straight answers, fair pricing, and follow-up calls that actually happen. Think of her as the person who turns craftsmanship into customer care.",
+        "name": "Alice Huang",
+        "title": "Founder",
+        "headshot_image": "https://cdn.prod.website-files.com/68e7913aa58f5b95db115158/68e95c961b1598e618dbeed7_Alice%20Huang.jpg"
+      }
+    ],
+    "employee_count": 10,
+    "years_of_experience": 35
+  },
+  "company_story": {
+    "milestones": [
+      "2007: Licensed and insured since 2007"
+    ],
+    "founding_story": "Founded on the principle that when something breaks in your home or business, you shouldn't have to call three different people. Led by Sascha Hinz, with over 20 years of HVAC and construction expertise, and Alice Huang, bringing 17 years of operations excellence across four continents.",
+    "company_history": "Abba HVAC began as a solution to Central Texas's need for comprehensive, reliable contractor services. The company has grown to serve the entire Greater Austin area, providing 24/7 emergency service alongside comprehensive maintenance programs.",
+    "growth_narrative": "Today, Abba HVAC has grown to serve the entire Greater Austin area, from downtown to surrounding communities, providing 24/7 emergency service alongside comprehensive maintenance programs. Their commitment to energy efficiency and transparent pricing has made them Central Texas's go-to choice for HVAC, electrical, and plumbing solutions, earning the trust of homeowners, commercial property managers, and business owners who value reliability and professional excellence."
+  },
+  "phone_numbers": [
+    "(737) 210-3999",
+    "+1 737-210-3999"
+  ],
+  "service_areas": [
+    "Central Austin",
+    "Cedar Park",
+    "Round Rock",
+    "Georgetown",
+    "Pflugerville",
+    "Leander",
+    "Barton Creek",
+    "Barton Hills",
+    "Bee Cave",
+    "Bouldin Creek",
+    "Buda",
+    "Dripping Springs",
+    "Easton Park",
+    "Hutto",
+    "Kyle",
+    "Lake Communities",
+    "Lakeway",
+    "North Austin",
+    "Northwest",
+    "Northwest Hills",
+    "Old Enfield",
+    "Pemberton Heights",
+    "River Ranch",
+    "South Austin",
+    "South Lamar",
+    "Spicewood",
+    "Steiner Ranch",
+    "Tarrytown",
+    "Taylor",
+    "Triangle State",
+    "West Austin",
+    "Westlake Hills",
+    "Wimberley",
+    "Zilker"
+  ],
+  "email_addresses": [
+    "info@abbahvac.com"
+  ],
+  "major_customers": [
+    {
+      "customer_name": "David R.",
+      "customer_logo_url": null
+    },
+    {
+      "customer_name": "Sarah M.",
+      "customer_logo_url": null
+    },
+    {
+      "customer_name": "James C.",
+      "customer_logo_url": null
+    }
+  ],
+  "ratings_reviews": {
+    "GBP": {
+      "rating": 5,
+      "review_count": 14
+    }
+  },
+  "business_category": [
+    "HVAC contractor"
+  ],
+  "target_geographies": [
+    "us"
+  ],
+  "value_propositions": {
+    "key_benefits": [
+      "Lower energy bills",
+      "Consistent temperatures throughout home",
+      "Improved air quality",
+      "Preventive maintenance that extends system life"
+    ],
+    "market_positioning": "Central Texas's go-to choice for comprehensive HVAC, electrical, and plumbing solutions with dad-level care and professional-grade service.",
+    "competitive_advantages": [
+      "20+ years of technical expertise",
+      "Licensed and insured",
+      "Deep knowledge of Central Texas climate and building codes"
+    ],
+    "unique_selling_propositions": [
+      "One contractor for HVAC, electrical, and plumbing",
+      "24/7 emergency service",
+      "Energy efficiency expertise"
+    ]
+  },
+  "awards_recognitions": [],
+  "social_media_profiles": {
+    "other": [],
+    "yelp_url": null,
+    "twitter_url": null,
+    "youtube_url": null,
+    "facebook_url": null,
+    "linkedin_url": null,
+    "whatsapp_url": null,
+    "instagram_url": null
+  },
+  "target_customer_segments": [
+    "Residential homes",
+    "Commercial buildings",
+    "Restaurants",
+    "Gyms",
+    "Office complexes"
+  ],
+  "mission_statement_company_values": {
+    "vision": "To be Central Texas's most trusted contractor, known for integrity, quality workmanship, and comprehensive solutions that make life easier for homeowners and businesses across the Greater Austin area.",
+    "taglines": [
+      "Dad-level care. Professional-grade service.",
+      "Your trusted partner for HVAC, electrical, and plumbing solutions across Central Texas."
+    ],
+    "core_values": [
+      "Dad-level Care",
+      "Professional Service",
+      "Honesty",
+      "Reliability",
+      "Comprehensive Service Excellence"
+    ],
+    "mission_statement": "To provide comprehensive, reliable HVAC, electrical, and plumbing solutions to Central Texas communities with dad-level care and professional-grade service, ensuring comfort and peace of mind for every customer."
+  }
+}`,
+  logoUrlsJson: `{
+  "favicon": "https://cdn.gushwork.ai/website/abbahvac-26qufs/assets/logo/favicon.ico",
+  "gbp_url": "https://cdn.gushwork.ai/website/abbahvac-26qufs/assets/logo/1762346721939798_a86fafd2c21a4bc8a0c17218ef70acb4.webp",
+  "primary_logo": "https://file-host.link/website/abbahvac-26qufs/assets/uploaded-assets/1765366762364000_6e39d050f2fc47d1b5363ec6bce5bb43"
+}`,
+  serviceCatalogJson: `[]`,
+  productInformationJson: `[]`,
+  paaDataJson: `{}`,
+};
+
+const CLIENT_GROSSCONSULTINGINC: ClientSample = {
+  id: `ead4e269-080b-4a79-9d14-372391117530`,
+  slug: `grossconsultinginc`,
+  name: `Gross Consulting Inc`,
+  url: `https://www.grossconsultinginc.com/`,
+  primaryLogoUrl: `https://file-host.link/website/grossconsultinginc-5elc7f/assets/logo/logo.webp`,
+  sampleServiceTopic: ``,
+  sampleCategoryTopic: ``,
+  sampleBlogTopic: ``,
+  designTokensJson: `{
+  "fonts": {
+    "body_font_url": "https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap",
+    "heading_font_url": "https://fonts.googleapis.com/css2?family=Urbanist:wght@300..700&display=swap"
+  },
+  "css_variables": {
+    "--color-brand-text": "#0B2340",
+    "--font-family-body": "Inter, ui-sans-serif, system-ui, sans-serif",
+    "--color-brand-primary": "#0B3E69",
+    "--font-family-heading": "Urbanist, ui-sans-serif, system-ui, sans-serif",
+    "--color-brand-secondary": "#F7E04C",
+    "--color-brand-text-muted": "#7A9BB8",
+    "--color-brand-primary-dark": "#061E34",
+    "--color-brand-text-inverse": "#ffffff",
+    "--color-brand-text-primary": "#0B2340",
+    "--color-brand-primary-hover": "#082E4F",
+    "--color-brand-primary-light": "rgba(11, 62, 105, 0.05)",
+    "--color-brand-text-tertiary": "#3A6B96",
+    "--color-brand-primary-medium": "rgba(11, 62, 105, 0.1)",
+    "--color-brand-secondary-dark": "#C9B610",
+    "--color-brand-text-secondary": "#1A4F7A",
+    "--color-brand-secondary-hover": "#E8CD1E",
+    "--color-brand-secondary-light": "rgba(247, 224, 76, 0.05)",
+    "--color-brand-secondary-medium": "rgba(247, 224, 76, 0.1)",
+    "--color-brand-primary-foreground": "#ffffff",
+    "--color-brand-secondary-foreground": "#0B3E69"
+  }
+}`,
+  companyInfoJson: `{
+  "name": {
+    "dba_name": null,
+    "legal_name": "Gross Consulting, Inc.",
+    "company_name": "Gross Consulting"
+  },
+  "founded": {
+    "founded_date_year": 2016,
+    "years_in_business": "10 years"
+  },
+  "locations": {
+    "branch_locations": [],
+    "headquarters_address": "1942 Broadway, Suite 314C, Boulder, CO 80302"
+  },
+  "credentials": {
+    "memberships": [],
+    "accreditations": [
+      "Verified Meta Business Partner",
+      "Verified Gusto Accountancy Partner"
+    ],
+    "certifications": [],
+    "business_licenses": []
+  },
+  "company_size": {
+    "employee_count": null,
+    "annual_turnover": null
+  },
+  "service_team": {
+    "team_members": [
+      {
+        "bio": "After working alongside service-based business owners — attorneys, doctors, real estate investors, and local service owners — Jaiden saw a common thread. These leaders had the vision and drive, but they were weighed down by scattered systems, messy marketing, and the overwhelming challenge of scaling sustainably. Jaiden built Gross Consulting to bridge that gap. With a passion for blending creative strategy, operational structure, and compliance support, Jaiden has helped transform businesses from six figures into thriving seven- and even eight-figure enterprises. But beyond the numbers, what excites Jaiden most is seeing entrepreneurs gain the clarity, confidence, and freedom to step fully into their role as visionary leaders.",
+        "name": "Jaiden Gross",
+        "title": "Founder",
+        "headshot_image": "https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=768,h=845,fit=crop/YKbloelGDlC915Q6/jaiden-gross-headshot-pp-GPWEsNhP8iukrs7W.jpg"
+      }
+    ],
+    "employee_count": null,
+    "years_of_experience": null
+  },
+  "company_story": {
+    "milestones": [],
+    "founding_story": "After working alongside service-based business owners — attorneys, doctors, real estate investors, and local service owners — Jaiden saw a common thread. These leaders had the vision and drive, but they were weighed down by scattered systems, messy marketing, and the overwhelming challenge of scaling sustainably. Jaiden built Gross Consulting to bridge that gap. For Jaiden, that story began with a simple realization: Entrepreneurs are heroes in their own right. But heroes can't do it all alone.",
+    "company_history": "Gross Consulting was built to bridge the gap for service-based business owners who had the vision and drive, but were weighed down by scattered systems, messy marketing, and the overwhelming challenge of scaling sustainably.",
+    "growth_narrative": "With a passion for blending creative strategy, operational structure, and compliance support, Jaiden has helped transform businesses from six figures into thriving seven- and even eight-figure enterprises."
+  },
+  "phone_numbers": [
+    "+1 (424) 347-6865"
+  ],
+  "service_areas": [],
+  "email_addresses": [
+    "support@grossconsultinginc.com"
+  ],
+  "major_customers": [],
+  "value_propositions": {
+    "key_benefits": [
+      "Stay lean, effective, and scalable",
+      "Gain clarity, confidence, and freedom to step fully into role as visionary leaders",
+      "Streamlined systems built for scale, efficiency, and compliance",
+      "Turn clicks into customers"
+    ],
+    "market_positioning": "Growth-focused consulting firm specializing in scaling service-based businesses through tailored marketing, operational systems, and compliance support for diverse industries.",
+    "competitive_advantages": [
+      "We don't just give advice. We build.",
+      "We go beyond advice to design, implement, and manage the full growth stack for our clients",
+      "Team blends AI, automation, and human insight",
+      "Full-service marketing that drives growth while you lead the business"
+    ],
+    "unique_selling_propositions": [
+      "Verified Meta Business Partner",
+      "Verified Gusto Accountancy Partner",
+      "Hybrid approach combining AI & Automation with Human Expertise",
+      "Full-stack support integrating creative, systems, and strategy"
+    ]
+  },
+  "awards_recognitions": [],
+  "social_media_profiles": {
+    "other": [],
+    "yelp_url": null,
+    "twitter_url": null,
+    "youtube_url": null,
+    "facebook_url": null,
+    "linkedin_url": null,
+    "whatsapp_url": null,
+    "instagram_url": null
+  },
+  "target_customer_segments": [
+    "Professional service companies",
+    "Attorneys",
+    "Accountants",
+    "Doctors",
+    "Real estate investment firms",
+    "Credit repair companies",
+    "eCommerce brands",
+    "Service-based businesses",
+    "Growth-focused service businesses"
+  ],
+  "mission_statement_company_values": {
+    "vision": "At the heart of Gross Consulting is Jaiden's belief that growth isn't just about revenue: it's about building businesses that are sustainable, scalable, and human-centered.",
+    "taglines": [
+      "Not All Heroes Wear Capes - Some Build Businesses",
+      "Helping service businesses scale to new heights"
+    ],
+    "core_values": [
+      "AI & Automation to keep you efficient and ahead of the curve",
+      "Human Expertise to adapt strategies with insight and precision"
+    ],
+    "mission_statement": "We integrate creative, systems, and strategy so you're not just marketing harder — you're growing smarter."
+  }
+}`,
+  logoUrlsJson: `{
+  "favicon": "https://file-host.link/website/grossconsultinginc-5elc7f/assets/logo/1776710031320927_6b481f45b18642f88f6f36047ab3d0b4.png",
+  "primary_logo": "https://file-host.link/website/grossconsultinginc-5elc7f/assets/logo/logo.webp"
+}`,
+  serviceCatalogJson: `[]`,
+  productInformationJson: `[]`,
+  paaDataJson: `{}`,
+};
+
 export const CLIENT_SAMPLES: ClientSample[] = [
   CLIENT_ALLCARE_MEDICAL_TRANSPORT,
   CLIENT_EVOK_POLYMERS,
@@ -7096,6 +7684,9 @@ export const CLIENT_SAMPLES: ClientSample[] = [
   CLIENT_SYLUS,
   CLIENT_TERRAPIN_INDUSTRIAL_LLC,
   CLIENT_TRINU_POWDER_COATING,
+  CLIENT_7BROWN,
+  CLIENT_ABBAHVAC,
+  CLIENT_GROSSCONSULTINGINC,
 ];
 
 export function getClientSampleBySlug(slug: string): ClientSample | undefined {
