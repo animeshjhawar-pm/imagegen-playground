@@ -157,13 +157,20 @@ const SHARED_CLIENT_CONTEXT_FIELDS: ClientContextField[] = [
   // Always-visible fields
   { name: "client_homepage_url", label: "Client Homepage URL", kind: "url", required: true },
   {
-    name: "business_context_token",
-    label: "Business Context / Blog Topic / Image Description",
-    kind: "textarea",
+    name: "business_context",
+    label: "business_context.json",
+    kind: "json",
     required: false,
   },
   { name: "company_logo_url", label: "Company Logo URL", kind: "url", required: false },
   { name: "graphic_token",    label: "Graphic Token Override (JSON)", kind: "json", required: false },
+  {
+    name: "aspect_ratio",
+    label: "Aspect Ratio (override)",
+    kind: "select",
+    options: ["16:9", "1:1"],
+    required: false,
+  },
 
   // Advanced — populated by the Import → Preset picker for each of the 10
   // real client samples. These feed stormbreaker's SERVICE_PAGE_CONTENT_GEN /
@@ -292,7 +299,7 @@ const generateServicePageStructureStep: StepDefinition = {
   diffOld: "same_as_old",
   diffNew: "same_as_old",
   inputs: [
-    { name: "topic",            label: "topic",            source: { kind: "client_context", field: "business_context_token" },  required: true  },
+    { name: "topic",            label: "topic",            source: { kind: "client_context", field: "business_context" },  required: true  },
     { name: "paa_data",         label: "paa_data",         source: { kind: "client_context", field: "paa_data_json" },           required: false },
     { name: "service_catalog",  label: "service_catalog",  source: { kind: "client_context", field: "service_catalog_json" },    required: false },
     { name: "company_info",     label: "company_info",     source: { kind: "client_context", field: "company_info_json" },       required: false },
@@ -314,7 +321,7 @@ const generateCategoryPageStructureStep: StepDefinition = {
   diffOld: "same_as_old",
   diffNew: "same_as_old",
   inputs: [
-    { name: "topic",               label: "topic",               source: { kind: "client_context", field: "business_context_token" },    required: true  },
+    { name: "topic",               label: "topic",               source: { kind: "client_context", field: "business_context" },    required: true  },
     { name: "paa_data",            label: "paa_data",            source: { kind: "client_context", field: "paa_data_json" },             required: false },
     { name: "product_information", label: "product_information", source: { kind: "client_context", field: "product_information_json" }, required: false },
     { name: "company_info",        label: "company_info",        source: { kind: "client_context", field: "company_info_json" },         required: false },
@@ -336,9 +343,9 @@ const generatePlaceholderDescriptionStep: StepDefinition = {
   diffNew: "new",
   inputs: [
     {
-      name: "business_context_token",
+      name: "business_context",
       label: "Business Context / Description",
-      source: { kind: "client_context", field: "business_context_token" },
+      source: { kind: "client_context", field: "business_context" },
       required: false,
     },
     {
@@ -390,7 +397,7 @@ const buildImagePromptStep_LLM: StepDefinition = {
   name: "build_image_prompt",
   title: "Build Image Prompt",
   description:
-    "Mirrors stormbreaker's generate_prompt(amp_up=False) step — expands a short image description into a photorealistic prompt via Claude. Old flow: verbatim image_generation_system_prompt. New flow: same + BRAND IDENTITY block.",
+    "Mirrors stormbreaker's generate_prompt(amp_up=False) step — expands a short image description into a photorealistic prompt via Claude. Old flow: verbatim image_generation_system_prompt. New flow: same + BRAND IDENTITY block + business_context / company_info / aspect_ratio overrides.",
   model: "claude-sonnet-4-6",
   provider: "portkey",
   diffOld: "same_as_old",
@@ -403,9 +410,21 @@ const buildImagePromptStep_LLM: StepDefinition = {
       required: true,
     },
     {
-      name: "graphic_token",
-      label: "Graphic Token (new flow only)",
-      source: { kind: "step_output", stepName: "extract_graphic_token" },
+      name: "business_context",
+      label: "business_context (new flow only)",
+      source: { kind: "client_context", field: "business_context" },
+      required: false,
+    },
+    {
+      name: "company_info",
+      label: "company_info (new flow only)",
+      source: { kind: "client_context", field: "company_info_json" },
+      required: false,
+    },
+    {
+      name: "aspect_ratio",
+      label: "aspect_ratio (new flow only; overrides pipeline default)",
+      source: { kind: "client_context", field: "aspect_ratio" },
       required: false,
     },
   ],
@@ -431,14 +450,26 @@ const renderCoverPromptStep: StepDefinition = {
   inputs: [
     {
       name: "blog_topic",
-      label: "Blog Topic",
-      source: { kind: "client_context", field: "business_context_token" },
+      label: "Blog Topic (→ {{blog_topic}} in template)",
+      source: { kind: "client_context", field: "business_context" },
       required: true,
     },
     {
       name: "graphic_token",
       label: "Graphic Token (new flow only)",
       source: { kind: "step_output", stepName: "extract_graphic_token" },
+      required: false,
+    },
+    {
+      name: "business_context",
+      label: "business_context (new flow only)",
+      source: { kind: "client_context", field: "business_context" },
+      required: false,
+    },
+    {
+      name: "company_info",
+      label: "company_info (new flow only)",
+      source: { kind: "client_context", field: "company_info_json" },
       required: false,
     },
   ],
@@ -459,7 +490,7 @@ const rawDescriptionStep_blog: StepDefinition = {
   name: "build_image_prompt",
   title: "Pass-Through Description",
   description:
-    "Stormbreaker's internal-image flow does NOT run an LLM prompt-expansion step — the raw description from the <image_requirement> tag is sent straight to Replicate. The default input is the full output of Step 3 (all placeholder tags); override the input field to pick one description.",
+    "Stormbreaker's internal-image flow does NOT run an LLM prompt-expansion step — the raw description from the <image_requirement> tag is sent straight to Replicate. The default input is the full output of Step 3 (all placeholder tags); override the input field to pick one description. New-flow context overrides (business_context, company_info, aspect_ratio) are surfaced as inputs so they can be forwarded to Replicate.",
   model: "(no model — pass-through)",
   provider: "none",
   renderOnly: true,
@@ -472,6 +503,24 @@ const rawDescriptionStep_blog: StepDefinition = {
       source: { kind: "step_output", stepName: "generate_image_description" },
       required: true,
     },
+    {
+      name: "business_context",
+      label: "business_context (new flow only)",
+      source: { kind: "client_context", field: "business_context" },
+      required: false,
+    },
+    {
+      name: "company_info",
+      label: "company_info (new flow only)",
+      source: { kind: "client_context", field: "company_info_json" },
+      required: false,
+    },
+    {
+      name: "aspect_ratio",
+      label: "aspect_ratio (new flow only; overrides pipeline default)",
+      source: { kind: "client_context", field: "aspect_ratio" },
+      required: false,
+    },
   ],
   systemPromptOld: "{{image_description}}",
   systemPromptNew: "{{image_description}}",
@@ -480,10 +529,43 @@ const rawDescriptionStep_blog: StepDefinition = {
 
 /** Blog-specific variant of buildImagePromptStep_LLM: pulls the
  *  description from the IMAGE_PLACEHOLDER step output instead of the
- *  playground-only placeholder step. Matches stormbreaker's
- *  generic_images.py / external_images.py which read the description
- *  straight out of the <image_requirement> tag. */
+ *  playground-only placeholder step. Used by blog:external and blog:generic.
+ *  Matches stormbreaker's generic_images.py / external_images.py which read
+ *  the description straight out of the <image_requirement> tag. */
 const buildImagePromptStep_LLM_blog: StepDefinition = {
+  ...buildImagePromptStep_LLM,
+  inputs: [
+    {
+      name: "placeholder_description",
+      label: "Image Description (from <image_requirement>)",
+      source: { kind: "step_output", stepName: "generate_image_description" },
+      required: true,
+    },
+    {
+      name: "business_context",
+      label: "business_context (new flow only)",
+      source: { kind: "client_context", field: "business_context" },
+      required: false,
+    },
+    {
+      name: "company_info",
+      label: "company_info (new flow only)",
+      source: { kind: "client_context", field: "company_info_json" },
+      required: false,
+    },
+    {
+      name: "aspect_ratio",
+      label: "aspect_ratio (new flow only; overrides pipeline default)",
+      source: { kind: "client_context", field: "aspect_ratio" },
+      required: false,
+    },
+  ],
+};
+
+/** Blog infographic variant: like buildImagePromptStep_LLM_blog but keeps
+ *  graphic_token as input (no aspect_ratio override). Used by blog:infographic,
+ *  whose new flow still threads the extracted brand token through. */
+const buildImagePromptStep_LLM_blog_infographic: StepDefinition = {
   ...buildImagePromptStep_LLM,
   inputs: [
     {
@@ -496,6 +578,18 @@ const buildImagePromptStep_LLM_blog: StepDefinition = {
       name: "graphic_token",
       label: "Graphic Token (new flow only)",
       source: { kind: "step_output", stepName: "extract_graphic_token" },
+      required: false,
+    },
+    {
+      name: "business_context",
+      label: "business_context (new flow only)",
+      source: { kind: "client_context", field: "business_context" },
+      required: false,
+    },
+    {
+      name: "company_info",
+      label: "company_info (new flow only)",
+      source: { kind: "client_context", field: "company_info_json" },
       required: false,
     },
   ],
@@ -515,9 +609,21 @@ const buildImagePromptStep_LLM_page: StepDefinition = {
       required: true,
     },
     {
-      name: "graphic_token",
-      label: "Graphic Token (new flow only)",
-      source: { kind: "step_output", stepName: "extract_graphic_token" },
+      name: "business_context",
+      label: "business_context (new flow only)",
+      source: { kind: "client_context", field: "business_context" },
+      required: false,
+    },
+    {
+      name: "company_info",
+      label: "company_info (new flow only)",
+      source: { kind: "client_context", field: "company_info_json" },
+      required: false,
+    },
+    {
+      name: "aspect_ratio",
+      label: "aspect_ratio (new flow only; overrides pipeline default)",
+      source: { kind: "client_context", field: "aspect_ratio" },
       required: false,
     },
   ],
@@ -592,10 +698,10 @@ export const PIPELINES: Record<string, PipelineDefinition> = {
   // Blog infographic/generic — straight Claude 4.6 expansion + Replicate.
   "blog:infographic": makePipeline({
     step3: generateBlogImagePlaceholdersStep,
-    step4: buildImagePromptStep_LLM_blog,
+    step4: buildImagePromptStep_LLM_blog_infographic,
     defaultAspectRatio: "1:1",
     alignmentNote:
-      "Matches stormbreaker end-to-end: Step 3 runs IMAGE_PLACEHOLDER (create_image_placeholders.py), Step 4 runs generate_prompt (replicate.py), Step 5 runs Replicate with the logo as image_input.",
+      "Matches stormbreaker end-to-end: Step 3 runs IMAGE_PLACEHOLDER (create_image_placeholders.py), Step 4 runs generate_prompt (replicate.py) and threads graphic_token + business_context + company_info into the brand-aware prompt, Step 5 runs Replicate with the logo as image_input.",
   }),
   "blog:generic": makePipeline({
     step3: generateBlogImagePlaceholdersStep,

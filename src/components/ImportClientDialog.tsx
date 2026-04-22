@@ -18,7 +18,7 @@ const CSV_COLUMNS = [
   "client_name",
   "client_homepage_url",
   "company_logo_url",
-  "business_context_token",
+  "business_context",
   "markdown",
   "branding",
   "metadata",
@@ -120,7 +120,7 @@ function csvToSeeds(text: string): { seeds: ImportedClientSeed[]; errors: string
       client_homepage_url: url,
     };
     if (idx.company_logo_url       >= 0 && row[idx.company_logo_url]?.trim())       context.company_logo_url       = row[idx.company_logo_url].trim();
-    if (idx.business_context_token >= 0 && row[idx.business_context_token]?.trim()) context.business_context_token = row[idx.business_context_token].trim();
+    if (idx.business_context >= 0 && row[idx.business_context]?.trim()) context.business_context = row[idx.business_context].trim();
 
     const markdown    = idx.markdown >= 0 ? row[idx.markdown] ?? "" : "";
     const brandingRaw = idx.branding >= 0 ? row[idx.branding] ?? "" : "";
@@ -194,14 +194,20 @@ export function ImportClientDialog({ isOpen, onCancel, onImport }: ImportClientD
     for (const slug of selectedPresetSlugs) {
       const sample = getClientSampleBySlug(slug);
       if (!sample) continue;
+      // business_context is the project `additional_info` column (paste
+      // manually into each ClientSample.additionalInfoJson). If that's
+      // empty, fall back to whatever sample topic we have so the preset
+      // still produces a usable run.
+      const businessContext =
+        sample.additionalInfoJson ||
+        sample.sampleServiceTopic ||
+        sample.sampleCategoryTopic ||
+        sample.sampleBlogTopic ||
+        "";
       const context: Record<string, string> = {
         client_homepage_url:      sample.url,
         company_logo_url:         sample.primaryLogoUrl,
-        business_context_token:
-          sample.sampleServiceTopic ||
-          sample.sampleCategoryTopic ||
-          sample.sampleBlogTopic ||
-          "",
+        business_context:         businessContext,
         design_tokens_json:       sample.designTokensJson,
         company_info_json:        sample.companyInfoJson,
         paa_data_json:            sample.paaDataJson,
@@ -235,7 +241,7 @@ export function ImportClientDialog({ isOpen, onCancel, onImport }: ImportClientD
     }
     const context: Record<string, string> = { client_homepage_url: homepage.trim() };
     if (logoUrl.trim())         context.company_logo_url       = logoUrl.trim();
-    if (businessContext.trim()) context.business_context_token = businessContext.trim();
+    if (businessContext.trim()) context.business_context = businessContext.trim();
     // Preset-filled advanced stormbreaker vars (may all be "" if nothing picked).
     for (const [k, v] of Object.entries(advanced)) {
       if (v && v.trim()) context[k] = v;
@@ -521,7 +527,7 @@ export function ImportClientDialog({ isOpen, onCancel, onImport }: ImportClientD
                 <code className="text-violet-300 text-[11px]">client_homepage_url</code>{" "}
                 (required),{" "}
                 <code className="text-violet-300 text-[11px]">company_logo_url</code>,{" "}
-                <code className="text-violet-300 text-[11px]">business_context_token</code>,{" "}
+                <code className="text-violet-300 text-[11px]">business_context</code>,{" "}
                 <code className="text-violet-300 text-[11px]">markdown</code>,{" "}
                 <code className="text-violet-300 text-[11px]">branding</code>,{" "}
                 <code className="text-violet-300 text-[11px]">metadata</code>. Rows with

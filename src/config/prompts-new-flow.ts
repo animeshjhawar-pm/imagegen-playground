@@ -25,7 +25,7 @@
 //   {{branding}}               — from Step 1's output.branding  (Firecrawl v2
 //                                branding profile: colors, fonts, typography,
 //                                spacing, components, images, personality)
-//   {{business_context_token}} — from client context
+//   {{business_context}} — from client context
 //   {{graphic_token}}          — from Step 2's output (raw JSON string)
 //   {{brand_lines}}            — derived from graphic_token, rendered as
 //                                "  - Label: value" lines matching the
@@ -1132,7 +1132,7 @@ Branding profile (Firecrawl v2 — colors, fonts, typography, images, personalit
 
 // ───────────────────────────────────────────────────────────────────────────
 // Step 3 — generate_placeholder_description  (Portkey → Claude Sonnet 4.5)
-// Inputs available:  {{business_context_token}}, {{graphic_token}},
+// Inputs available:  {{business_context}}, {{graphic_token}},
 //                    {{brand_lines}}
 // Output expected:   a 1–2 sentence image description string (no preamble)
 // ───────────────────────────────────────────────────────────────────────────
@@ -1143,7 +1143,7 @@ You are a copywriter for a B2B marketing site. Write a concise 1–2 sentence vi
 
 export const GENERATE_PLACEHOLDER_DESCRIPTION_USER_TEMPLATE = `
 Business context:
-{{business_context_token}}
+{{business_context}}
 
 Graphic token:
 {{graphic_token}}

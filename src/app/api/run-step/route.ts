@@ -400,8 +400,8 @@ function buildMockOutput(
     }
 
     case "generate_placeholder_description": {
-      const contextHint = inputs["business_context_token"]
-        ? ` Context: ${inputs["business_context_token"].slice(0, 60)}.`
+      const contextHint = inputs["business_context"]
+        ? ` Context: ${inputs["business_context"].slice(0, 60)}.`
         : "";
       const base = `A team of confident professionals collaborating in a bright, modern office space, showcasing productivity and teamwork.${contextHint}`;
       if (flowType === "new") {

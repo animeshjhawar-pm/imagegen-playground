@@ -16,6 +16,12 @@ export interface ClientSample {
   designTokensJson: string;
   /** Stringified JSON of company_info. */
   companyInfoJson: string;
+  /**
+   * Project `additional_info` column — surfaced in the playground as
+   * `business_context`. Paste the raw value straight from the DB (may be
+   * JSON-stringified or plain text). Leave `""` if the row has no value.
+   */
+  additionalInfoJson: string;
   /** Stringified JSON of logo_urls. Contains primary_logo + favicon + gbp_url. */
   logoUrlsJson: string;
   /** Direct URL of primary_logo for quick use as Replicate image_input. */
@@ -233,6 +239,28 @@ const CLIENT_ALLCARE_MEDICAL_TRANSPORT: ClientSample = {
     "mission_statement": "To provide exceptional service and quality that will meet and exceed the expectations of our patrons"
   }
 }`,
+  additionalInfoJson: `{
+  "business_profile": {
+    "inventory_nature": "100% Transportation Services (no physical product inventory; service categories include ambulatory, wheelchair, and stretcher transport modes)",
+    "business_identity": "Non-emergency medical transportation provider offering ambulatory, wheelchair, and stretcher transport services for local and long-distance trips in Florida and nationwide.",
+    "primary_verticals": [
+      "Medical Appointment Transportation",
+      "Hospital Discharge Transportation",
+      "Dialysis Transportation",
+      "Rehabilitation & Therapy Transportation",
+      "Non-Medical Event Transportation"
+    ],
+    "explicit_out_of_scope": [
+      "Emergency Medical Services",
+      "Ambulance Emergency Response",
+      "Medical Equipment Sales",
+      "Vehicle Sales or Rentals",
+      "Healthcare Provider Services",
+      "In-Home Care Services",
+      "Medical Treatment or Clinical Services"
+    ]
+  }
+}`,
   logoUrlsJson: `{
   "favicon": "https://file-host.link/website/allcaremedicaltransport-zjjfwo/assets/logo/1775114817091897_d592a48b14ca40c09d633325a019a741.jpg",
   "gbp_url": "https://file-host.link/website/allcaremedicaltransport-zjjfwo/assets/logo/1775114725352566_742b16271616432f814899a8957d2723.webp",
@@ -360,7 +388,7 @@ const CLIENT_EVOK_POLYMERS: ClientSample = {
   "service_team": {
     "team_members": [
       {
-        "bio": "Paul Dathe has a passion for helping people with manufacturing of plastic parts. He founded Ev\\u014dk Polymers with the goal of supplying customers with the highest quality injection molded components at the lowest possible price, using proprietary technology, deep industry knowledge, and white-glove customer service. Paul has over 25 years of experience in engineering, product design, sales, with a specialization in solving problems in injection molding custom plastic components. Prior to founding Evok, Paul led new product development for Caliber Products, an industry leader in powersports, where he designed, developed, and launched 13 new products. He grew sales 540% and customers from 25 to 144 with 100% client retention. He led tooling, functional assessments, proof of concepts, 3D modelling, prototype fabrication, testing qualifications, tolerance analysis, and mold flow studies of all new products. Previously, Paul served as senior mechanical engineer for Entegris, where he was responsible for a $40 million product line of ultra clean liquid delivery systems used in semiconductor and flat panel TV high purity chemical applications. Paul began his career at Rollerblade as a design and prototype engineer before serving as senior packaging and prototype engineer at General Mills and Boston Scientific. Paul holds four U.S. utility patents, is a Six Sigma black belt, and received a Bachelor of Science degree in Mechanical Design from Bemidji State University with an emphasis in rapid prototyping and 3D computer modelling. He is a member of Allied Executives Business Leadership Peer group and the Institute of Packaging Professionals.",
+        "bio": "Paul Dathe has a passion for helping people with manufacturing of plastic parts. He founded Evōk Polymers with the goal of supplying customers with the highest quality injection molded components at the lowest possible price, using proprietary technology, deep industry knowledge, and white-glove customer service. Paul has over 25 years of experience in engineering, product design, sales, with a specialization in solving problems in injection molding custom plastic components. Prior to founding Evok, Paul led new product development for Caliber Products, an industry leader in powersports, where he designed, developed, and launched 13 new products. He grew sales 540% and customers from 25 to 144 with 100% client retention. He led tooling, functional assessments, proof of concepts, 3D modelling, prototype fabrication, testing qualifications, tolerance analysis, and mold flow studies of all new products. Previously, Paul served as senior mechanical engineer for Entegris, where he was responsible for a $40 million product line of ultra clean liquid delivery systems used in semiconductor and flat panel TV high purity chemical applications. Paul began his career at Rollerblade as a design and prototype engineer before serving as senior packaging and prototype engineer at General Mills and Boston Scientific. Paul holds four U.S. utility patents, is a Six Sigma black belt, and received a Bachelor of Science degree in Mechanical Design from Bemidji State University with an emphasis in rapid prototyping and 3D computer modelling. He is a member of Allied Executives Business Leadership Peer group and the Institute of Packaging Professionals.",
         "name": "Paul Dathe",
         "title": "Founder",
         "headshot_image": "https://evokpoly.com/wp-content/uploads/2021/07/Paul-at-show-300x121.png"
@@ -372,7 +400,7 @@ const CLIENT_EVOK_POLYMERS: ClientSample = {
         "headshot_image": null
       },
       {
-        "bio": "Shawn is ever curious and has been a vital creative force on some of the most advanced seating projects of the last two decades. He is particularly adept at graphically and physically communicating evolving design concepts and part features, he does this by building complex mechanical and visual prototypes in a variety of materials. He creates photorealistic renderings for clients in Otoy OctaneRender\\u00ae and develops layouts, diagrams and logos with the Adobe Creative Cloud. Shawn has been instrumental in finding mechanical molded part solutions that can be prototyped and confirmed prior to going to tooling. His involvement on pre-molding design reviews has reduced risk in many recent large scale projects. Shawn holds several patents and has conducted research on all sorts of projects that range from consumer lawn mower products to biotech and medical facilities. Outside of work, he practices photography and is often found enjoying the vibrant Twin Cities live music scene.",
+        "bio": "Shawn is ever curious and has been a vital creative force on some of the most advanced seating projects of the last two decades. He is particularly adept at graphically and physically communicating evolving design concepts and part features, he does this by building complex mechanical and visual prototypes in a variety of materials. He creates photorealistic renderings for clients in Otoy OctaneRender® and develops layouts, diagrams and logos with the Adobe Creative Cloud. Shawn has been instrumental in finding mechanical molded part solutions that can be prototyped and confirmed prior to going to tooling. His involvement on pre-molding design reviews has reduced risk in many recent large scale projects. Shawn holds several patents and has conducted research on all sorts of projects that range from consumer lawn mower products to biotech and medical facilities. Outside of work, he practices photography and is often found enjoying the vibrant Twin Cities live music scene.",
         "name": "Shawn Monitor",
         "title": "Sr. Industrial Designer",
         "headshot_image": "https://evokpoly.com/wp-content/uploads/2024/04/ShawnMonitor_square-300x300.jpg"
@@ -386,7 +414,7 @@ const CLIENT_EVOK_POLYMERS: ClientSample = {
       {
         "bio": "Natalie, a dedicated apprentice in product design and management, embodies the harmonious blend of creativity and sustainability. Possessing an innate curiosity and a discerning eye for innovation, she tirelessly explores the junctures where design converges with environmental consciousness. Having been immersed in intangible design principles since childhood, Natalie grasps the profound impact products can wield on the planet. This early awareness, coupled with her education in sustainability, propels her commitment to infusing eco-consciousness into every facet of her work. Under the guidance of her father and seasoned professionals, Natalie delves deeply into the intricacies of product design, eagerly absorbing knowledge. She investigates a myriad of materials, manufacturing techniques, and technologies, always mindful of their ecological footprint. Natalie's journey extends far beyond the creation of aesthetically pleasing objects; she aspires to shape a future where design seamlessly intertwines with sustainability, leaving a positive legacy for generations to come.",
         "name": "Natalie Weber",
-        "title": "Operations Officer \\u2013 LIV",
+        "title": "Operations Officer – LIV",
         "headshot_image": "https://evokpoly.com/wp-content/uploads/2024/04/Nat2-5-300x300.jpg"
       },
       {
@@ -401,7 +429,7 @@ const CLIENT_EVOK_POLYMERS: ClientSample = {
   },
   "company_story": {
     "milestones": [],
-    "founding_story": "Paul Dathe founded Ev\\u014dk Polymers with the goal of supplying customers with the highest quality injection molded components at the lowest possible price, using proprietary technology, deep industry knowledge, and white-glove customer service. The name Ev\\u014dk, which means 'to bring to the conscious mind,' aims to inspire and connect partners with a new part development experience built on trust.",
+    "founding_story": "Paul Dathe founded Evōk Polymers with the goal of supplying customers with the highest quality injection molded components at the lowest possible price, using proprietary technology, deep industry knowledge, and white-glove customer service. The name Evōk, which means 'to bring to the conscious mind,' aims to inspire and connect partners with a new part development experience built on trust.",
     "company_history": "EVOK has teamed and will continue to team with the key leaders across the molding technology industry to offer a specific set of optimization tools to a wide range of applications for over 25 years. They have been providing OEMs with numerous advantages for custom plastic injection molded plastic parts and products.",
     "growth_narrative": "Prior to founding Evok, Paul Dathe led new product development for Caliber Products where he designed, developed, and launched 13 new products. He grew sales 540% and customers from 25 to 144 with 100% client retention."
   },
@@ -537,7 +565,7 @@ const CLIENT_EVOK_POLYMERS: ClientSample = {
     "Packaging industry"
   ],
   "mission_statement_company_values": {
-    "vision": "Ev\\u014dk, which means, 'to bring to the conscious mind,' aims to inspire and connect our partners with a new part development experience built on trust.",
+    "vision": "Evōk, which means, 'to bring to the conscious mind,' aims to inspire and connect our partners with a new part development experience built on trust.",
     "taglines": [
       "PASSION DRIVEN PARTS - experience jewelry quality at optimized price",
       "DEDICATED TO QUALITY - experience jewelry quality at optimized price",
@@ -550,6 +578,29 @@ const CLIENT_EVOK_POLYMERS: ClientSample = {
       "TRUST BASED ENVIRONMENT WHERE SHARING INCREASES PROGRESS"
     ],
     "mission_statement": "Evok Polymers is a best-in-class Injection molding part design, development, and manufacturing partner. We focus on a deep connection with our customers to develop optimized efficiencies with respect to Injection molded part design, material selection, tool development, and high volume optimized part pricing."
+  }
+}`,
+  additionalInfoJson: `{
+  "business_profile": {
+    "inventory_nature": "100% Custom-Manufactured Components - No catalog inventory; all parts are designed and produced to customer specifications with production tooling for lifecycle supply.",
+    "business_identity": "B2B injection molding partner specializing in custom plastic part design, mold development, and high-volume production manufacturing rather than off-the-shelf product sales.",
+    "primary_verticals": [
+      "Custom Injection Molded Parts",
+      "Mold Design & Tooling",
+      "CAD Engineering Services",
+      "Rapid Prototyping (SLA/FDM)",
+      "Material Selection & Testing"
+    ],
+    "explicit_out_of_scope": [
+      "Off-the-shelf plastic parts or products",
+      "Evaluation tooling or short-run tooling (focus is production tooling only)",
+      "Mold repair services",
+      "Rental equipment",
+      "Metal fabrication or non-plastic materials",
+      "Residential/consumer direct sales",
+      "Pre-designed catalog components",
+      "Tooling for non-injection processes (blow molding, thermoforming, etc.)"
+    ]
   }
 }`,
   logoUrlsJson: `{
@@ -802,7 +853,7 @@ const CLIENT_MOREX_RIBBON: ClientSample = {
     "unique_selling_propositions": [
       "Morex Ribbon Exclusives Imported From Germany",
       "World Wide Highest Quality Standard and world's finest Materials used",
-      "Swiss Satin - 100% Polyester, Colorfast, Machine washable up to 140\\u00b0F/60\\u00b0C",
+      "Swiss Satin - 100% Polyester, Colorfast, Machine washable up to 140°F/60°C",
       "All Colors tested according to Oeko-Tex Standard 100",
       "197 Glorious Colors available",
       "18 Widths available",
@@ -842,6 +893,30 @@ const CLIENT_MOREX_RIBBON: ClientSample = {
     ],
     "core_values": [],
     "mission_statement": null
+  }
+}`,
+  additionalInfoJson: `{
+  "business_profile": {
+    "inventory_nature": "100% Consumable Finished Goods - ribbon sold by the yard/spool in various widths, lengths, and materials; includes pre-made bows and curling ribbon accessories",
+    "business_identity": "B2B wholesale distributor and manufacturer of decorative ribbon products, selling finished ribbon spools, bows, and curling ribbon by the yard for craft, floral, packaging, and seasonal decoration industries.",
+    "primary_verticals": [
+      "Ribbon by Style (Grosgrain, Satin, Sheer, Wired, Glitter, Velvet, Burlap)",
+      "Ribbon by Season (Christmas, Halloween, Easter, Patriotic, Spring, Autumn, Valentines)",
+      "Ribbon by Use Case (Floral, Bridal/Prom, Baby, Party, Scrapbooking, Hairbow, Fabric/Sewing)",
+      "Ribbon by Pattern (Check/Plaid, Dots, Stripes, Animal Prints, Chevrons)",
+      "Packaging Basics (Curling Ribbon, Bows, Cords)"
+    ],
+    "explicit_out_of_scope": [
+      "Raw textile manufacturing equipment",
+      "Ribbon printing/customization services",
+      "Non-ribbon craft supplies (paper, adhesives, scissors, tools)",
+      "Fabric by the bolt (non-ribbon textiles)",
+      "Apparel or finished garments",
+      "Home decor items beyond ribbon",
+      "Rental services",
+      "Installation or application services",
+      "Used or refurbished products"
+    ]
   }
 }`,
   logoUrlsJson: `{
@@ -2232,6 +2307,33 @@ const CLIENT_PERFECT_IMPRINTS: ClientSample = {
     "mission_statement": null
   }
 }`,
+  additionalInfoJson: `{
+  "business_profile": {
+    "inventory_nature": "100% Whole Units - Finished promotional products available for custom branding/imprinting, sold in bulk quantities with minimum order requirements",
+    "business_identity": "B2B promotional products distributor specializing in customizable branded merchandise including apparel, drinkware, bags, tech accessories, and trade show materials with logo imprinting services.",
+    "primary_verticals": [
+      "Apparel & Wearables",
+      "Drinkware & Coolers",
+      "Bags & Totes",
+      "Technology & Electronics",
+      "Trade Show & Event Displays",
+      "Office & Writing Instruments",
+      "Health & Wellness Products"
+    ],
+    "explicit_out_of_scope": [
+      "Replacement Parts",
+      "Repair Services",
+      "Used/Refurbished Items",
+      "Rentals",
+      "Non-customizable retail goods",
+      "Individual consumer sales (B2C retail)",
+      "Raw materials or manufacturing components",
+      "Installation services",
+      "Medical equipment or pharmaceuticals",
+      "Heavy machinery or industrial equipment"
+    ]
+  }
+}`,
   logoUrlsJson: `{
   "favicon": "https://file-host.link/website/perfectimprints-od84er/assets/logo/1774616759255906_e681bf8e7b644878808b089e7da221dd.bin",
   "gbp_url": "https://file-host.link/website/perfectimprints-od84er/assets/logo/1774616473383754_b8d25c260e05400b83c933e21c3774cf.webp",
@@ -3594,6 +3696,25 @@ const CLIENT_POWELL_SYSTEMS_INC: ClientSample = {
     "mission_statement": null
   }
 }`,
+  additionalInfoJson: `{
+  "business_profile": {
+    "inventory_nature": "90% Whole Units / 10% Custom Solutions",
+    "business_identity": "Industrial manufacturer of steel containers, material handling solutions, and automated packaging systems with over 100 years of experience serving manufacturing industries.",
+    "primary_verticals": [
+      "Steel Containers",
+      "Feeders",
+      "Weigh Fillers",
+      "Integrated Systems",
+      "Automated Packaging Solutions"
+    ],
+    "explicit_out_of_scope": [
+      "Used Equipment",
+      "Rental Services",
+      "Residential/Home Goods",
+      "Non-Industrial Applications"
+    ]
+  }
+}`,
   logoUrlsJson: `{
   "favicon": "https://file-host.link/website/powellsystems-xkd83h/assets/logo/1768413645229747_0ef2a515591d4bab92dccace4309c841.webp",
   "primary_logo": "https://file-host.link/website/powellsystems-xkd83h/assets/logo/1768413645035531_ba4f40757a09467a9e5fcb947f312240.webp"
@@ -4425,7 +4546,7 @@ const CLIENT_ROSSINI_EQUIPMENT_CORP: ClientSample = {
       "1998: Rossini Equipment Corp. founded as subsidiary of Rossini Contractors",
       "Expanded yard and offices established in Monticello, NY"
     ],
-    "founding_story": "With a lifetime of experience in excavation and heavy equipment, Joseph Rossini founded Rossini Equipment Corp. in 1998, focusing on what he knows best \\u2014 putting well-maintained machines and decades of field knowledge to work for contractors, landscapers, and property owners.",
+    "founding_story": "With a lifetime of experience in excavation and heavy equipment, Joseph Rossini founded Rossini Equipment Corp. in 1998, focusing on what he knows best — putting well-maintained machines and decades of field knowledge to work for contractors, landscapers, and property owners.",
     "company_history": "Rossini Equipment Corp. was founded in 1998 as a subsidiary of Rossini Contractors, a family business with deep roots in the New York construction industry going back to 1963. For over three decades, the company built its reputation serving public agencies, utility companies, and private contractors across the New York metro area, delivering reliable, high-performance equipment solutions on some of the region's most demanding job sites.",
     "growth_narrative": "From serving the New York metro area for over three decades, Rossini Equipment Corp. has evolved to operate from an expanded yard and offices in Monticello, NY, where the company continues to deliver responsive service and technical expertise to Sullivan County and the surrounding Hudson Valley region."
   },
@@ -4473,9 +4594,6 @@ const CLIENT_ROSSINI_EQUIPMENT_CORP: ClientSample = {
       "customer_name": "Con Edison",
       "customer_logo_url": null
     }
-  ],
-  "target_geographies": [
-    "us"
   ],
   "value_propositions": {
     "key_benefits": [
@@ -4538,6 +4656,28 @@ const CLIENT_ROSSINI_EQUIPMENT_CORP: ClientSample = {
     ],
     "core_values": [],
     "mission_statement": null
+  }
+}`,
+  additionalInfoJson: `{
+  "business_profile": {
+    "inventory_nature": "90% Whole Units (Heavy Equipment for Rent/Sale) / 10% Attachments & Accessories. Includes both new and used equipment, with explicit 'as-is' designations for older machinery.",
+    "business_identity": "Heavy construction equipment provider offering rentals, sales, and operator hire services, with additional excavation contracting and equipment transportation capabilities in Sullivan County, NY.",
+    "primary_verticals": [
+      "Excavators",
+      "Skid Steers/Track Loaders",
+      "Attachments (Breakers, Chippers, Brooms, Buckets)",
+      "Air Compressors & Generators",
+      "Excavation & Site Work Contracting"
+    ],
+    "explicit_out_of_scope": [
+      "Replacement Parts (individual components like hydraulic hoses, filters, engine parts)",
+      "Consumables (fuel, oil, lubricants, maintenance supplies)",
+      "Light/Residential Equipment (lawn mowers, small generators under 30A)",
+      "Automotive/Truck Parts",
+      "Building Materials (except flagstone and street plates which are sold)",
+      "Hand Tools & Small Power Tools",
+      "Manufacturing/OEM Production Services"
+    ]
   }
 }`,
   logoUrlsJson: `{
@@ -5661,7 +5801,7 @@ const CLIENT_SENTINEL_ASSET_MANAGEMENT: ClientSample = {
     ],
     "unique_selling_propositions": [
       "Asset management rooted in modern portfolio theory, refined through decades of real-world application",
-      "Building on the Nobel Prize\\u2013winning work of Harry Markowitz to eliminate unsystematic risk through deliberate diversification",
+      "Building on the Nobel Prize–winning work of Harry Markowitz to eliminate unsystematic risk through deliberate diversification",
       "PRIME risk framework: Purchasing Power, Reinvestment, Interest Rate, Market, and Exchange Risk",
       "Every client portfolio is guided by an Investment Policy Statement, stress-tested under different market conditions",
       "Structured withdrawal 'buckets' that pursue insulation against near-term cash flow fluctuations from market volatility",
@@ -5692,6 +5832,34 @@ const CLIENT_SENTINEL_ASSET_MANAGEMENT: ClientSample = {
     ],
     "core_values": [],
     "mission_statement": "A comprehensive financial services firm committed to supporting individuals and organisations pursuing enduring financial goals, whilst understanding the risks inherent in the market"
+  }
+}`,
+  additionalInfoJson: `{
+  "business_profile": {
+    "inventory_nature": "100% Professional Services - No physical inventory; delivers financial advisory services, portfolio management, educational courses, and planning strategies",
+    "business_identity": "Comprehensive financial services firm providing fiduciary investment advisory, retirement income planning, tax management, risk management, estate planning, and legacy planning for individuals and families",
+    "primary_verticals": [
+      "Asset Management",
+      "Retirement Income Planning",
+      "Tax Management",
+      "Risk Management",
+      "Estate Planning",
+      "Legacy Planning"
+    ],
+    "explicit_out_of_scope": [
+      "Physical Products",
+      "Retail Goods",
+      "Equipment Sales",
+      "Parts Distribution",
+      "Manufacturing",
+      "Wholesale Trade",
+      "Consumable Goods",
+      "Real Estate Sales",
+      "Insurance Product Sales (advisory context only)",
+      "Legal Services (coordinates with attorneys but does not provide legal advice)",
+      "Tax Preparation Services (provides tax management strategy, not filing)",
+      "Accounting Services"
+    ]
   }
 }`,
   logoUrlsJson: `{
@@ -5946,6 +6114,32 @@ const CLIENT_SYLUS: ClientSample = {
     "mission_statement": null
   }
 }`,
+  additionalInfoJson: `{
+  "business_profile": {
+    "inventory_nature": "100% Software-as-a-Service (SaaS) - No physical inventory, replacement parts, or consumables",
+    "business_identity": "B2B SaaS platform providing AI-powered data analytics and business intelligence tools exclusively for enterprise clients, not a product catalog or e-commerce business.",
+    "primary_verticals": [
+      "AI Data Analysis",
+      "Business Intelligence Dashboards",
+      "Data Visualization",
+      "Automated Reporting",
+      "Team Collaboration Tools",
+      "Enterprise Data Integration"
+    ],
+    "explicit_out_of_scope": [
+      "Physical Products",
+      "Consumer/B2C Services",
+      "E-commerce Transactions",
+      "Product Catalog Management",
+      "Inventory Sales",
+      "Wholesale Distribution",
+      "Retail Operations",
+      "Equipment Rentals",
+      "Hardware Sales",
+      "Replacement Parts"
+    ]
+  }
+}`,
   logoUrlsJson: `{
   "favicon": "https://file-host.link/website/sylus-j1ad5s/assets/logo/1773313796033048_ec3481afa37a43768ec1737e9a982f78.png",
   "primary_logo": "https://file-host.link/website/sylus-j1ad5s/assets/logo/logo.webp"
@@ -6177,7 +6371,7 @@ const CLIENT_TERRAPIN_INDUSTRIAL_LLC: ClientSample = {
       "Reduces schedule delays",
       "Greater access to instrument and tubing during installation",
       "Simplified maintenance with removable components",
-      "Maintains >75\\u00b0F/23.9\\u00b0C in -60\\u00b0F/-51.1\\u00b0C temperature environment with heated liner",
+      "Maintains >75°F/23.9°C in -60°F/-51.1°C temperature environment with heated liner",
       "Exceptional heat output ranges from 108 watts to 720 watts depending on heater cable selection",
       "Allows for installation in hazardous areas - heated liner can be used in T6 areas"
     ],
@@ -6232,6 +6426,33 @@ const CLIENT_TERRAPIN_INDUSTRIAL_LLC: ClientSample = {
       "Quick response and expert consulting skill to assist customers in making the right decisions for the job"
     ],
     "mission_statement": null
+  }
+}`,
+  additionalInfoJson: `{
+  "business_profile": {
+    "inventory_nature": "100% Whole Units and Component Systems - Pre-engineered modular enclosure systems, heating elements, insulation kits, and mounting hardware sold as complete units or integrated assemblies for field installation",
+    "business_identity": "B2B manufacturer of modular instrument enclosures and winterization systems for industrial process instrumentation, specializing in retrofittable/expandable enclosure designs, heated liners, and thermal protection accessories.",
+    "primary_verticals": [
+      "Instrument Enclosures (Retrofittable & Expandable)",
+      "Heating Systems (Finned Heaters, Heated Liners, Steam Heaters, Rigid Heated Blankets)",
+      "Insulation Products (Urethane, Pyrogel)",
+      "Mounting Hardware (Pipe Stands, Brackets)",
+      "Winterization Accessories (Thermostats, Gaskets, Entry Seals)"
+    ],
+    "explicit_out_of_scope": [
+      "Instrumentation devices (transmitters, sensors, gauges)",
+      "Process tubing/piping materials",
+      "Electrical conduit or wiring",
+      "Valve bodies or actuators",
+      "Coriolis meters or flow measurement devices",
+      "Installation labor services",
+      "Offsite integration services",
+      "Used or refurbished enclosures",
+      "Rental equipment",
+      "Residential or consumer products",
+      "HVAC systems",
+      "Building enclosures or structures"
+    ]
   }
 }`,
   logoUrlsJson: `{
@@ -6956,11 +7177,11 @@ const CLIENT_TRINU_POWDER_COATING: ClientSample = {
     "milestones": [
       "2017: TriNu Powder Coating founded",
       "20,000+ projects completed",
-      "Built 10' \\u00d7 10' \\u00d7 30' large-scale production oven capacity"
+      "Built 10' × 10' × 30' large-scale production oven capacity"
     ],
     "founding_story": "The company was founded with a simple goal: to provide dependable finishing work businesses could count on. Built here in the Tampa Bay area, the company grew out of hands-on industry experience and a belief that quality comes from doing the fundamentals right.",
     "company_history": "TriNu Powder Coating was started with a simple goal: to provide dependable finishing work businesses could count on. Built in the Tampa Bay area, the company grew out of hands-on industry experience and a belief that quality comes from doing the fundamentals right. Since 2017, the focus has been on following proven processes, preparing parts properly, and delivering consistent results customers can plan around.",
-    "growth_narrative": "From the beginning, the focus has been on preparation, process, and follow-through. As TriNu has grown, the company has continued to invest in better equipment, updated powder systems, and a strong team\\u2014always with the same mindset: do the work carefully, follow proven steps, and deliver finishes built to last."
+    "growth_narrative": "From the beginning, the focus has been on preparation, process, and follow-through. As TriNu has grown, the company has continued to invest in better equipment, updated powder systems, and a strong team—always with the same mindset: do the work carefully, follow proven steps, and deliver finishes built to last."
   },
   "phone_numbers": [
     "(727) 316-6700"
@@ -6993,7 +7214,7 @@ const CLIENT_TRINU_POWDER_COATING: ClientSample = {
       "High client retention rate"
     ],
     "unique_selling_propositions": [
-      "10' \\u00d7 10' \\u00d7 30' production oven for large-scale capacity",
+      "10' × 10' × 30' production oven for large-scale capacity",
       "Process-driven approach with controlled application and verified curing",
       "Complete surface preparation, finishing, and logistics under one roof",
       "Every job inspected before release"
@@ -7023,7 +7244,7 @@ const CLIENT_TRINU_POWDER_COATING: ClientSample = {
       "Consistent quality. Reliable turnaround."
     ],
     "core_values": [
-      "Integrity - We do the work the right way\\u2014honestly, responsibly, and without shortcuts",
+      "Integrity - We do the work the right way—honestly, responsibly, and without shortcuts",
       "Quality - Every job is handled with care, from preparation through final cure, to deliver durable, consistent finishes",
       "Reliability - We stand by our commitments and follow through with dependable timelines and results",
       "Teamwork - We work together with respect and accountability, supporting each other and our customers at every step",
@@ -7031,6 +7252,36 @@ const CLIENT_TRINU_POWDER_COATING: ClientSample = {
       "Get It Done - We stay focused, solve problems, and deliver real results"
     ],
     "mission_statement": "To provide dependable finishing work businesses could count on"
+  }
+}`,
+  additionalInfoJson: `{
+  "business_profile": {
+    "inventory_nature": "100% Service-Based Business Model—no physical product inventory sold; all revenue from labor-based finishing services (surface prep, coating application, curing, logistics).",
+    "business_identity": "Industrial powder coating and abrasive blasting service provider serving manufacturers, fabricators, and contractors in the Tampa Bay area—does not sell products or equipment, only provides finishing services.",
+    "primary_verticals": [
+      "Powder Coating Services",
+      "Abrasive Blasting / Sand Blasting Services",
+      "Surface Preparation Services",
+      "Pick-Up & Delivery Logistics",
+      "Industrial Finishing for Manufacturing/OEM",
+      "Metal Fabrication Finishing",
+      "Architectural & Construction Finishing"
+    ],
+    "explicit_out_of_scope": [
+      "Product Sales (no equipment, parts, or consumables sold)",
+      "Powder Coating Equipment Sales",
+      "Blasting Media Sales",
+      "Rental Services",
+      "Repair Services (mechanical/structural)",
+      "Manufacturing/Fabrication Services (does not fabricate parts)",
+      "Residential/Consumer Services",
+      "Automotive Retail Services",
+      "Marine Vessel Manufacturing",
+      "Paint/Liquid Coating Services",
+      "Welding Services",
+      "Machining Services",
+      "Raw Material Supply"
+    ]
   }
 }`,
   logoUrlsJson: `{
@@ -7285,6 +7536,32 @@ const CLIENT_7BROWN: ClientSample = {
     "mission_statement": "We remain a family of farmers, merchants, and veterans today, who are committed to raising the best meats and farm products in the most sustainable way."
   }
 }`,
+  additionalInfoJson: `{
+  "business_profile": {
+    "inventory_nature": "100% Fresh-Frozen Beef Products: Ground chuck (primary volume driver), premium steaks (ribeye, sirloin, picanha), specialty cuts (brisket, flat iron, Denver steak), and restaurant-grade dry-aged primals",
+    "business_identity": "Direct-to-consumer farm selling 100% American Black Angus beef raised on a single Missouri estate, offering craft-butchered cuts with 14-day minimum dry aging and optional white-glove delivery within 100 miles of the farm.",
+    "primary_verticals": [
+      "Ground Beef Products",
+      "Premium Steak Cuts",
+      "Specialty Beef Cuts",
+      "Bulk Freezer Orders",
+      "Extended Dry-Aged Primals"
+    ],
+    "explicit_out_of_scope": [
+      "Live cattle sales",
+      "Imported or blended beef products",
+      "Pork, poultry, lamb, or non-beef proteins",
+      "Processed/cured meats (sausages, bacon, deli meats)",
+      "Grocery items or produce",
+      "Equipment or farm supplies",
+      "Rental services",
+      "On-site butchering services for customer-owned animals",
+      "Beef from other farms or co-ops",
+      "Commodity/industrial beef distribution",
+      "Restaurants or food service operations"
+    ]
+  }
+}`,
   logoUrlsJson: `{
   "favicon": "https://file-host.link/website/7brown-injpl7/assets/logo/1774995829126898_fa3e99287e584d5b8c06d830c68762ba.jpg",
   "gbp_url": "https://file-host.link/website/7brown-injpl7/assets/logo/1774995631193353_1d5c3896a43a487fa64dc1d39f8eb6b1.webp",
@@ -7508,165 +7785,30 @@ const CLIENT_ABBAHVAC: ClientSample = {
     "mission_statement": "To provide comprehensive, reliable HVAC, electrical, and plumbing solutions to Central Texas communities with dad-level care and professional-grade service, ensuring comfort and peace of mind for every customer."
   }
 }`,
+  additionalInfoJson: `{
+  "business_profile": {
+    "inventory_nature": "100% Services / 0% Physical Products",
+    "business_identity": "Full-service HVAC, electrical, and plumbing contractor serving Greater Austin with 24/7 emergency service since 2007.",
+    "primary_verticals": [
+      "HVAC Services",
+      "Heating Services",
+      "Cooling Services",
+      "Plumbing Services",
+      "Electrical Services"
+    ],
+    "explicit_out_of_scope": [
+      "Equipment Sales",
+      "Parts Distribution",
+      "Rentals",
+      "DIY Solutions",
+      "Non-Austin Service Areas"
+    ]
+  }
+}`,
   logoUrlsJson: `{
   "favicon": "https://cdn.gushwork.ai/website/abbahvac-26qufs/assets/logo/favicon.ico",
   "gbp_url": "https://cdn.gushwork.ai/website/abbahvac-26qufs/assets/logo/1762346721939798_a86fafd2c21a4bc8a0c17218ef70acb4.webp",
   "primary_logo": "https://file-host.link/website/abbahvac-26qufs/assets/uploaded-assets/1765366762364000_6e39d050f2fc47d1b5363ec6bce5bb43"
-}`,
-  serviceCatalogJson: `[]`,
-  productInformationJson: `[]`,
-  paaDataJson: `{}`,
-};
-
-const CLIENT_GROSSCONSULTINGINC: ClientSample = {
-  id: `ead4e269-080b-4a79-9d14-372391117530`,
-  slug: `grossconsultinginc`,
-  name: `Gross Consulting Inc`,
-  url: `https://www.grossconsultinginc.com/`,
-  primaryLogoUrl: `https://file-host.link/website/grossconsultinginc-5elc7f/assets/logo/logo.webp`,
-  sampleServiceTopic: ``,
-  sampleCategoryTopic: ``,
-  sampleBlogTopic: ``,
-  designTokensJson: `{
-  "fonts": {
-    "body_font_url": "https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap",
-    "heading_font_url": "https://fonts.googleapis.com/css2?family=Urbanist:wght@300..700&display=swap"
-  },
-  "css_variables": {
-    "--color-brand-text": "#0B2340",
-    "--font-family-body": "Inter, ui-sans-serif, system-ui, sans-serif",
-    "--color-brand-primary": "#0B3E69",
-    "--font-family-heading": "Urbanist, ui-sans-serif, system-ui, sans-serif",
-    "--color-brand-secondary": "#F7E04C",
-    "--color-brand-text-muted": "#7A9BB8",
-    "--color-brand-primary-dark": "#061E34",
-    "--color-brand-text-inverse": "#ffffff",
-    "--color-brand-text-primary": "#0B2340",
-    "--color-brand-primary-hover": "#082E4F",
-    "--color-brand-primary-light": "rgba(11, 62, 105, 0.05)",
-    "--color-brand-text-tertiary": "#3A6B96",
-    "--color-brand-primary-medium": "rgba(11, 62, 105, 0.1)",
-    "--color-brand-secondary-dark": "#C9B610",
-    "--color-brand-text-secondary": "#1A4F7A",
-    "--color-brand-secondary-hover": "#E8CD1E",
-    "--color-brand-secondary-light": "rgba(247, 224, 76, 0.05)",
-    "--color-brand-secondary-medium": "rgba(247, 224, 76, 0.1)",
-    "--color-brand-primary-foreground": "#ffffff",
-    "--color-brand-secondary-foreground": "#0B3E69"
-  }
-}`,
-  companyInfoJson: `{
-  "name": {
-    "dba_name": null,
-    "legal_name": "Gross Consulting, Inc.",
-    "company_name": "Gross Consulting"
-  },
-  "founded": {
-    "founded_date_year": 2016,
-    "years_in_business": "10 years"
-  },
-  "locations": {
-    "branch_locations": [],
-    "headquarters_address": "1942 Broadway, Suite 314C, Boulder, CO 80302"
-  },
-  "credentials": {
-    "memberships": [],
-    "accreditations": [
-      "Verified Meta Business Partner",
-      "Verified Gusto Accountancy Partner"
-    ],
-    "certifications": [],
-    "business_licenses": []
-  },
-  "company_size": {
-    "employee_count": null,
-    "annual_turnover": null
-  },
-  "service_team": {
-    "team_members": [
-      {
-        "bio": "After working alongside service-based business owners — attorneys, doctors, real estate investors, and local service owners — Jaiden saw a common thread. These leaders had the vision and drive, but they were weighed down by scattered systems, messy marketing, and the overwhelming challenge of scaling sustainably. Jaiden built Gross Consulting to bridge that gap. With a passion for blending creative strategy, operational structure, and compliance support, Jaiden has helped transform businesses from six figures into thriving seven- and even eight-figure enterprises. But beyond the numbers, what excites Jaiden most is seeing entrepreneurs gain the clarity, confidence, and freedom to step fully into their role as visionary leaders.",
-        "name": "Jaiden Gross",
-        "title": "Founder",
-        "headshot_image": "https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=768,h=845,fit=crop/YKbloelGDlC915Q6/jaiden-gross-headshot-pp-GPWEsNhP8iukrs7W.jpg"
-      }
-    ],
-    "employee_count": null,
-    "years_of_experience": null
-  },
-  "company_story": {
-    "milestones": [],
-    "founding_story": "After working alongside service-based business owners — attorneys, doctors, real estate investors, and local service owners — Jaiden saw a common thread. These leaders had the vision and drive, but they were weighed down by scattered systems, messy marketing, and the overwhelming challenge of scaling sustainably. Jaiden built Gross Consulting to bridge that gap. For Jaiden, that story began with a simple realization: Entrepreneurs are heroes in their own right. But heroes can't do it all alone.",
-    "company_history": "Gross Consulting was built to bridge the gap for service-based business owners who had the vision and drive, but were weighed down by scattered systems, messy marketing, and the overwhelming challenge of scaling sustainably.",
-    "growth_narrative": "With a passion for blending creative strategy, operational structure, and compliance support, Jaiden has helped transform businesses from six figures into thriving seven- and even eight-figure enterprises."
-  },
-  "phone_numbers": [
-    "+1 (424) 347-6865"
-  ],
-  "service_areas": [],
-  "email_addresses": [
-    "support@grossconsultinginc.com"
-  ],
-  "major_customers": [],
-  "value_propositions": {
-    "key_benefits": [
-      "Stay lean, effective, and scalable",
-      "Gain clarity, confidence, and freedom to step fully into role as visionary leaders",
-      "Streamlined systems built for scale, efficiency, and compliance",
-      "Turn clicks into customers"
-    ],
-    "market_positioning": "Growth-focused consulting firm specializing in scaling service-based businesses through tailored marketing, operational systems, and compliance support for diverse industries.",
-    "competitive_advantages": [
-      "We don't just give advice. We build.",
-      "We go beyond advice to design, implement, and manage the full growth stack for our clients",
-      "Team blends AI, automation, and human insight",
-      "Full-service marketing that drives growth while you lead the business"
-    ],
-    "unique_selling_propositions": [
-      "Verified Meta Business Partner",
-      "Verified Gusto Accountancy Partner",
-      "Hybrid approach combining AI & Automation with Human Expertise",
-      "Full-stack support integrating creative, systems, and strategy"
-    ]
-  },
-  "awards_recognitions": [],
-  "social_media_profiles": {
-    "other": [],
-    "yelp_url": null,
-    "twitter_url": null,
-    "youtube_url": null,
-    "facebook_url": null,
-    "linkedin_url": null,
-    "whatsapp_url": null,
-    "instagram_url": null
-  },
-  "target_customer_segments": [
-    "Professional service companies",
-    "Attorneys",
-    "Accountants",
-    "Doctors",
-    "Real estate investment firms",
-    "Credit repair companies",
-    "eCommerce brands",
-    "Service-based businesses",
-    "Growth-focused service businesses"
-  ],
-  "mission_statement_company_values": {
-    "vision": "At the heart of Gross Consulting is Jaiden's belief that growth isn't just about revenue: it's about building businesses that are sustainable, scalable, and human-centered.",
-    "taglines": [
-      "Not All Heroes Wear Capes - Some Build Businesses",
-      "Helping service businesses scale to new heights"
-    ],
-    "core_values": [
-      "AI & Automation to keep you efficient and ahead of the curve",
-      "Human Expertise to adapt strategies with insight and precision"
-    ],
-    "mission_statement": "We integrate creative, systems, and strategy so you're not just marketing harder — you're growing smarter."
-  }
-}`,
-  logoUrlsJson: `{
-  "favicon": "https://file-host.link/website/grossconsultinginc-5elc7f/assets/logo/1776710031320927_6b481f45b18642f88f6f36047ab3d0b4.png",
-  "primary_logo": "https://file-host.link/website/grossconsultinginc-5elc7f/assets/logo/logo.webp"
 }`,
   serviceCatalogJson: `[]`,
   productInformationJson: `[]`,
@@ -7686,7 +7828,6 @@ export const CLIENT_SAMPLES: ClientSample[] = [
   CLIENT_TRINU_POWDER_COATING,
   CLIENT_7BROWN,
   CLIENT_ABBAHVAC,
-  CLIENT_GROSSCONSULTINGINC,
 ];
 
 export function getClientSampleBySlug(slug: string): ClientSample | undefined {
