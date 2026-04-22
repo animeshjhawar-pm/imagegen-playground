@@ -13,7 +13,8 @@
 export type ImageModel =
   | "google/nano-banana-pro"
   | "google/nano-banana-2"
-  | "bytedance/seedream-4";
+  | "bytedance/seedream-4"
+  | "openai/gpt-image-2";
 
 export const DEFAULT_IMAGE_MODEL: ImageModel = "google/nano-banana-pro";
 
@@ -80,6 +81,23 @@ function buildModelInput(
       image_input: imageInput ?? [],
       enhance_prompt: true,
       sequential_image_generation: "disabled",
+    };
+  }
+
+  if (model === "openai/gpt-image-2") {
+    // gpt-image-2 wraps each image in `{ value: url }` (different from the
+    // other models) and lives on `input_images`, not `image_input`.
+    const input_images = (imageInput ?? []).map((url) => ({ value: url }));
+    return {
+      prompt,
+      quality: "high",
+      background: "auto",
+      moderation: "auto",
+      aspect_ratio: aspectRatio,
+      input_images,
+      output_format: "webp",
+      number_of_images: 1,
+      output_compression: 90,
     };
   }
 

@@ -273,6 +273,7 @@ async function runLiveStep(
         "google/nano-banana-pro",
         "google/nano-banana-2",
         "bytedance/seedream-4",
+        "openai/gpt-image-2",
       ] as const;
       type ImgModel = typeof allowedModels[number];
       const model: ImgModel | undefined =

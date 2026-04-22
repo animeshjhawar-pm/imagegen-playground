@@ -500,7 +500,11 @@ export function StepCell({
 // Image model picker — generate_image step, new flow only. Per-lane state
 // lives in StepState.stepConfig and is sent to the API via runStep.
 // ---------------------------------------------------------------------------
-type ImageModelId = "google/nano-banana-pro" | "google/nano-banana-2" | "bytedance/seedream-4";
+type ImageModelId =
+  | "google/nano-banana-pro"
+  | "google/nano-banana-2"
+  | "bytedance/seedream-4"
+  | "openai/gpt-image-2";
 
 const IMAGE_MODELS: Array<{
   id: ImageModelId;
@@ -510,6 +514,7 @@ const IMAGE_MODELS: Array<{
   { id: "google/nano-banana-pro", label: "nano-banana-pro", price: "$0.15 / image · 2K" },
   { id: "google/nano-banana-2",   label: "nano-banana-2",   price: "$0.101 / image · 2K" },
   { id: "bytedance/seedream-4",   label: "seedream-4",      price: "$0.03 / image · 2K" },
+  { id: "openai/gpt-image-2",     label: "gpt-image-2",     price: "$0.128 / image" },
 ];
 
 function ImageModelPicker({
