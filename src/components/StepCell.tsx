@@ -179,6 +179,7 @@ export function StepCell({
         pipelineKey,
         systemPromptOverride: opts?.systemPrompt ?? stepState.promptOverride?.systemPrompt,
         userPromptOverride:   opts?.userPrompt   ?? stepState.promptOverride?.userPrompt,
+        stepConfig: stepState.stepConfig,
         signal: controller.signal,
       });
       if (controller.signal.aborted) return; // Aborted — abort handler already dispatched.
@@ -305,6 +306,21 @@ export function StepCell({
                   );
                 })}
               </div>
+            )}
+
+            {/* ── Image model picker (generate_image, new flow only) ──── */}
+            {step.name === "generate_image" && flowType === "new" && (
+              <ImageModelPicker
+                config={stepState.stepConfig}
+                onChange={(patch) =>
+                  dispatch({
+                    type: "UPDATE_STEP_CONFIG",
+                    clientId, flowType, flowIndex,
+                    stepName: step.name,
+                    config: patch,
+                  })
+                }
+              />
             )}
 
             {/* ── View Prompt CTA (LLM steps only) ──────────────────────── */}
@@ -477,5 +493,102 @@ export function StepCell({
         />
       )}
     </td>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Image model picker — generate_image step, new flow only. Per-lane state
+// lives in StepState.stepConfig and is sent to the API via runStep.
+// ---------------------------------------------------------------------------
+type ImageModelId = "google/nano-banana-pro" | "google/nano-banana-2" | "bytedance/seedream-4";
+
+const IMAGE_MODELS: Array<{
+  id: ImageModelId;
+  label: string;
+  price: string;
+}> = [
+  { id: "google/nano-banana-pro", label: "nano-banana-pro", price: "$0.15 / image · 2K" },
+  { id: "google/nano-banana-2",   label: "nano-banana-2",   price: "$0.101 / image · 2K" },
+  { id: "bytedance/seedream-4",   label: "seedream-4",      price: "$0.03 / image · 2K" },
+];
+
+function ImageModelPicker({
+  config,
+  onChange,
+}: {
+  config: Record<string, unknown> | undefined;
+  onChange: (patch: Record<string, unknown>) => void;
+}) {
+  const selected: ImageModelId =
+    (typeof config?.model === "string" &&
+      (IMAGE_MODELS.some((m) => m.id === config.model)
+        ? (config.model as ImageModelId)
+        : null)) ||
+    "google/nano-banana-pro";
+
+  const imageSearch  = typeof config?.imageSearch  === "boolean" ? config.imageSearch  : false;
+  const googleSearch = typeof config?.googleSearch === "boolean" ? config.googleSearch : false;
+
+  return (
+    <div className="flex flex-col gap-1.5 rounded border border-indigo-900/40 bg-indigo-950/20 p-2">
+      <span className="text-[9px] uppercase tracking-widest text-indigo-300/80">
+        Model
+      </span>
+
+      <div className="flex flex-col gap-1">
+        {IMAGE_MODELS.map((m) => {
+          const isActive = m.id === selected;
+          return (
+            <label
+              key={m.id}
+              className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer text-[11px] transition-colors ${
+                isActive
+                  ? "bg-indigo-900/40 border border-indigo-700/60"
+                  : "hover:bg-indigo-900/20 border border-transparent"
+              }`}
+            >
+              <input
+                type="radio"
+                checked={isActive}
+                onChange={() => onChange({ model: m.id })}
+                className="accent-indigo-500"
+              />
+              <span className="text-neutral-200 font-mono flex-1 min-w-0 truncate">{m.label}</span>
+              <span className="text-[10px] text-neutral-500 whitespace-nowrap">{m.price}</span>
+            </label>
+          );
+        })}
+      </div>
+
+      {/* nano-banana-2 extras: image_search + google_search toggles */}
+      {selected === "google/nano-banana-2" && (
+        <div className="flex flex-col gap-1 pl-2 pt-1 border-t border-indigo-900/40 mt-1">
+          <label className="flex items-center gap-2 text-[10px] text-neutral-300 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={imageSearch}
+              onChange={(e) => onChange({ imageSearch: e.target.checked })}
+              className="accent-indigo-500"
+            />
+            <span className="font-mono">image_search</span>
+            <span className="text-neutral-500">
+              — Google Image Search grounding (web search also enabled)
+            </span>
+          </label>
+          <label className="flex items-center gap-2 text-[10px] text-neutral-300 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={googleSearch}
+              onChange={(e) => onChange({ googleSearch: e.target.checked })}
+              className="accent-indigo-500"
+            />
+            <span className="font-mono">google_search</span>
+            <span className="text-neutral-500">
+              — real-time web grounding (weather, sports, news)
+            </span>
+          </label>
+        </div>
+      )}
+    </div>
   );
 }

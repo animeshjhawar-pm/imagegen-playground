@@ -1,10 +1,35 @@
 // ---------------------------------------------------------------------------
-// Replicate provider — Step 5: generate_image (google/nano-banana-pro)
-// Reference: docs/backend-context.md §5.2
+// Replicate provider — Step 5: generate_image
+//
+// Supports three models (selected per-step via stepConfig.model):
+//   • google/nano-banana-pro   — default ($0.15 / img @ 2K)
+//   • google/nano-banana-2     — adds image_search / google_search toggles
+//   • bytedance/seedream-4     — enhance_prompt on, max_images=1
+//
+// All three use the same /predictions endpoint + poll flow; only the input
+// shape and endpoint path differ.
 // ---------------------------------------------------------------------------
+
+export type ImageModel =
+  | "google/nano-banana-pro"
+  | "google/nano-banana-2"
+  | "bytedance/seedream-4";
+
+export const DEFAULT_IMAGE_MODEL: ImageModel = "google/nano-banana-pro";
 
 export interface ReplicateResult {
   image_url: string;
+}
+
+export interface GenerateImageParams {
+  prompt: string;
+  aspectRatio: string;
+  imageInput?: string[];
+  model?: ImageModel;
+  /** nano-banana-2 only. */
+  imageSearch?: boolean;
+  /** nano-banana-2 only. */
+  googleSearch?: boolean;
 }
 
 // Tuned for Vercel Hobby's 60s function timeout. Leaves ~5s headroom for
@@ -19,11 +44,49 @@ async function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-export async function generateImage(params: {
-  prompt: string;
-  aspectRatio: string;
-  imageInput?: string[];
-}): Promise<ReplicateResult> {
+function buildModelInput(
+  model: ImageModel,
+  p: GenerateImageParams
+): Record<string, unknown> {
+  const { prompt, aspectRatio, imageInput } = p;
+
+  if (model === "google/nano-banana-pro") {
+    const input: Record<string, unknown> = { prompt, aspect_ratio: aspectRatio };
+    // Only include image_input if non-empty (empty array behaves differently).
+    if (imageInput && imageInput.length > 0) input.image_input = imageInput;
+    return input;
+  }
+
+  if (model === "google/nano-banana-2") {
+    return {
+      prompt,
+      aspect_ratio: aspectRatio,
+      resolution: "2K",
+      image_input: imageInput ?? [],
+      image_search: p.imageSearch ?? false,
+      google_search: p.googleSearch ?? false,
+      output_format: "jpg",
+    };
+  }
+
+  if (model === "bytedance/seedream-4") {
+    return {
+      prompt,
+      aspect_ratio: aspectRatio,
+      size: "2K",
+      width: 2048,
+      height: 2048,
+      max_images: 1,
+      image_input: imageInput ?? [],
+      enhance_prompt: true,
+      sequential_image_generation: "disabled",
+    };
+  }
+
+  throw new Error(`Unknown image model: ${model}`);
+}
+
+export async function generateImage(params: GenerateImageParams): Promise<ReplicateResult> {
   const token = process.env.REPLICATE_API_TOKEN;
   if (!token) {
     throw new Error(
@@ -31,36 +94,31 @@ export async function generateImage(params: {
     );
   }
 
-  const { prompt, aspectRatio, imageInput } = params;
-
-  const input: Record<string, unknown> = { prompt, aspect_ratio: aspectRatio };
-  // Only include image_input if non-empty (empty array behaves differently)
-  if (imageInput && imageInput.length > 0) {
-    input.image_input = imageInput;
-  }
+  const model = params.model ?? DEFAULT_IMAGE_MODEL;
+  const input = buildModelInput(model, params);
+  const endpoint = `https://api.replicate.com/v1/models/${model}/predictions`;
 
   // POST prediction with retry on transient failures
   let predictionId: string | null = null;
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const resp = await fetch(
-        "https://api.replicate.com/v1/models/google/nano-banana-pro/predictions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Token ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ input }),
-        }
-      );
+      const resp = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          Authorization: `Token ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ input }),
+      });
 
       if (resp.status === 401) {
         throw new Error("Replicate auth error (401). Check REPLICATE_API_TOKEN.");
       }
       if (!resp.ok) {
         const body = await resp.text().catch(() => "");
-        throw new Error(`Replicate create prediction ${resp.status}: ${body.slice(0, 300)}`);
+        throw new Error(
+          `Replicate create prediction (${model}) ${resp.status}: ${body.slice(0, 300)}`
+        );
       }
 
       const json = (await resp.json()) as { id?: string; error?: string };

@@ -18,6 +18,9 @@ interface RunStepParams {
   systemPromptOverride?: string;
   /** Optional: overrides the interpolated user prompt literally (skips template). */
   userPromptOverride?: string;
+  /** Per-step configuration (e.g. generate_image model + search toggles).
+   *  Opaque to runStep; the server interprets it per step name. */
+  stepConfig?: Record<string, unknown>;
   /** Aborts the client-side fetch when triggered. The server-side request
    *  to the upstream provider may still complete (we can't cancel that);
    *  the UI just stops listening. */
@@ -36,7 +39,7 @@ export async function runStep(params: RunStepParams): Promise<RunStepResult> {
   const {
     pageType, imageType, flowType, step, resolvedInputs, aspectRatio,
     isDryRun, clientId, pipelineKey,
-    systemPromptOverride, userPromptOverride,
+    systemPromptOverride, userPromptOverride, stepConfig,
     signal,
   } = params;
 
@@ -57,6 +60,7 @@ export async function runStep(params: RunStepParams): Promise<RunStepResult> {
       pipelineKey,
       systemPromptOverride,
       userPromptOverride,
+      stepConfig,
     }),
     signal,
   });

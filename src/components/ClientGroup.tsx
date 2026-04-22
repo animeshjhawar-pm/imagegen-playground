@@ -236,9 +236,11 @@ export function ClientGroup({
             pageType={pageType} imageType={imageType} />
 
           {/* New flow lanes — one row per entry in client.newFlows.
-           *  The last lane's label carries the "+ Add lane" button. */}
+           *  Added lanes (index > 0) carry a trash icon; the last lane
+           *  also carries the "+ Add lane" button. */}
           {client.newFlows.map((_, idx) => {
             const isLast = idx === laneCount - 1;
+            const canRemove = idx > 0;
             return (
               <FlowRow
                 key={`new-${idx}`}
@@ -249,20 +251,43 @@ export function ClientGroup({
                 pageType={pageType}
                 imageType={imageType}
                 labelAdornment={
-                  isLast ? (
-                    <button
-                      onClick={() => dispatch({ type: "ADD_NEW_FLOW", clientId: client.id })}
-                      title={`Add another New lane (will be labeled "New ${laneCount + 1}")`}
-                      aria-label="Add another new flow lane"
-                      className="w-5 h-5 flex items-center justify-center rounded
-                        text-indigo-400 hover:text-indigo-200 hover:bg-indigo-900/40
-                        border border-dashed border-indigo-900/60 transition-colors"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
-                        className="w-3 h-3">
-                        <path d="M8 2a.75.75 0 01.75.75V7.25h4.5a.75.75 0 010 1.5h-4.5v4.5a.75.75 0 01-1.5 0v-4.5h-4.5a.75.75 0 010-1.5h4.5V2.75A.75.75 0 018 2z" />
-                      </svg>
-                    </button>
+                  (canRemove || isLast) ? (
+                    <div className="flex items-center gap-1">
+                      {canRemove && (
+                        <button
+                          onClick={() =>
+                            dispatch({ type: "REMOVE_NEW_FLOW", clientId: client.id, flowIndex: idx })
+                          }
+                          title={`Remove lane "New ${idx + 1}"`}
+                          aria-label={`Remove New lane ${idx + 1}`}
+                          className="w-5 h-5 flex items-center justify-center rounded
+                            text-neutral-500 hover:text-red-300 hover:bg-red-900/40
+                            border border-neutral-800 hover:border-red-900/60 transition-colors"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
+                            className="w-3 h-3">
+                            <path fillRule="evenodd"
+                              d="M6.5 1.75a.25.25 0 01.25-.25h2.5a.25.25 0 01.25.25V3h-3V1.75zm4.5 0V3h2.25a.75.75 0 010 1.5H2.75a.75.75 0 010-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75zM4.496 6.675a.75.75 0 10-1.492.15l.66 6.6A1.75 1.75 0 005.405 15h5.19c.9 0 1.652-.681 1.741-1.576l.66-6.6a.75.75 0 00-1.492-.149l-.66 6.6a.25.25 0 01-.249.225h-5.19a.25.25 0 01-.249-.225l-.66-6.6z"
+                              clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      )}
+                      {isLast && (
+                        <button
+                          onClick={() => dispatch({ type: "ADD_NEW_FLOW", clientId: client.id })}
+                          title={`Add another New lane (will be labeled "New ${laneCount + 1}")`}
+                          aria-label="Add another new flow lane"
+                          className="w-5 h-5 flex items-center justify-center rounded
+                            text-indigo-400 hover:text-indigo-200 hover:bg-indigo-900/40
+                            border border-dashed border-indigo-900/60 transition-colors"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
+                            className="w-3 h-3">
+                            <path d="M8 2a.75.75 0 01.75.75V7.25h4.5a.75.75 0 010 1.5h-4.5v4.5a.75.75 0 01-1.5 0v-4.5h-4.5a.75.75 0 010-1.5h4.5V2.75A.75.75 0 018 2z" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
                   ) : null
                 }
               />

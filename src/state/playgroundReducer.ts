@@ -30,6 +30,9 @@ export interface StepState {
   isOutputOverride: boolean;
   /** When set, both system + user prompts are sent literally (no template interpolation). */
   promptOverride?: PromptOverride;
+  /** Per-step config (opaque to the reducer; interpreted by the API route).
+   *  Currently used by generate_image for model + search toggles. */
+  stepConfig?: Record<string, unknown>;
 }
 
 export interface FlowState {
@@ -275,6 +278,22 @@ export type PlaygroundAction =
       /** Appends a new empty lane to client.newFlows. Old flow can't be multiplied. */
       type: "ADD_NEW_FLOW";
       clientId: string;
+    }
+  | {
+      /** Removes a New lane. Index 0 (the default "New") can't be removed —
+       *  reducer ignores the action in that case. */
+      type: "REMOVE_NEW_FLOW";
+      clientId: string;
+      flowIndex: number;
+    }
+  | {
+      /** Merges a partial stepConfig into the step's existing config. */
+      type: "UPDATE_STEP_CONFIG";
+      clientId: string;
+      flowType: "old" | "new";
+      flowIndex?: number;
+      stepName: string;
+      config: Record<string, unknown>;
     }
   | {
       /** Clears isOutputOverride and restores lastRunOutput. */
@@ -554,6 +573,26 @@ export function playgroundReducer(
         ...c,
         newFlows: [...c.newFlows, makeEmptyFlowState(pipeline)],
       }));
+    }
+
+    case "UPDATE_STEP_CONFIG":
+      return updateClient(state, action.clientId, (c) =>
+        updateTargetFlow(c, action.flowType, action.flowIndex, action.stepName, (s) => ({
+          ...s,
+          stepConfig: { ...(s.stepConfig ?? {}), ...action.config },
+        }))
+      );
+
+    case "REMOVE_NEW_FLOW": {
+      // Guardrail: never delete the default lane (index 0).
+      if (action.flowIndex <= 0) return state;
+      return updateClient(state, action.clientId, (c) => {
+        if (action.flowIndex >= c.newFlows.length) return c;
+        return {
+          ...c,
+          newFlows: c.newFlows.filter((_, i) => i !== action.flowIndex),
+        };
+      });
     }
 
     default:

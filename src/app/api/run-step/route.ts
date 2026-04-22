@@ -39,6 +39,8 @@ interface RunStepRequest {
   systemPromptOverride?: string;
   /** If present, sent literally as the LLM user prompt (bypasses userPromptTemplate). */
   userPromptOverride?: string;
+  /** Step-specific config (e.g. generate_image model + toggles). */
+  stepConfig?: Record<string, unknown>;
 }
 
 interface RunStepResponse {
@@ -143,7 +145,7 @@ async function runLiveStep(
 ): Promise<NextResponse<RunStepResponse>> {
   const {
     stepName, flowType, inputs, aspectRatio, clientId, pipelineKey,
-    systemPromptOverride, userPromptOverride,
+    systemPromptOverride, userPromptOverride, stepConfig,
   } = body;
 
   const key = pipelineKey ?? `${body.pageType}:${body.imageType}`;
@@ -264,10 +266,27 @@ async function runLiveStep(
       const imageInput =
         imageInputRaw && imageInputRaw.length > 0 ? [imageInputRaw] : undefined;
 
+      // Model + model-specific toggles come from stepConfig (new-flow UI).
+      // Old flow always uses the default model — no UI to override it there.
+      const rawModel = typeof stepConfig?.model === "string" ? stepConfig.model : undefined;
+      const allowedModels = [
+        "google/nano-banana-pro",
+        "google/nano-banana-2",
+        "bytedance/seedream-4",
+      ] as const;
+      type ImgModel = typeof allowedModels[number];
+      const model: ImgModel | undefined =
+        rawModel && (allowedModels as readonly string[]).includes(rawModel)
+          ? (rawModel as ImgModel)
+          : undefined;
+
       const result = await generateImage({
         prompt: cleanPrompt,
         aspectRatio: aspectRatio ?? "1:1",
         imageInput,
+        model,
+        imageSearch:  typeof stepConfig?.imageSearch  === "boolean" ? stepConfig.imageSearch  : undefined,
+        googleSearch: typeof stepConfig?.googleSearch === "boolean" ? stepConfig.googleSearch : undefined,
       });
       return ok(result.image_url);
     }
