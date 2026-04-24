@@ -1,10 +1,12 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { usePlayground } from "@/context/PlaygroundContext";
 import type { PipelineDefinition, PageType, ImageType } from "@/config/pipelines";
 import type { ClientState, PlaygroundAction } from "@/state/playgroundReducer";
 import { FlowRow } from "./FlowRow";
+import { CompareViewDialog } from "./CompareViewDialog";
 
 // ---------------------------------------------------------------------------
 // Inline SVG chevrons — no lucide-react dep
@@ -43,28 +45,75 @@ function flowStepSummary(
   return `${done}/${stepNames.length}`;
 }
 
+/** Aggregate completion across every new-flow lane. */
+function newFlowsSummary(
+  flows: ClientState["newFlows"],
+  stepNames: string[]
+): string {
+  if (flows.length === 0) return "0/0";
+  const totalCells = stepNames.length * flows.length;
+  let done = 0;
+  for (const flow of flows) {
+    for (const n of stepNames) {
+      if (flow.stepStates[n]?.status === "completed") done += 1;
+    }
+  }
+  return `${done}/${totalCells}`;
+}
+
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
 interface ClientGroupProps {
   client: ClientState;
+  /** Display-only 1-based position in the client list (prefixed to the name). */
+  position: number;
   pipeline: PipelineDefinition;
   pageType: PageType;
   imageType: ImageType;
   colSpan: number;
   isLastAdded: boolean;
+  /** Run the full pipeline left-to-right for one (client, flow, lane). */
+  onRunRow: (clientId: string, flowType: "old" | "new", flowIndex: number) => void;
+  /** null | "all" | stepName | "row:…" — drives per-row button state. */
+  runningScope: null | "all" | string;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 export function ClientGroup({
-  client, pipeline, pageType, imageType, colSpan, isLastAdded,
+  client, position, pipeline, pageType, imageType, colSpan, isLastAdded,
+  onRunRow, runningScope,
 }: ClientGroupProps) {
   const { dispatch } = usePlayground();
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(client.name);
+  const [compareOpen, setCompareOpen] = useState(false);
   const headerRowRef = useRef<HTMLTableRowElement>(null);
+
+  // Resolve the LATEST generate_image output for each flow. We always
+  // use newFlows[0] for the "New" side so the Compare CTA stays stable
+  // even when the user has added extra New lanes. The CTA is only shown
+  // when both sides have a non-empty output.
+  const newGenImageOutput =
+    client.newFlows[0]?.stepStates?.["generate_image"]?.output?.trim() ?? "";
+  const oldGenImageOutput =
+    client.oldFlow?.stepStates?.["generate_image"]?.output?.trim() ?? "";
+  const canCompare = !!newGenImageOutput && !!oldGenImageOutput;
+
+  // Picker step output (shared across flows) — the human-readable
+  // description the user selected as the seed for Build Image Prompt.
+  // Surfaced in the Compare dialog so reviewers know what brief the two
+  // images were generated against.
+  const pickerStep = pipeline.steps.find((s) => s.picker);
+  const inputDescription = pickerStep
+    ? (
+        client.oldFlow?.stepStates?.[pickerStep.name]?.output ??
+        client.newFlows[0]?.stepStates?.[pickerStep.name]?.output ??
+        ""
+      ).trim()
+    : "";
 
   // Fix 8: scroll into view for newly-added clients
   useEffect(() => {
@@ -77,7 +126,8 @@ export function ClientGroup({
 
   const stepNames = pipeline.steps.map((s) => s.name);
   const oldSummary = flowStepSummary(client.oldFlow, stepNames);
-  const newSummary = flowStepSummary(client.newFlow, stepNames);
+  const newSummary = newFlowsSummary(client.newFlows, stepNames);
+  const laneCount = client.newFlows.length;
 
   // Fix 3: count filled context fields for the panel header badge
   const filledCtx = pipeline.clientContextFields.filter(
@@ -95,13 +145,27 @@ export function ClientGroup({
     <>
       <tr
         ref={headerRowRef}
-        className="border-b border-neutral-800 bg-neutral-900/60 sticky top-[41px] z-[5]"
+        // When the client group is collapsed, the whole row is a click
+        // target so users don't have to aim for the small chevron. When
+        // expanded, clicks pass through so inline controls (rename /
+        // Remove / Chevron A) keep working normally.
+        onClick={
+          client.isCollapsed
+            ? () => dispatch({ type: "TOGGLE_CLIENT_COLLAPSE", clientId: client.id })
+            : undefined
+        }
+        className={`border-b border-neutral-800 bg-neutral-900 sticky top-[41px] z-[5] ${
+          client.isCollapsed ? "cursor-pointer hover:bg-neutral-800/70 transition-colors" : ""
+        }`}
       >
         <td colSpan={colSpan} className="px-5 py-4">
           <div className="flex items-center gap-0">
             {/* Chevron A — collapses entire client group */}
             <button
-              onClick={() => dispatch({ type: "TOGGLE_CLIENT_COLLAPSE", clientId: client.id })}
+              onClick={(e) => {
+                e.stopPropagation();
+                dispatch({ type: "TOGGLE_CLIENT_COLLAPSE", clientId: client.id });
+              }}
               className="w-5 h-5 flex items-center justify-center mr-3 rounded
                 text-neutral-400 hover:text-neutral-100 hover:bg-neutral-800 transition-colors flex-shrink-0"
               title={client.isCollapsed ? "Expand client" : "Collapse client"}
@@ -127,12 +191,15 @@ export function ClientGroup({
               />
             ) : (
               <button
-                onClick={() => setEditingName(true)}
+                onClick={(e) => { e.stopPropagation(); setEditingName(true); }}
                 className="group flex items-center gap-1.5 text-lg font-semibold ml-1
                   text-neutral-100 hover:text-violet-300 transition-colors"
                 title="Click to rename"
               >
-                {client.name}
+                <span className="text-neutral-500 font-mono text-base tabular-nums">
+                  {position}.
+                </span>
+                <span>{client.name}</span>
                 {/* pencil icon — visible on hover */}
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
                   className="w-3.5 h-3.5 text-neutral-600 group-hover:text-violet-400 transition-colors">
@@ -150,9 +217,33 @@ export function ClientGroup({
 
             <div className="flex-1" />
 
+            {/* Compare View CTA — surfaces only when BOTH old and new
+             *  flow's generate_image step have produced non-empty output
+             *  (i.e. we have two images to compare). Clicking opens a
+             *  full-viewport 50/50 dialog with zoom + pan per side. */}
+            {canCompare && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCompareOpen(true);
+                }}
+                title="Open the new vs. old generate_image output side-by-side"
+                className="text-xs px-2 py-1 rounded font-medium mr-2
+                  border border-violet-700/60 bg-violet-950/40 text-violet-200
+                  hover:bg-violet-900/60 hover:border-violet-500/80
+                  transition-colors inline-flex items-center gap-1.5"
+              >
+                <span aria-hidden>⧉</span>
+                Compare View
+              </button>
+            )}
+
             {/* Remove button */}
             <button
-              onClick={() => dispatch({ type: "REMOVE_CLIENT", clientId: client.id })}
+              onClick={(e) => {
+                e.stopPropagation();
+                dispatch({ type: "REMOVE_CLIENT", clientId: client.id });
+              }}
               className="text-xs text-neutral-500 hover:text-red-400 transition-colors ml-4"
               title="Remove client"
             >
@@ -166,32 +257,33 @@ export function ClientGroup({
       {!client.isCollapsed && (
         <>
           {/* ── Chevron B: context panel ────────────────────────────────── */}
-          {/* Indented with ml-8 so it's visually nested under Chevron A */}
-          <tr className="border-b border-neutral-800/60 bg-neutral-950/60">
+          {/* Indented with ml-8 so it's visually nested under Chevron A.
+           *  Whole row is clickable so users can toggle without aiming
+           *  for the small chevron/label exactly. */}
+          <tr
+            className="border-b border-neutral-800/60 bg-neutral-950/60 cursor-pointer
+              hover:bg-neutral-900/60 transition-colors group/ctxrow"
+            onClick={() =>
+              dispatch({ type: "TOGGLE_CLIENT_CONTEXT_COLLAPSE", clientId: client.id })
+            }
+          >
             <td colSpan={colSpan} className="px-5 py-1.5">
-              <div className="ml-8">
-                <button
-                  onClick={() =>
-                    dispatch({ type: "TOGGLE_CLIENT_CONTEXT_COLLAPSE", clientId: client.id })
-                  }
-                  className="flex items-center gap-1.5 group"
-                >
-                  {/* Chevron B — smaller than Chevron A */}
-                  <span className="w-4 h-4 flex items-center justify-center flex-shrink-0
-                    text-neutral-500 group-hover:text-neutral-300 transition-colors">
-                    {client.isContextCollapsed
-                      ? <ChevronRight className="w-3.5 h-3.5" />
-                      : <ChevronDown  className="w-3.5 h-3.5" />}
-                  </span>
-                  <span className="text-xs font-medium tracking-wider uppercase text-neutral-400
-                    group-hover:text-neutral-200 transition-colors">
-                    Client Context
-                  </span>
-                  <span className="text-neutral-600 text-xs">·</span>
-                  <span className="text-[10px] text-neutral-600 font-mono">
-                    {filledCtx}/{totalCtx} filled
-                  </span>
-                </button>
+              <div className="ml-8 flex items-center gap-1.5 select-none">
+                {/* Chevron B — smaller than Chevron A */}
+                <span className="w-4 h-4 flex items-center justify-center flex-shrink-0
+                  text-neutral-500 group-hover/ctxrow:text-neutral-300 transition-colors">
+                  {client.isContextCollapsed
+                    ? <ChevronRight className="w-3.5 h-3.5" />
+                    : <ChevronDown  className="w-3.5 h-3.5" />}
+                </span>
+                <span className="text-xs font-medium tracking-wider uppercase text-neutral-400
+                  group-hover/ctxrow:text-neutral-200 transition-colors">
+                  Client Context
+                </span>
+                <span className="text-neutral-600 text-xs">·</span>
+                <span className="text-[10px] text-neutral-600 font-mono">
+                  {filledCtx}/{totalCtx} filled
+                </span>
               </div>
             </td>
           </tr>
@@ -209,12 +301,92 @@ export function ClientGroup({
             </tr>
           )}
 
-          {/* Old + New flow rows */}
+          {/* Old flow — always exactly one lane, rendered as the first row
+           *  so shared (rowspan'd) cells like the Choose Image Description
+           *  picker attach to it. */}
           <FlowRow flowType="old" client={client} pipeline={pipeline}
-            pageType={pageType} imageType={imageType} />
-          <FlowRow flowType="new" client={client} pipeline={pipeline}
-            pageType={pageType} imageType={imageType} />
+            pageType={pageType} imageType={imageType}
+            isFirstFlowRow={true}
+            totalFlowRows={1 + laneCount}
+            onRunRow={onRunRow}
+            runningScope={runningScope} />
+
+          {/* New flow lanes — one row per entry in client.newFlows.
+           *  Added lanes (index > 0) carry a trash icon; the last lane
+           *  also carries the "+ Add lane" button. */}
+          {client.newFlows.map((_, idx) => {
+            const isLast = idx === laneCount - 1;
+            const canRemove = idx > 0;
+            return (
+              <FlowRow
+                key={`new-${idx}`}
+                flowType="new"
+                flowIndex={idx}
+                client={client}
+                pipeline={pipeline}
+                pageType={pageType}
+                imageType={imageType}
+                isFirstFlowRow={false}
+                totalFlowRows={1 + laneCount}
+                onRunRow={onRunRow}
+                runningScope={runningScope}
+                labelAdornment={
+                  (canRemove || isLast) ? (
+                    <div className="flex items-center gap-1">
+                      {canRemove && (
+                        <button
+                          onClick={() =>
+                            dispatch({ type: "REMOVE_NEW_FLOW", clientId: client.id, flowIndex: idx })
+                          }
+                          title={`Remove lane "New ${idx + 1}"`}
+                          aria-label={`Remove New lane ${idx + 1}`}
+                          className="w-5 h-5 flex items-center justify-center rounded
+                            text-neutral-500 hover:text-red-300 hover:bg-red-900/40
+                            border border-neutral-800 hover:border-red-900/60 transition-colors"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
+                            className="w-3 h-3">
+                            <path fillRule="evenodd"
+                              d="M6.5 1.75a.25.25 0 01.25-.25h2.5a.25.25 0 01.25.25V3h-3V1.75zm4.5 0V3h2.25a.75.75 0 010 1.5H2.75a.75.75 0 010-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75zM4.496 6.675a.75.75 0 10-1.492.15l.66 6.6A1.75 1.75 0 005.405 15h5.19c.9 0 1.652-.681 1.741-1.576l.66-6.6a.75.75 0 00-1.492-.149l-.66 6.6a.25.25 0 01-.249.225h-5.19a.25.25 0 01-.249-.225l-.66-6.6z"
+                              clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      )}
+                      {isLast && (
+                        <button
+                          onClick={() => dispatch({ type: "ADD_NEW_FLOW", clientId: client.id })}
+                          title={`Add another New lane (will be labeled "New ${laneCount + 1}")`}
+                          aria-label="Add another new flow lane"
+                          className="w-5 h-5 flex items-center justify-center rounded
+                            text-indigo-400 hover:text-indigo-200 hover:bg-indigo-900/40
+                            border border-dashed border-indigo-900/60 transition-colors"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
+                            className="w-3 h-3">
+                            <path d="M8 2a.75.75 0 01.75.75V7.25h4.5a.75.75 0 010 1.5h-4.5v4.5a.75.75 0 01-1.5 0v-4.5h-4.5a.75.75 0 010-1.5h4.5V2.75A.75.75 0 018 2z" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  ) : null
+                }
+              />
+            );
+          })}
         </>
+      )}
+      {/* Compare dialog — portaled to <body> so it escapes the <tbody>
+       *  ancestor (non-<tr> children are invalid there). */}
+      {compareOpen && typeof document !== "undefined" && createPortal(
+        <CompareViewDialog
+          isOpen={compareOpen}
+          clientName={client.name}
+          newImageUrl={newGenImageOutput}
+          oldImageUrl={oldGenImageOutput}
+          inputDescription={inputDescription}
+          onClose={() => setCompareOpen(false)}
+        />,
+        document.body,
       )}
     </>
   );

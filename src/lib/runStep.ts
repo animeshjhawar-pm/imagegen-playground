@@ -8,8 +8,6 @@ interface RunStepParams {
   resolvedInputs: Record<string, string>;
   /** Pipeline-level aspect ratio, injected for generate_image step. */
   aspectRatio?: string;
-  /** Phase 3: dry-run → mocked; live → real provider calls. */
-  isDryRun: boolean;
   /** Phase 3: observability metadata forwarded to Portkey. */
   clientId: string;
   /** Phase 3: `${pageType}:${imageType}` — lets the route resolve the full StepDefinition server-side. */
@@ -18,6 +16,9 @@ interface RunStepParams {
   systemPromptOverride?: string;
   /** Optional: overrides the interpolated user prompt literally (skips template). */
   userPromptOverride?: string;
+  /** Per-step configuration (e.g. generate_image model + search toggles).
+   *  Opaque to runStep; the server interprets it per step name. */
+  stepConfig?: Record<string, unknown>;
   /** Aborts the client-side fetch when triggered. The server-side request
    *  to the upstream provider may still complete (we can't cancel that);
    *  the UI just stops listening. */
@@ -28,13 +29,15 @@ interface RunStepResult {
   output: string;
   status: "completed" | "failed";
   error?: string;
+  /** Non-fatal notice from the server (e.g. input truncation). */
+  warning?: string;
 }
 
 export async function runStep(params: RunStepParams): Promise<RunStepResult> {
   const {
     pageType, imageType, flowType, step, resolvedInputs, aspectRatio,
-    isDryRun, clientId, pipelineKey,
-    systemPromptOverride, userPromptOverride,
+    clientId, pipelineKey,
+    systemPromptOverride, userPromptOverride, stepConfig,
     signal,
   } = params;
 
@@ -42,7 +45,6 @@ export async function runStep(params: RunStepParams): Promise<RunStepResult> {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-dry-run": isDryRun ? "true" : "false",
     },
     body: JSON.stringify({
       pageType,
@@ -55,6 +57,7 @@ export async function runStep(params: RunStepParams): Promise<RunStepResult> {
       pipelineKey,
       systemPromptOverride,
       userPromptOverride,
+      stepConfig,
     }),
     signal,
   });
@@ -68,6 +71,7 @@ export async function runStep(params: RunStepParams): Promise<RunStepResult> {
     output: string;
     status: "completed" | "failed";
     error?: string;
+    warning?: string;
     completedAt: string;
   };
 
@@ -75,5 +79,5 @@ export async function runStep(params: RunStepParams): Promise<RunStepResult> {
     return { output: data.error ?? "Unknown error", status: "failed", error: data.error };
   }
 
-  return { output: data.output, status: "completed" };
+  return { output: data.output, status: "completed", warning: data.warning };
 }

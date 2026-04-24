@@ -1,9 +1,6 @@
 import type { StepDefinition, ImageType } from "@/config/pipelines";
 import type { ClientState } from "@/state/playgroundReducer";
-import {
-  extractImageRequirementDescription,
-  extractFirstPageInfoImageDescription,
-} from "./parseImageRequirement";
+import { extractImageRequirementDescription } from "./parseImageRequirement";
 
 /**
  * Resolves each input's value purely from its declared source — does NOT
@@ -23,13 +20,26 @@ export function resolveInputs(
   /** When present, lets `generate_image_description` outputs auto-filter
    *  to the <image_requirement type="..."> tag matching the target
    *  pipeline. Downstream Step 4 then receives just one description. */
-  imageType?: ImageType
+  imageType?: ImageType,
+  /** Which "new" lane to resolve from (0 = original New, 1 = New 2, …).
+   *  Ignored when flowType === "old". */
+  flowIndex: number = 0
 ): Record<string, string> {
-  const flow = flowType === "old" ? client.oldFlow : client.newFlow;
+  const flow =
+    flowType === "old"
+      ? client.oldFlow
+      : client.newFlows[flowIndex] ?? client.newFlows[0] ?? { stepStates: {} };
   const resolved: Record<string, string> = {};
 
   for (const inputDef of step.inputs) {
-    const { source } = inputDef;
+    // `sourceNew` overrides `source` when resolving the "new" flow.
+    // Lets the same input name read a different value per flow (e.g.
+    // Generate Page Structure's `topic` reads business_context in old
+    // flow and the live page-image description in new flow).
+    const source =
+      flowType === "new" && inputDef.sourceNew
+        ? inputDef.sourceNew
+        : inputDef.source;
 
     if (source.kind === "step_output") {
       const refState = flow.stepStates[source.stepName];
@@ -45,9 +55,12 @@ export function resolveInputs(
         }
       } else if (raw && source.stepName === "generate_image_description") {
         resolved[inputDef.name] = extractImageRequirementDescription(raw, imageType);
-      } else if (raw && source.stepName === "generate_page_structure") {
-        resolved[inputDef.name] = extractFirstPageInfoImageDescription(raw);
       } else {
+        // `generate_page_structure` used to output a page_info JSON that
+        // needed extractFirstPageInfoImageDescription to strip down to a
+        // single description. Since the redesign (picker step), its output
+        // is already the selected description string, so raw passthrough
+        // is correct.
         resolved[inputDef.name] = raw;
       }
       continue;

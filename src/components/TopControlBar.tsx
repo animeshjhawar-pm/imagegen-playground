@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePlayground } from "@/context/PlaygroundContext";
 import {
   IMAGE_TYPES_BY_PAGE,
   IMAGE_TYPE_LABELS,
+  PIPELINES,
   type PageType,
   type ImageType,
 } from "@/config/pipelines";
 import { ImportClientDialog } from "./ImportClientDialog";
+import { ExportCsvDialog } from "./ExportCsvDialog";
 
 const PAGE_TYPE_OPTIONS: { value: PageType; label: string }[] = [
   { value: "blog",     label: "Blog" },
@@ -16,8 +18,12 @@ const PAGE_TYPE_OPTIONS: { value: PageType; label: string }[] = [
   { value: "category", label: "Category" },
 ];
 
+export type RunScope = "both" | "old" | "new";
+
 interface TopControlBarProps {
-  onRunAll: () => void;
+  /** Fire a full-pipeline run across every client, scoped to the chosen
+   *  flow(s). `"both"` preserves the original Run All behaviour. */
+  onRunAll: (scope: RunScope) => void;
   isRunningAll: boolean;
 }
 
@@ -25,10 +31,46 @@ export function TopControlBar({ onRunAll, isRunningAll }: TopControlBarProps) {
   const { state, dispatch } = usePlayground();
   const { pageType, imageType, clients } = state;
   const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  // True when the dialog was opened automatically because the user just
+  // completed a page-type + image-type selection without any clients yet.
+  // On cancel, we fall through to adding a blank client so the user
+  // always lands on SOMETHING actionable.
+  const autoOpenedRef = useRef(false);
+  const [runAllMenuOpen, setRunAllMenuOpen] = useState(false);
+  const pipeline = pageType && imageType ? PIPELINES[`${pageType}:${imageType}`] : null;
 
   const imageTypeOptions = pageType ? IMAGE_TYPES_BY_PAGE[pageType] : [];
   const hasSelection    = pageType !== null && imageType !== null;
   const canAddClient    = hasSelection; // Fix 7: disabled until both selected
+
+  // Auto-open Import dialog (Presets tab is the default) the first time
+  // the user completes both dropdown selections without any clients. If
+  // they cancel without picking anything, we add a blank client so the
+  // pipeline table isn't empty. Re-fires if they later remove every
+  // client and re-select an image type.
+  useEffect(() => {
+    if (hasSelection && clients.length === 0 && !importOpen) {
+      autoOpenedRef.current = true;
+      setImportOpen(true);
+    }
+  }, [hasSelection, clients.length, importOpen]);
+
+  function handleDialogCancel() {
+    const wasAuto = autoOpenedRef.current;
+    autoOpenedRef.current = false;
+    setImportOpen(false);
+    if (wasAuto && clients.length === 0) {
+      // Auto-open fallback: user cancelled without selecting → blank client.
+      dispatch({ type: "ADD_CLIENT" });
+    }
+  }
+
+  function handleAddBlankFromDialog() {
+    autoOpenedRef.current = false;
+    setImportOpen(false);
+    dispatch({ type: "ADD_CLIENT" });
+  }
 
   const selectCls = `
     bg-neutral-900 border border-neutral-700 rounded
@@ -119,25 +161,105 @@ export function TopControlBar({ onRunAll, isRunningAll }: TopControlBarProps) {
         + Add Blank
       </button>
 
-      {/* Run All — violet primary CTA */}
+      {/* Export CSV — opens dialog to pick clients / steps / flows. */}
       <button
-        onClick={onRunAll}
-        disabled={!hasSelection || clients.length === 0 || isRunningAll}
-        className="px-4 py-1.5 text-sm rounded font-medium
-          bg-violet-600 text-white hover:bg-violet-500
+        onClick={() => setExportOpen(true)}
+        disabled={!hasSelection || clients.length === 0}
+        title={
+          !hasSelection
+            ? "Select Page Type and Image Type first"
+            : clients.length === 0
+              ? "Add at least one client first"
+              : "Pick which clients, steps, and flows to include in the CSV"
+        }
+        className="px-3 py-1.5 text-sm rounded
+          border border-neutral-700 bg-neutral-800
+          text-neutral-300 hover:text-violet-300 hover:border-violet-600/50 hover:bg-neutral-700
           disabled:opacity-40 disabled:cursor-not-allowed
           transition-colors"
       >
-        {isRunningAll ? "Running…" : "▶ Run All"}
+        ⤓ Export CSV
       </button>
+
+      {/* Run All — violet primary CTA with scope dropdown. Same pattern
+       *  as the per-step column Run-all button; lets the user restrict
+       *  the wave to Old / New / both flows. */}
+      <div className="relative">
+        <button
+          onClick={() =>
+            setRunAllMenuOpen((v) => !v)
+          }
+          disabled={!hasSelection || clients.length === 0 || isRunningAll}
+          className="px-4 py-1.5 text-sm rounded font-medium
+            bg-violet-600 text-white hover:bg-violet-500
+            disabled:opacity-40 disabled:cursor-not-allowed
+            transition-colors inline-flex items-center gap-1.5"
+        >
+          {isRunningAll ? "Running…" : "▶ Run All"}
+          {!isRunningAll && (
+            <svg viewBox="0 0 12 12" width="9" height="9" fill="currentColor" aria-hidden>
+              <path d="M2 4l4 4 4-4H2z" />
+            </svg>
+          )}
+        </button>
+        {runAllMenuOpen && hasSelection && clients.length > 0 && !isRunningAll && (
+          <>
+            <div
+              className="fixed inset-0 z-30"
+              onClick={() => setRunAllMenuOpen(false)}
+            />
+            <div
+              className="absolute right-0 top-[calc(100%+6px)] z-40 min-w-[200px]
+                rounded border border-neutral-700 bg-neutral-900 shadow-xl shadow-black/50
+                py-1"
+            >
+              <button
+                onClick={() => { setRunAllMenuOpen(false); onRunAll("both"); }}
+                className="w-full text-left px-3 py-2 text-[12px] text-neutral-100
+                  hover:bg-violet-900/50 transition-colors flex items-center gap-2"
+              >
+                <span className="text-violet-400">▶</span>
+                Run all
+                <span className="text-[9px] text-neutral-500 uppercase tracking-wider ml-auto">default</span>
+              </button>
+              <button
+                onClick={() => { setRunAllMenuOpen(false); onRunAll("old"); }}
+                className="w-full text-left px-3 py-2 text-[12px] text-neutral-300
+                  hover:bg-neutral-800 transition-colors"
+              >
+                Only Old flow
+              </button>
+              <button
+                onClick={() => { setRunAllMenuOpen(false); onRunAll("new"); }}
+                className="w-full text-left px-3 py-2 text-[12px] text-neutral-300
+                  hover:bg-neutral-800 transition-colors"
+              >
+                Only New flow
+              </button>
+            </div>
+          </>
+        )}
+      </div>
 
       <ImportClientDialog
         isOpen={importOpen}
-        onCancel={() => setImportOpen(false)}
+        onCancel={handleDialogCancel}
         onImport={(seeds) => {
+          autoOpenedRef.current = false;
           dispatch({ type: "IMPORT_CLIENTS", seeds });
           setImportOpen(false);
         }}
+        onAddBlank={handleAddBlankFromDialog}
+        pageType={pageType}
+      />
+
+      <ExportCsvDialog
+        isOpen={exportOpen}
+        clients={clients}
+        pipeline={pipeline}
+        pageType={pageType}
+        imageType={imageType}
+        onCancel={() => setExportOpen(false)}
       />
     </div>
   );

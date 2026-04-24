@@ -15,6 +15,112 @@ export interface PortkeyMetadata {
   client_id: string;
 }
 
+/**
+ * Extract the assistant text from Portkey's response, tolerating all of
+ * the provider-native shapes we've actually seen come back from the
+ * gateway. We set `x-portkey-strict-open-ai-compliance: false`, which
+ * means responses can arrive in any of:
+ *
+ *   OpenAI chat format  → choices[0].message.content: string
+ *   Anthropic native    → content: [{ type: "text", text: "..." }]
+ *   Anthropic legacy    → completion: "..."
+ *   Google-style        → candidates[0].content.parts[0].text
+ *   Error-on-success    → stop_reason: "content_filter" with no text
+ *
+ * Previously only the OpenAI path was read — a 200 OK from Anthropic in
+ * native format produced an empty `text` with no error, which is
+ * exactly the silent-empty extract_graphic_token failure.
+ */
+function extractTextFromPortkeyResponse(raw: unknown): string {
+  if (!raw || typeof raw !== "object") return "";
+  const json = raw as Record<string, unknown>;
+
+  // 1. OpenAI chat completions
+  const openAI = (json.choices as Array<Record<string, unknown>> | undefined)
+    ?.[0]?.message as { content?: unknown } | undefined;
+  if (openAI && typeof openAI.content === "string" && openAI.content.length > 0) {
+    return openAI.content;
+  }
+  // 1b. OpenAI also sometimes returns content as an array of typed parts
+  if (openAI && Array.isArray(openAI.content)) {
+    const joined = (openAI.content as Array<Record<string, unknown>>)
+      .map((p) => (typeof p.text === "string" ? (p.text as string) : ""))
+      .filter(Boolean)
+      .join("");
+    if (joined) return joined;
+  }
+
+  // 2. Anthropic native messages format
+  if (Array.isArray(json.content)) {
+    const joined = (json.content as Array<Record<string, unknown>>)
+      .map((b) => (b?.type === "text" && typeof b.text === "string" ? (b.text as string) : ""))
+      .filter(Boolean)
+      .join("");
+    if (joined) return joined;
+  }
+  // 2b. Some Anthropic adapters flatten `content` to a string
+  if (typeof json.content === "string" && json.content.length > 0) {
+    return json.content;
+  }
+
+  // 3. Anthropic legacy completion API
+  if (typeof json.completion === "string" && json.completion.length > 0) {
+    return json.completion;
+  }
+
+  // 4. Google-style (Gemini-via-Portkey) candidates[].content.parts[].text
+  const cand = (json.candidates as Array<Record<string, unknown>> | undefined)?.[0];
+  if (cand && typeof cand === "object") {
+    const content = (cand.content as { parts?: Array<Record<string, unknown>> } | undefined);
+    if (content && Array.isArray(content.parts)) {
+      const joined = content.parts
+        .map((p) => (typeof p.text === "string" ? (p.text as string) : ""))
+        .filter(Boolean)
+        .join("");
+      if (joined) return joined;
+    }
+  }
+
+  return "";
+}
+
+/**
+ * If text is empty, build a diagnostic error message from finish_reason /
+ * stop_reason so the UI shows something actionable instead of a silent
+ * completed-but-empty cell. Returns null when there's nothing useful.
+ */
+function diagnoseEmptyResponse(raw: unknown): string | null {
+  if (!raw || typeof raw !== "object") return null;
+  const json = raw as Record<string, unknown>;
+
+  const openAIFinish = (json.choices as Array<Record<string, unknown>> | undefined)
+    ?.[0]?.finish_reason;
+  const anthropicStop = json.stop_reason;
+  const anthropicType = json.type;
+
+  const reason =
+    (typeof openAIFinish === "string" ? openAIFinish : null) ??
+    (typeof anthropicStop === "string" ? anthropicStop : null);
+
+  if (anthropicType === "error") {
+    const err = json.error as Record<string, unknown> | undefined;
+    return `Anthropic error${err?.type ? ` (${String(err.type)})` : ""}${
+      err?.message ? `: ${String(err.message)}` : ""
+    }`;
+  }
+
+  if (reason === "content_filter" || reason === "safety") {
+    return `LLM refused to answer (finish_reason="${reason}"). System prompt or input likely triggered safety filter.`;
+  }
+  if (reason === "length" || reason === "max_tokens") {
+    return `LLM output truncated at max_tokens (finish_reason="${reason}"). Raise max_tokens or shorten input.`;
+  }
+  if (reason && reason !== "stop" && reason !== "end_turn") {
+    return `LLM returned no text (finish_reason="${reason}").`;
+  }
+  return null;
+}
+
 export async function callPortkey(params: {
   model: string;
   systemPrompt: string;
@@ -76,8 +182,7 @@ export async function callPortkey(params: {
     throw new Error(`Portkey error ${response.status}: ${body.slice(0, 300)}`);
   }
 
-  const json = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
+  const json = (await response.json()) as Record<string, unknown> & {
     error?: { message?: string };
   };
 
@@ -85,7 +190,23 @@ export async function callPortkey(params: {
     throw new Error(`Portkey LLM error: ${json.error.message ?? JSON.stringify(json.error)}`);
   }
 
-  const text = json.choices?.[0]?.message?.content ?? "";
+  const text = extractTextFromPortkeyResponse(json);
+  if (!text) {
+    const diag = diagnoseEmptyResponse(json);
+    // Log the full response shape so the dev console shows what the
+    // gateway actually returned — crucial when Portkey swaps a Claude
+    // adapter and our OpenAI-shaped reader misses.
+    console.warn(
+      `[Portkey][${metadata.step_name}] empty-text response`,
+      { model, diag, rawKeys: Object.keys(json) },
+    );
+    throw new Error(
+      diag ??
+        `Portkey returned no assistant text. Response shape: ${JSON.stringify(
+          Object.keys(json),
+        )}. Check Portkey Logs for this request.`,
+    );
+  }
   return { text, rawResponse: json };
 }
 
@@ -155,8 +276,7 @@ export async function callPortkeyStoredPrompt(params: {
     throw new Error(`Portkey stored-prompt error ${response.status}: ${body.slice(0, 300)}`);
   }
 
-  const json = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
+  const json = (await response.json()) as Record<string, unknown> & {
     error?: { message?: string };
   };
 
@@ -164,6 +284,19 @@ export async function callPortkeyStoredPrompt(params: {
     throw new Error(`Portkey stored-prompt error: ${json.error.message ?? JSON.stringify(json.error)}`);
   }
 
-  const text = json.choices?.[0]?.message?.content ?? "";
+  const text = extractTextFromPortkeyResponse(json);
+  if (!text) {
+    const diag = diagnoseEmptyResponse(json);
+    console.warn(
+      `[Portkey stored][${metadata.step_name}] empty-text response`,
+      { promptId, diag, rawKeys: Object.keys(json) },
+    );
+    throw new Error(
+      diag ??
+        `Portkey stored prompt ${promptId} returned no assistant text. Response shape: ${JSON.stringify(
+          Object.keys(json),
+        )}.`,
+    );
+  }
   return { text, rawResponse: json };
 }

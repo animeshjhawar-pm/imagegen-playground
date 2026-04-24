@@ -4,8 +4,14 @@
 // The nine (pageType × imageType) pipelines run through the same 5-step
 // skeleton but swap in different Step 4 definitions so each combination
 // follows stormbreaker's actual production flow (see docs/backend-context.md
-// §2 and the per-type breakdowns below). Prompts live in prompts-old-flow.ts
-// (frozen) and prompts-new-flow.ts (editable); this file only composes.
+// §2 and the per-type breakdowns below).
+//
+// Prompt organisation (per 2026-04-23 reshuffle):
+//   - prompts-old-flow.ts / prompts-new-flow.ts — legacy monolithic files,
+//     hold the frozen stormbreaker content + baseline new-flow prompts.
+//   - old-flow/*.ts and new-flow/*.ts — per-step prompt modules for the
+//     newer/iterating prompts (blog cover/thumbnail variants, infographic
+//     new-flow prompt). Edit these without touching the monolithic files.
 // ---------------------------------------------------------------------------
 
 import {
@@ -20,7 +26,28 @@ import {
   EXTRACT_GRAPHIC_TOKEN_USER_TEMPLATE,
   GENERATE_PLACEHOLDER_DESCRIPTION_SYSTEM_PROMPT,
   GENERATE_PLACEHOLDER_DESCRIPTION_USER_TEMPLATE,
+  BUILD_IMAGE_PROMPT_USER_TEMPLATE_PAGE,
 } from "./prompts-new-flow";
+import {
+  BLOG_COVER_SYSTEM_PROMPT_OLD,
+  BLOG_COVER_USER_TEMPLATE_OLD,
+} from "./old-flow/cover-prompt";
+import {
+  BLOG_THUMBNAIL_SYSTEM_PROMPT_OLD,
+  BLOG_THUMBNAIL_USER_TEMPLATE_OLD,
+} from "./old-flow/thumbnail-prompt";
+import {
+  GENERATE_INFOGRAPHIC_SYSTEM_PROMPT_NEW,
+  GENERATE_INFOGRAPHIC_USER_TEMPLATE_NEW,
+} from "./new-flow/generate-infographic-prompt";
+import {
+  BLOG_COVER_SYSTEM_PROMPT_NEW,
+  BLOG_COVER_USER_TEMPLATE_NEW,
+} from "./new-flow/cover-prompt";
+import {
+  BLOG_THUMBNAIL_SYSTEM_PROMPT_NEW,
+  BLOG_THUMBNAIL_USER_TEMPLATE_NEW,
+} from "./new-flow/thumbnail-prompt";
 
 export type PageType = "blog" | "service" | "category";
 
@@ -49,7 +76,30 @@ export interface StepInputDef {
   name: string;
   label: string;
   source: StepInputSource;
+  /**
+   * Optional override used when the surrounding flow is `"new"`. Falls
+   * back to `source` for old flow (or when omitted). Lets a step share
+   * an input name across flows while swapping where the prefill comes
+   * from — e.g. page topic reads `business_context` in old flow and the
+   * live page-image description in new flow.
+   */
+  sourceNew?: StepInputSource;
   required: boolean;
+  /**
+   * Fixed set of allowed values. When present, the playground UI
+   * renders a <select> dropdown instead of the default textarea.
+   * Currently only meaningful for user-selected inputs like
+   * generate_image's `aspect_ratio`.
+   */
+  options?: string[];
+  /**
+   * Restrict the input to specific flows. When omitted, the input is
+   * shown in every flow. Use this to hide an input that's only wired
+   * into one flow's user prompt (e.g. business_context / company_info
+   * on Build Image Prompt are only consumed by the new-flow user
+   * template, so they shouldn't clutter the old-flow cell).
+   */
+  flows?: ("old" | "new")[];
 }
 
 export interface OutputFieldDef {
@@ -69,7 +119,16 @@ export interface StepDefinition {
   inputs: StepInputDef[];
   systemPromptOld?: string;
   systemPromptNew?: string;
+  /**
+   * Default user-prompt template, shared across flows. When both
+   * flows want the same per-run body, set this alone. If old and new
+   * need different user prompts (e.g. old sends just a description,
+   * new adds business_context + company_info), use the flow-specific
+   * overrides below — each falls back to `userPromptTemplate`.
+   */
   userPromptTemplate?: string;
+  userPromptTemplateOld?: string;
+  userPromptTemplateNew?: string;
   outputType: OutputType;
   /**
    * When present, the step's output is a JSON object and these named keys
@@ -93,6 +152,24 @@ export interface StepDefinition {
    */
   promptIdOld?: string;
   promptIdNew?: string;
+  /**
+   * When true, StepCell renders a custom picker UI: the input
+   * `options_json` (a JSON-encoded array of strings) is shown as a
+   * list of selectable cards, and the chosen value becomes the step's
+   * output. No LLM / provider call. Used for Choose Image Description
+   * on service and category pipelines — lets the user pick between
+   * multiple pre-fetched image descriptions without the heavy page-
+   * structure LLM round-trip.
+   */
+  picker?: boolean;
+  /**
+   * When true (and `picker` is also true), the picker UI additionally
+   * renders a free-text area below the option cards so the user can
+   * type their own description. Typed text wins over card selection.
+   * Used on the blog pipeline where per-client option arrays aren't
+   * always populated yet and the user wants to try ad-hoc ideas.
+   */
+  pickerAllowCustom?: boolean;
   /**
    * Input names whose values are forwarded as Portkey prompt variables
    * when promptIdOld/promptIdNew is set. Each name here must also appear
@@ -123,6 +200,13 @@ export interface PipelineDefinition {
   clientContextFields: ClientContextField[];
   /** Aspect ratio passed to Replicate for this combination. */
   defaultAspectRatio: string;
+  /** Optional per-flow overrides for defaultAspectRatio. When set,
+   *  the matching flow row sends that ratio to Replicate regardless
+   *  of `defaultAspectRatio`. Used by blog:thumbnail where old flow
+   *  is locked to 1:1 and new flow to 3:2. Falls back to
+   *  `defaultAspectRatio` when omitted. */
+  defaultAspectRatioOld?: string;
+  defaultAspectRatioNew?: string;
   /** Short note shown above the pipeline table — flags any gaps vs stormbreaker. */
   alignmentNote?: string;
 }
@@ -157,9 +241,9 @@ const SHARED_CLIENT_CONTEXT_FIELDS: ClientContextField[] = [
   // Always-visible fields
   { name: "client_homepage_url", label: "Client Homepage URL", kind: "url", required: true },
   {
-    name: "business_context_token",
-    label: "Business Context / Blog Topic / Image Description",
-    kind: "textarea",
+    name: "business_context",
+    label: "business_context.json",
+    kind: "json",
     required: false,
   },
   { name: "company_logo_url", label: "Company Logo URL", kind: "url", required: false },
@@ -170,6 +254,13 @@ const SHARED_CLIENT_CONTEXT_FIELDS: ClientContextField[] = [
   // CATEGORY_PAGE_CONTENT_GEN / IMAGE_PLACEHOLDER stored prompts.
   { name: "design_tokens_json",       label: "design_tokens (project.design_tokens)",          kind: "json",     required: false, advanced: true },
   { name: "company_info_json",        label: "company_info (project.company_info)",            kind: "json",     required: false, advanced: true },
+  { name: "new_flow_service_topic_options",  label: "new_flow_service_topic_options (JSON array of page_info.images[].description from PUBLISHED service clusters)", kind: "json", required: false, advanced: true },
+  { name: "new_flow_category_topic_options", label: "new_flow_category_topic_options (JSON array of page_info.industries[].images[].description where image_id LIKE 'generated-images/%')", kind: "json", required: false, advanced: true },
+  { name: "new_flow_blog_topic_options",       label: "new_flow_blog_topic_options (JSON array — blog:cover / blog:thumbnail picker cards, sourced from clusters.topic)", kind: "json", required: false, advanced: true },
+  { name: "new_flow_blog_infographic_options", label: "new_flow_blog_infographic_options (JSON array — blog:infographic picker cards)", kind: "json", required: false, advanced: true },
+  { name: "new_flow_blog_internal_options",    label: "new_flow_blog_internal_options (JSON array — blog:internal picker cards)",       kind: "json", required: false, advanced: true },
+  { name: "new_flow_blog_external_options",    label: "new_flow_blog_external_options (JSON array — blog:external picker cards)",       kind: "json", required: false, advanced: true },
+  { name: "new_flow_blog_generic_options",     label: "new_flow_blog_generic_options (JSON array — blog:generic picker cards)",         kind: "json", required: false, advanced: true },
   { name: "paa_data_json",            label: "paa_data (cluster.paa_data)",                    kind: "json",     required: false, advanced: true },
   { name: "service_catalog_json",     label: "service_catalog (resources where type='service')", kind: "json",   required: false, advanced: true },
   { name: "product_information_json", label: "product_information (resources where type='product')", kind: "json", required: false, advanced: true },
@@ -184,7 +275,7 @@ const scrapeStep: StepDefinition = {
   name: "scrape_client_site",
   title: "Scrape Client Site",
   description:
-    "Crawls the client homepage with Firecrawl and extracts clean HTML + brand JSON. Playground-only helper for the new flow; stormbreaker reads this data from Postgres.",
+    "Crawls the client homepage with Firecrawl v2 `branding` format and returns the structured brand profile (colors, fonts, typography, logo, personality) plus page metadata and markdown. Playground-only helper for the new flow; stormbreaker reads this data from Postgres.",
   model: "firecrawl",
   provider: "firecrawl",
   diffOld: "skipped",
@@ -199,8 +290,9 @@ const scrapeStep: StepDefinition = {
   ],
   outputType: "json",
   outputFields: [
-    { name: "clean_html",    label: "Cleaned HTML",  outputType: "text" },
-    { name: "branding_json", label: "Branding JSON", outputType: "json" },
+    { name: "branding", label: "Branding", outputType: "json" },
+    { name: "metadata", label: "Metadata", outputType: "json" },
+    { name: "markdown", label: "Markdown", outputType: "text" },
   ],
 };
 
@@ -215,15 +307,15 @@ const extractGraphicTokenStep: StepDefinition = {
   diffNew: "new",
   inputs: [
     {
-      name: "clean_html",
-      label: "Clean HTML",
-      source: { kind: "step_output", stepName: "scrape_client_site", field: "clean_html" },
+      name: "markdown",
+      label: "Markdown",
+      source: { kind: "step_output", stepName: "scrape_client_site", field: "markdown" },
       required: true,
     },
     {
-      name: "branding_json",
-      label: "Branding JSON",
-      source: { kind: "step_output", stepName: "scrape_client_site", field: "branding_json" },
+      name: "branding",
+      label: "Branding",
+      source: { kind: "step_output", stepName: "scrape_client_site", field: "branding" },
       required: true,
     },
   ],
@@ -274,55 +366,130 @@ const generateBlogImagePlaceholdersStep: StepDefinition = {
   outputType: "text",
 };
 
-/** Service-pipeline upstream step: mirrors stormbreaker's
- *  handlers/create_pages/create_page_structure.py for page_type='service'.
- *  Calls SERVICE_PAGE_CONTENT_GEN (pp-service-pa-ab5621) with the same
- *  four variables `utils/page_structure.py:get_service_prompt_params`
- *  sends: topic, paa_data, service_catalog, company_info. Output is a
- *  full page_info JSON — downstream Step 4 auto-extracts the first
- *  image description via resolveInputs. */
-const generateServicePageStructureStep: StepDefinition = {
-  name: "generate_page_structure",
-  title: "Generate Service Page Structure",
-  description:
-    "Calls Portkey stored prompt SERVICE_PAGE_CONTENT_GEN (pp-service-pa-ab5621) — the same prompt stormbreaker's create_page_structure.py handler runs for service pages. Variables come from the client's Advanced context fields; `topic` is pulled from Business Context.",
-  model: "claude-sonnet-4-6 (via Portkey stored prompt)",
-  provider: "portkey",
-  diffOld: "same_as_old",
-  diffNew: "same_as_old",
-  inputs: [
-    { name: "topic",            label: "topic",            source: { kind: "client_context", field: "business_context_token" },  required: true  },
-    { name: "paa_data",         label: "paa_data",         source: { kind: "client_context", field: "paa_data_json" },           required: false },
-    { name: "service_catalog",  label: "service_catalog",  source: { kind: "client_context", field: "service_catalog_json" },    required: false },
-    { name: "company_info",     label: "company_info",     source: { kind: "client_context", field: "company_info_json" },       required: false },
-  ],
-  promptIdOld:     STORMBREAKER_PROMPTS.SERVICE_PAGE_CONTENT_GEN,
-  promptIdNew:     STORMBREAKER_PROMPTS.SERVICE_PAGE_CONTENT_GEN,
-  promptVariables: ["topic", "paa_data", "service_catalog", "company_info"],
-  outputType: "json",
-};
+/**
+ * Shared picker step for service + category pipelines. Replaces the
+ * old LLM-backed `generate_page_structure` Portkey calls (SERVICE /
+ * CATEGORY_PAGE_CONTENT_GEN). We no longer need the heavy page_info
+ * round-trip — the prefetched `*_image_descriptions` arrays feed a
+ * simple radio-card UI where the user picks which description flows
+ * into Build Image Prompt. Same step in both flows: the page-structure
+ * LLM was used identically in old and new, and swapping it for the
+ * picker collapses the old/new distinction here.
+ *
+ * `name` stays `generate_page_structure` so downstream Build Image
+ * Prompt wiring and saved flow state keep working.
+ */
+function makeChooseDescriptionStep(opts: {
+  /** Step name. Defaults to "generate_page_structure" for service/category
+   *  pipelines where the downstream Build Image Prompt references that
+   *  step_output. Blog uses "generate_image_description" (existing
+   *  downstream wiring). */
+  name?: string;
+  title: string;
+  description: string;
+  optionsField: string;
+  /** When true the picker UI also shows a textarea for custom input. */
+  allowCustom?: boolean;
+}): StepDefinition {
+  return {
+    name: opts.name ?? "generate_page_structure",
+    title: opts.title,
+    description: opts.description,
+    model: "(picker — no LLM)",
+    provider: "none",
+    renderOnly: true,
+    picker: true,
+    pickerAllowCustom: opts.allowCustom ?? false,
+    diffOld: "same_as_old",
+    diffNew: "same_as_old",
+    inputs: [
+      {
+        name: "options_json",
+        label: "Available image descriptions (JSON array)",
+        source: { kind: "client_context", field: opts.optionsField },
+        required: false,
+      },
+    ],
+    // renderOnly contract: when the step "runs", the interpolated
+    // systemPromptOld is returned as-is. For the picker we don't
+    // actually run (StepCell sets output directly on click), but if
+    // something does invoke the run path we want the first option
+    // out rather than the raw JSON blob.
+    systemPromptOld: "{{options_json}}",
+    systemPromptNew: "{{options_json}}",
+    outputType: "text",
+  };
+}
 
-/** Category equivalent — matches `get_category_prompt_params`. */
-const generateCategoryPageStructureStep: StepDefinition = {
-  name: "generate_page_structure",
-  title: "Generate Category Page Structure",
+const chooseServiceDescriptionStep: StepDefinition = makeChooseDescriptionStep({
+  title: "Choose Image Description",
   description:
-    "Calls Portkey stored prompt CATEGORY_PAGE_CONTENT_GEN (pp-category-p-ba2554) — the same prompt stormbreaker's create_page_structure.py handler runs for category pages. Variables: topic, paa_data, product_information, company_info.",
-  model: "claude-sonnet-4-6 (via Portkey stored prompt)",
-  provider: "portkey",
-  diffOld: "same_as_old",
-  diffNew: "same_as_old",
-  inputs: [
-    { name: "topic",               label: "topic",               source: { kind: "client_context", field: "business_context_token" },    required: true  },
-    { name: "paa_data",            label: "paa_data",            source: { kind: "client_context", field: "paa_data_json" },             required: false },
-    { name: "product_information", label: "product_information", source: { kind: "client_context", field: "product_information_json" }, required: false },
-    { name: "company_info",        label: "company_info",        source: { kind: "client_context", field: "company_info_json" },         required: false },
-  ],
-  promptIdOld:     STORMBREAKER_PROMPTS.CATEGORY_PAGE_CONTENT_GEN,
-  promptIdNew:     STORMBREAKER_PROMPTS.CATEGORY_PAGE_CONTENT_GEN,
-  promptVariables: ["topic", "paa_data", "product_information", "company_info"],
-  outputType: "json",
-};
+    "Pick an image description from the project's PUBLISHED service clusters (page_info.images[].description, most recent cluster first, deduped). The selected value is fed into Build Image Prompt. First option is the default — no click needed to use it.",
+  optionsField: "new_flow_service_topic_options",
+});
+
+const chooseCategoryDescriptionStep: StepDefinition = makeChooseDescriptionStep({
+  title: "Choose Image Description",
+  description:
+    "Pick an image description from the project's category clusters (page_info.industries[].images[].description where image_id starts with 'generated-images/'). The selected value is fed into Build Image Prompt. First option is the default.",
+  optionsField: "new_flow_category_topic_options",
+});
+
+/**
+ * Blog picker. Keeps the `generate_image_description` step name so
+ * the downstream blog Step 4 wiring (which used to point at the
+ * IMAGE_PLACEHOLDER Portkey call) still resolves. Per-client options
+ * are populated manually (blogImageDescriptionOptions), and the
+ * picker exposes a free-text area so the user can type a description
+ * even before options exist.
+ */
+/**
+ * Blog Step 3 pickers. Each blog image type reads its own curated
+ * options array so the cards surface image-type-relevant descriptions
+ * (infographic vs internal photo vs external stock vs generic). All
+ * variants share the same step name so downstream Step 4 wiring (which
+ * reads `step_output.generate_image_description`) stays flow-agnostic.
+ */
+const chooseBlogImageDescriptionStep: StepDefinition = makeChooseDescriptionStep({
+  name: "generate_image_description",
+  title: "Choose Blog Topic",
+  description:
+    "Pick one of the 5 blog topics pulled from clusters.topic (page_type='blog') for this client, or type your own. Used by blog:cover and blog:thumbnail as the seed for Step 4's cover/thumbnail prompt in both old and new flow. Selection is shared across flows.",
+  optionsField: "new_flow_blog_topic_options",
+  allowCustom: true,
+});
+const chooseBlogInfographicDescriptionStep: StepDefinition = makeChooseDescriptionStep({
+  name: "generate_image_description",
+  title: "Choose Infographic Description",
+  description:
+    "Pick an infographic description from curated options (blogImageDescriptionOptions.infographic), or type your own. Feeds both old and new flow's Generate Image Prompt.",
+  optionsField: "new_flow_blog_infographic_options",
+  allowCustom: true,
+});
+const chooseBlogInternalDescriptionStep: StepDefinition = makeChooseDescriptionStep({
+  name: "generate_image_description",
+  title: "Choose Internal Image Description",
+  description:
+    "Pick an internal-image description (blogImageDescriptionOptions.internal), or type your own.",
+  optionsField: "new_flow_blog_internal_options",
+  allowCustom: true,
+});
+const chooseBlogExternalDescriptionStep: StepDefinition = makeChooseDescriptionStep({
+  name: "generate_image_description",
+  title: "Choose External Image Description",
+  description:
+    "Pick an external-image description (blogImageDescriptionOptions.external), or type your own.",
+  optionsField: "new_flow_blog_external_options",
+  allowCustom: true,
+});
+const chooseBlogGenericDescriptionStep: StepDefinition = makeChooseDescriptionStep({
+  name: "generate_image_description",
+  title: "Choose Generic Image Description",
+  description:
+    "Pick a generic-image description (blogImageDescriptionOptions.generic), or type your own.",
+  optionsField: "new_flow_blog_generic_options",
+  allowCustom: true,
+});
 
 const generatePlaceholderDescriptionStep: StepDefinition = {
   name: "generate_placeholder_description",
@@ -335,9 +502,9 @@ const generatePlaceholderDescriptionStep: StepDefinition = {
   diffNew: "new",
   inputs: [
     {
-      name: "business_context_token",
+      name: "business_context",
       label: "Business Context / Description",
-      source: { kind: "client_context", field: "business_context_token" },
+      source: { kind: "client_context", field: "business_context" },
       required: false,
     },
     {
@@ -352,16 +519,17 @@ const generatePlaceholderDescriptionStep: StepDefinition = {
   outputType: "text",
 };
 
-const generateImageStep: StepDefinition = {
-  name: "generate_image",
-  title: "Generate Image",
-  description:
-    "Sends the final prompt to Replicate (google/nano-banana-pro). Logo (if provided) is passed as image_input for img2img.",
-  model: "google/nano-banana-pro",
-  provider: "replicate",
-  diffOld: "same_as_old",
-  diffNew: "same_as_old",
-  inputs: [
+/**
+ * Factory for the Generate Image step. `aspectOptions` controls whether
+ * the aspect_ratio dropdown appears at all:
+ *   - Blog pipelines pass ["16:9", "1:1", "3:2"] so the user can pick
+ *     any of the three common aspect ratios per-run.
+ *   - Service + category pipelines pass `undefined` so the dropdown is
+ *     hidden entirely; the pipeline's defaultAspectRatio ("1:1") is the
+ *     only ratio used for those page types.
+ */
+function makeGenerateImageStep(opts: { aspectOptions?: string[] }): StepDefinition {
+  const inputs: StepInputDef[] = [
     {
       name: "final_prompt",
       label: "Final Prompt",
@@ -370,13 +538,42 @@ const generateImageStep: StepDefinition = {
     },
     {
       name: "image_input",
-      label: "Image Input URL (img2img, optional)",
+      label: "Logo URL",
       source: { kind: "client_context", field: "company_logo_url" },
       required: false,
     },
-  ],
-  outputType: "image_url",
-};
+  ];
+  if (opts.aspectOptions && opts.aspectOptions.length > 0) {
+    inputs.push({
+      name: "aspect_ratio",
+      label: "aspect_ratio (overrides pipeline default)",
+      source: { kind: "user_input" },
+      required: false,
+      options: opts.aspectOptions,
+    });
+  }
+  return {
+    name: "generate_image",
+    title: "Generate Image",
+    description:
+      opts.aspectOptions && opts.aspectOptions.length > 0
+        ? "Sends the final prompt to Replicate (google/nano-banana-pro). Logo (if provided) is passed as image_input for img2img. aspect_ratio defaults to the pipeline's configured value and can be overridden per-run."
+        : "Sends the final prompt to Replicate (google/nano-banana-pro). Logo (if provided) is passed as image_input for img2img. aspect_ratio is fixed to the pipeline default (1:1) for service + category pipelines.",
+    model: "google/nano-banana-pro",
+    provider: "replicate",
+    diffOld: "same_as_old",
+    diffNew: "same_as_old",
+    inputs,
+    outputType: "image_url",
+  };
+}
+
+const generateImageStep_blog: StepDefinition = makeGenerateImageStep({
+  aspectOptions: ["16:9", "1:1", "3:2"],
+});
+const generateImageStep_page: StepDefinition = makeGenerateImageStep({
+  // No dropdown — service/category are locked to the pipeline default.
+});
 
 // ---------------------------------------------------------------------------
 // Step 4 variants — the only step that meaningfully differs per image type
@@ -389,11 +586,13 @@ const buildImagePromptStep_LLM: StepDefinition = {
   name: "build_image_prompt",
   title: "Build Image Prompt",
   description:
-    "Mirrors stormbreaker's generate_prompt(amp_up=False) step — expands a short image description into a photorealistic prompt via Claude. Old flow: verbatim image_generation_system_prompt. New flow: same + BRAND IDENTITY block.",
+    "Mirrors stormbreaker's generate_prompt(amp_up=False) step — expands a short image description into a photorealistic prompt via Claude. Old flow: verbatim image_generation_system_prompt. New flow: same + BRAND IDENTITY block + business_context / company_info overrides.",
   model: "claude-sonnet-4-6",
   provider: "portkey",
   diffOld: "same_as_old",
-  diffNew: "modified",
+  // The brand-aware variant has been the shipped new-flow behaviour for a
+  // while now; no longer a fresh delta worth flagging as MODIFIED.
+  diffNew: "same_as_old",
   inputs: [
     {
       name: "placeholder_description",
@@ -402,9 +601,15 @@ const buildImagePromptStep_LLM: StepDefinition = {
       required: true,
     },
     {
-      name: "graphic_token",
-      label: "Graphic Token (new flow only)",
-      source: { kind: "step_output", stepName: "extract_graphic_token" },
+      name: "business_context",
+      label: "business_context (new flow only)",
+      source: { kind: "client_context", field: "business_context" },
+      required: false,
+    },
+    {
+      name: "company_info",
+      label: "company_info (new flow only)",
+      source: { kind: "client_context", field: "company_info_json" },
       required: false,
     },
   ],
@@ -426,18 +631,31 @@ const renderCoverPromptStep: StepDefinition = {
   provider: "none",
   renderOnly: true,
   diffOld: "same_as_old",
-  diffNew: "modified",
+  // Brand block append has been shipped for a while — no longer a delta.
+  diffNew: "same_as_old",
   inputs: [
     {
       name: "blog_topic",
-      label: "Blog Topic",
-      source: { kind: "client_context", field: "business_context_token" },
+      label: "Blog Topic (→ {{blog_topic}} in template)",
+      source: { kind: "client_context", field: "business_context" },
       required: true,
     },
     {
       name: "graphic_token",
       label: "Graphic Token (new flow only)",
       source: { kind: "step_output", stepName: "extract_graphic_token" },
+      required: false,
+    },
+    {
+      name: "business_context",
+      label: "business_context (new flow only)",
+      source: { kind: "client_context", field: "business_context" },
+      required: false,
+    },
+    {
+      name: "company_info",
+      label: "company_info (new flow only)",
+      source: { kind: "client_context", field: "company_info_json" },
       required: false,
     },
   ],
@@ -458,7 +676,7 @@ const rawDescriptionStep_blog: StepDefinition = {
   name: "build_image_prompt",
   title: "Pass-Through Description",
   description:
-    "Stormbreaker's internal-image flow does NOT run an LLM prompt-expansion step — the raw description from the <image_requirement> tag is sent straight to Replicate. The default input is the full output of Step 3 (all placeholder tags); override the input field to pick one description.",
+    "Stormbreaker's internal-image flow does NOT run an LLM prompt-expansion step — the raw description from the <image_requirement> tag is sent straight to Replicate. The default input is the full output of Step 3 (all placeholder tags); override the input field to pick one description. New-flow context overrides (business_context, company_info) are surfaced as inputs so they can be forwarded to Replicate.",
   model: "(no model — pass-through)",
   provider: "none",
   renderOnly: true,
@@ -471,39 +689,151 @@ const rawDescriptionStep_blog: StepDefinition = {
       source: { kind: "step_output", stepName: "generate_image_description" },
       required: true,
     },
+    {
+      name: "business_context",
+      label: "business_context (new flow only)",
+      source: { kind: "client_context", field: "business_context" },
+      required: false,
+    },
+    {
+      name: "company_info",
+      label: "company_info (new flow only)",
+      source: { kind: "client_context", field: "company_info_json" },
+      required: false,
+    },
   ],
   systemPromptOld: "{{image_description}}",
   systemPromptNew: "{{image_description}}",
   outputType: "text",
 };
 
-/** Blog-specific variant of buildImagePromptStep_LLM: pulls the
- *  description from the IMAGE_PLACEHOLDER step output instead of the
- *  playground-only placeholder step. Matches stormbreaker's
- *  generic_images.py / external_images.py which read the description
- *  straight out of the <image_requirement> tag. */
-const buildImagePromptStep_LLM_blog: StepDefinition = {
+/**
+ * Unified blog Step 4 — "Generate Image Prompt".
+ *
+ * Replaces the prior split (buildImagePromptStep_LLM_blog for
+ * external/generic, buildImagePromptStep_LLM_blog_infographic for
+ * infographic, rawDescriptionStep_blog for internal). All four now
+ * share the same LLM step with the same four inputs — placeholder
+ * description (from the picker), business_context, company_info, and
+ * graphic_token. The last three are new-flow-only: the old-flow cell
+ * hides them, and the old-flow user prompt only carries the
+ * description (via BUILD_IMAGE_PROMPT_USER_TEMPLATE).
+ */
+const generateImagePromptStep_blog: StepDefinition = {
   ...buildImagePromptStep_LLM,
+  title: "Generate Image Prompt",
+  description:
+    "Expands the picked/typed image description into a photorealistic prompt via Claude, using the client's business_context, company_info, and graphic_token (extracted brand tokens) on the new-flow side. Old flow sends just the description (unchanged).",
   inputs: [
     {
       name: "placeholder_description",
-      label: "Image Description (from <image_requirement>)",
+      label: "Image Description (from picker / custom text)",
       source: { kind: "step_output", stepName: "generate_image_description" },
       required: true,
     },
     {
+      name: "business_context",
+      label: "business_context",
+      source: { kind: "client_context", field: "business_context" },
+      required: false,
+      flows: ["new"],
+    },
+    {
+      name: "company_info",
+      label: "company_info",
+      source: { kind: "client_context", field: "company_info_json" },
+      required: false,
+      flows: ["new"],
+    },
+    {
       name: "graphic_token",
-      label: "Graphic Token (new flow only)",
+      label: "graphic_token",
       source: { kind: "step_output", stepName: "extract_graphic_token" },
       required: false,
+      flows: ["new"],
     },
   ],
+  // Old flow: send just the description (stormbreaker parity).
+  // New flow: send the full tagged payload (same shape as the page
+  // variant) so the upgraded system prompt can ground on brand + biz.
+  userPromptTemplateOld: BUILD_IMAGE_PROMPT_USER_TEMPLATE,
+  userPromptTemplateNew: BUILD_IMAGE_PROMPT_USER_TEMPLATE_PAGE,
+};
+
+/**
+ * blog:infographic Step 4. Inputs are identical to
+ * generateImagePromptStep_blog, but the system prompt + user template
+ * differ per flow:
+ *   - Old flow: reuses IMAGE_GENERATION_SYSTEM_PROMPT (same as the
+ *     generic blog variant).
+ *   - New flow: uses the dedicated GENERATE_INFOGRAPHIC_SYSTEM_PROMPT_NEW
+ *     (lives in src/config/new-flow/generate-infographic-prompt.ts).
+ */
+const generateInfographicPromptStep_blog: StepDefinition = {
+  ...generateImagePromptStep_blog,
+  title: "Generate Infographic Prompt",
+  description:
+    "Expands the picked/typed image description into an infographic-oriented prompt. Old flow reuses the generic IMAGE_GENERATION_SYSTEM_PROMPT; new flow uses the dedicated generate_infographic system prompt. New-flow user template also carries client_homepage_url for footer attribution.",
+  inputs: [
+    ...generateImagePromptStep_blog.inputs,
+    {
+      name: "client_homepage_url",
+      label: "client_homepage_url",
+      source: { kind: "client_context", field: "client_homepage_url" },
+      required: false,
+      flows: ["new"],
+    },
+  ],
+  systemPromptOld: IMAGE_GENERATION_SYSTEM_PROMPT,
+  systemPromptNew: GENERATE_INFOGRAPHIC_SYSTEM_PROMPT_NEW,
+  userPromptTemplateOld: BUILD_IMAGE_PROMPT_USER_TEMPLATE,
+  userPromptTemplateNew: GENERATE_INFOGRAPHIC_USER_TEMPLATE_NEW,
+};
+
+/**
+ * blog:cover Step 4. Wholly distinct prompts from the generic blog
+ * Generate Image Prompt in BOTH flows. Content lives in
+ * src/config/old-flow/cover-prompt.ts and src/config/new-flow/cover-prompt.ts.
+ */
+const generateCoverImagePromptStep_blog: StepDefinition = {
+  ...generateImagePromptStep_blog,
+  title: "Generate Cover Image Prompt",
+  description:
+    "Dedicated blog-cover prompt — not derived from the generic Generate Image Prompt. Old and new flow each carry their own system + user template for the 16:9 cover format.",
+  systemPromptOld: BLOG_COVER_SYSTEM_PROMPT_OLD,
+  systemPromptNew: BLOG_COVER_SYSTEM_PROMPT_NEW,
+  userPromptTemplateOld: BLOG_COVER_USER_TEMPLATE_OLD,
+  userPromptTemplateNew: BLOG_COVER_USER_TEMPLATE_NEW,
+};
+
+/**
+ * blog:thumbnail Step 4. Wholly distinct prompts from the generic blog
+ * Generate Image Prompt in BOTH flows. Content lives in
+ * src/config/old-flow/thumbnail-prompt.ts and
+ * src/config/new-flow/thumbnail-prompt.ts.
+ */
+const generateThumbnailImagePromptStep_blog: StepDefinition = {
+  ...generateImagePromptStep_blog,
+  title: "Generate Thumbnail Image Prompt",
+  description:
+    "Dedicated blog-thumbnail prompt — not derived from the generic Generate Image Prompt. Old flow targets 1:1, new flow 3:2; each has its own system + user template.",
+  systemPromptOld: BLOG_THUMBNAIL_SYSTEM_PROMPT_OLD,
+  systemPromptNew: BLOG_THUMBNAIL_SYSTEM_PROMPT_NEW,
+  userPromptTemplateOld: BLOG_THUMBNAIL_USER_TEMPLATE_OLD,
+  userPromptTemplateNew: BLOG_THUMBNAIL_USER_TEMPLATE_NEW,
 };
 
 /** Service / category variant: sources the description from the
- *  SERVICE|CATEGORY_PAGE_CONTENT_GEN step output (resolveInputs walks
- *  the page_info JSON and picks the first non-certification image
- *  description). */
+ *  Choose Image Description picker step output.
+ *
+ *  Old-flow user prompt = the shared minimal `{"description": "..."}`
+ *  template — mirrors stormbreaker's production pipeline where Step 4
+ *  only sees the raw description.
+ *
+ *  New-flow user prompt = BUILD_IMAGE_PROMPT_USER_TEMPLATE_PAGE, which
+ *  adds business_context + company_info in XML-tagged sections so the
+ *  upgraded system prompt can ground the photorealistic prompt in the
+ *  client's actual business. */
 const buildImagePromptStep_LLM_page: StepDefinition = {
   ...buildImagePromptStep_LLM,
   inputs: [
@@ -514,12 +844,22 @@ const buildImagePromptStep_LLM_page: StepDefinition = {
       required: true,
     },
     {
-      name: "graphic_token",
-      label: "Graphic Token (new flow only)",
-      source: { kind: "step_output", stepName: "extract_graphic_token" },
+      name: "business_context",
+      label: "business_context",
+      source: { kind: "client_context", field: "business_context" },
       required: false,
+      flows: ["new"],
+    },
+    {
+      name: "company_info",
+      label: "company_info",
+      source: { kind: "client_context", field: "company_info_json" },
+      required: false,
+      flows: ["new"],
     },
   ],
+  userPromptTemplateOld: BUILD_IMAGE_PROMPT_USER_TEMPLATE,
+  userPromptTemplateNew: BUILD_IMAGE_PROMPT_USER_TEMPLATE_PAGE,
 };
 
 // ---------------------------------------------------------------------------
@@ -534,7 +874,13 @@ function makePipeline(opts: {
    *  stormbreaker's create_image_placeholders.py does. */
   step3?: StepDefinition;
   step4: StepDefinition;
+  /** Which Generate Image variant to use. Blog pipelines keep the
+   *  aspect_ratio dropdown (16:9 / 1:1 / 3:2); service + category
+   *  pipelines use the no-dropdown variant locked to pipeline default. */
+  step5?: StepDefinition;
   defaultAspectRatio: string;
+  defaultAspectRatioOld?: string;
+  defaultAspectRatioNew?: string;
   alignmentNote?: string;
 }): PipelineDefinition {
   return {
@@ -543,10 +889,12 @@ function makePipeline(opts: {
       extractGraphicTokenStep,
       opts.step3 ?? generatePlaceholderDescriptionStep,
       opts.step4,
-      generateImageStep,
+      opts.step5 ?? generateImageStep_blog,
     ],
     clientContextFields: SHARED_CLIENT_CONTEXT_FIELDS,
     defaultAspectRatio: opts.defaultAspectRatio,
+    defaultAspectRatioOld: opts.defaultAspectRatioOld,
+    defaultAspectRatioNew: opts.defaultAspectRatioNew,
     alignmentNote: opts.alignmentNote,
   };
 }
@@ -556,75 +904,160 @@ function makePipeline(opts: {
 // ---------------------------------------------------------------------------
 
 export const PIPELINES: Record<string, PipelineDefinition> = {
-  // Blog cover/thumbnail — hardcoded prompt flow (see cover_image.py).
+  // Blog cover/thumbnail — same picker + Generate Image Prompt pipeline
+  // as blog:infographic. The only differences are the fixed aspect
+  // ratios: cover = 16:9 (both flows); thumbnail = 1:1 old / 3:2 new.
+  // Step 5 is the no-dropdown variant so the ratio stays fixed.
   "blog:cover": makePipeline({
-    step4: renderCoverPromptStep,
+    step3: chooseBlogImageDescriptionStep,
+    step4: generateCoverImagePromptStep_blog,
+    step5: generateImageStep_page,
     defaultAspectRatio: "16:9",
     alignmentNote:
-      "Type the blog topic into Business Context. Old flow = stormbreaker's hardcoded cover prompt (no LLM). New flow appends a BRAND IDENTITY block, matching scripts/test_infographic_graphic_token.py.",
+      "Picker (Step 3) shared with every blog pipeline. Step 4 is the dedicated Generate Cover Image Prompt — separate system + user templates in old-flow/cover-prompt.ts and new-flow/cover-prompt.ts. Aspect ratio fixed at 16:9 in both flows.",
   }),
   "blog:thumbnail": makePipeline({
-    step4: renderCoverPromptStep,
-    defaultAspectRatio: "1:1",
+    step3: chooseBlogImageDescriptionStep,
+    step4: generateThumbnailImagePromptStep_blog,
+    step5: generateImageStep_page,
+    defaultAspectRatio: "1:1", // fallback; overridden per flow below
+    defaultAspectRatioOld: "1:1",
+    defaultAspectRatioNew: "3:2",
     alignmentNote:
-      "Same hardcoded-prompt flow as blog:cover but with a 1:1 aspect ratio (stormbreaker generates both in parallel from the same prompt).",
+      "Picker (Step 3) shared with every blog pipeline. Step 4 is the dedicated Generate Thumbnail Image Prompt — separate system + user templates in old-flow/thumbnail-prompt.ts and new-flow/thumbnail-prompt.ts. Aspect ratio 1:1 old / 3:2 new.",
   }),
 
-  // Blog internal — raw description, Pinecone-selected img2img in production.
+  // Blog internal/external/infographic/generic — unified flow.
+  // Step 3 is a picker over per-client blogImageDescriptionOptions with
+  // a free-text fallback; Step 4 is the LLM Generate Image Prompt with
+  // 4 inputs (placeholder_description, business_context, company_info,
+  // graphic_token). Stormbreaker's `type`-specific branching (SERP,
+  // Pinecone, etc.) isn't wired here.
   "blog:internal": makePipeline({
-    step3: generateBlogImagePlaceholdersStep,
-    step4: rawDescriptionStep_blog,
+    step3: chooseBlogInternalDescriptionStep,
+    step4: generateImagePromptStep_blog,
     defaultAspectRatio: "4:3",
     alignmentNote:
-      "Old flow: Step 3 runs stormbreaker's IMAGE_PLACEHOLDER Portkey prompt to generate <image_requirement> tags (same as create_image_placeholders.py). Stormbreaker's full production pipeline then Pinecone-searches + GPT-4o-selects a match for img2img — neither is implemented here, so paste the matched image URL into Logo URL if you want img2img behavior.",
+      "Step 3 picker reads blogImageDescriptionOptions.internal per client. Step 4 expands via Claude 4.6. Stormbreaker's production internal flow additionally Pinecone-searches + GPT-4o-selects a match for img2img — not implemented here.",
   }),
-
-  // Blog external — complex SERP flow; playground runs the LLM approximation.
   "blog:external": makePipeline({
-    step3: generateBlogImagePlaceholdersStep,
-    step4: buildImagePromptStep_LLM_blog,
+    step3: chooseBlogExternalDescriptionStep,
+    step4: generateImagePromptStep_blog,
     defaultAspectRatio: "4:3",
     alignmentNote:
-      "Old flow: Step 3 runs IMAGE_PLACEHOLDER; Step 4 expands via Claude 4.6. Stormbreaker's full external flow between these two runs Serper image search + GPT-4o Vision + Claude Sonnet 4.5 selection + the EXTERNAL_IMAGE_UPDATION Portkey prompt — those are not yet wired in the playground.",
+      "Step 3 picker reads blogImageDescriptionOptions.external per client. Stormbreaker's full external flow additionally runs Serper image search + GPT-4o Vision + Claude Sonnet 4.5 selection + the EXTERNAL_IMAGE_UPDATION Portkey prompt — those aren't wired here.",
   }),
-
-  // Blog infographic/generic — straight Claude 4.6 expansion + Replicate.
   "blog:infographic": makePipeline({
-    step3: generateBlogImagePlaceholdersStep,
-    step4: buildImagePromptStep_LLM_blog,
-    defaultAspectRatio: "1:1",
+    step3: chooseBlogInfographicDescriptionStep,
+    step4: generateInfographicPromptStep_blog,
+    // No-dropdown Step 5 so the aspect ratio is locked to 16:9 in both
+    // flows. User-facing header just shows "Generate Image" + "16:9".
+    step5: generateImageStep_page,
+    defaultAspectRatio: "16:9",
     alignmentNote:
-      "Matches stormbreaker end-to-end: Step 3 runs IMAGE_PLACEHOLDER (create_image_placeholders.py), Step 4 runs generate_prompt (replicate.py), Step 5 runs Replicate with the logo as image_input.",
+      "Step 3 picker reads blogImageDescriptionOptions.infographic per client. Old flow Step 4 reuses the generic IMAGE_GENERATION_SYSTEM_PROMPT; new flow Step 4 uses the dedicated generate_infographic system prompt from new-flow/generate-infographic-prompt.ts. Aspect ratio fixed at 16:9 in both flows — no per-run dropdown.",
   }),
   "blog:generic": makePipeline({
-    step3: generateBlogImagePlaceholdersStep,
-    step4: buildImagePromptStep_LLM_blog,
+    step3: chooseBlogGenericDescriptionStep,
+    step4: generateImagePromptStep_blog,
     defaultAspectRatio: "4:3",
     alignmentNote:
-      "Same handler as Infographic in stormbreaker (generic_images.py); differs only by the `type` attribute on the <image_requirement> tag the LLM produces in Step 3.",
+      "Step 3 picker reads blogImageDescriptionOptions.generic per client. Same Step 4 handler as blog:external.",
   }),
 
   // Service pipelines — upstream SERVICE_PAGE_CONTENT_GEN now wired.
   "service:title": makePipeline({
-    step3: generateServicePageStructureStep,
+    step3: chooseServiceDescriptionStep,
     step4: buildImagePromptStep_LLM_page,
-    defaultAspectRatio: "16:9",
+    step5: generateImageStep_page,
+    defaultAspectRatio: "1:1",
     alignmentNote:
       "Old flow: Step 3 calls SERVICE_PAGE_CONTENT_GEN (pp-service-pa-ab5621) with topic + paa_data + service_catalog + company_info — identical variables to stormbreaker's get_service_prompt_params. Import → Preset picks one of the 10 sample clients to auto-fill paa_data / service_catalog / company_info. Step 4 expands the first page_info image description via Claude 4.6. Pinecone + amp-up (service-page refinement) are not implemented — on-miss path only.",
   }),
   "service:h2": makePipeline({
-    step3: generateServicePageStructureStep,
+    step3: chooseServiceDescriptionStep,
     step4: buildImagePromptStep_LLM_page,
-    defaultAspectRatio: "4:3",
+    step5: generateImageStep_page,
+    defaultAspectRatio: "1:1",
     alignmentNote:
       "Same handler and upstream prompt as service:title (update_images.py). In stormbreaker the title vs h2 distinction only exists in each image object's `context` field within page_info.",
   }),
 
   "category:industry": makePipeline({
-    step3: generateCategoryPageStructureStep,
+    step3: chooseCategoryDescriptionStep,
     step4: buildImagePromptStep_LLM_page,
-    defaultAspectRatio: "16:9",
+    step5: generateImageStep_page,
+    defaultAspectRatio: "1:1",
     alignmentNote:
       "Old flow: Step 3 calls CATEGORY_PAGE_CONTENT_GEN (pp-category-p-ba2554) with topic + paa_data + product_information + company_info. Step 4 expands the first page_info image description via Claude 4.6. Pinecone + upscale-on-match is not implemented — on-miss path only.",
   }),
 };
+
+// ---------------------------------------------------------------------------
+// Disabled-step logic
+// ---------------------------------------------------------------------------
+
+/**
+ * Steps that should stay runnable in the NEW flow of a service/category
+ * pipeline even when its topic is missing. The scrape + graphic-token
+ * extraction don't depend on the topic, so we let the user still exercise
+ * them even for clients that have no published page to seed the topic from.
+ */
+const NEW_FLOW_TOPICLESS_RUNNABLE_STEPS = new Set([
+  "scrape_client_site",
+  "extract_graphic_token",
+]);
+
+/**
+ * Returns the set of step names that should be rendered as disabled
+ * (not runnable, greyed-out body) for a given (pipelineKey, flow).
+ *
+ * Rules — NEW flow gated only for service + category pipelines:
+ *   - If the pipeline's `topic` source field is empty in client.context,
+ *     the page isn't buildable.
+ *     · OLD flow: disable every step (scrape/extract_graphic_token don't
+ *       exist in old flow anyway, so the row effectively has no runnable
+ *       steps).
+ *     · NEW flow: disable every step EXCEPT scrape + extract_graphic_token
+ *       so the user can still preview the early brand-extraction flow.
+ *   - Otherwise no steps are disabled.
+ *
+ * Blog pipelines are not gated here (user manages their own blog flow).
+ */
+export function getDisabledStepsForFlow(
+  pipelineKey: string,
+  context: Record<string, string>,
+  flowType: "old" | "new"
+): Set<string> {
+  const topicField = pipelineKey.startsWith("service:")
+    ? "new_flow_service_topic_options"
+    : pipelineKey.startsWith("category:")
+      ? "new_flow_category_topic_options"
+      : null;
+  if (!topicField) return new Set();
+
+  // Options field is a JSON-encoded array; empty array or missing value
+  // both mean "no topic available".
+  const raw = (context[topicField] ?? "").trim();
+  let hasTopic = false;
+  if (raw) {
+    try {
+      const arr = JSON.parse(raw);
+      hasTopic = Array.isArray(arr) && arr.length > 0;
+    } catch {
+      hasTopic = false;
+    }
+  }
+  if (hasTopic) return new Set();
+
+  const pipeline = PIPELINES[pipelineKey];
+  if (!pipeline) return new Set();
+  if (flowType === "old") {
+    return new Set(pipeline.steps.map((s) => s.name));
+  }
+  return new Set(
+    pipeline.steps
+      .filter((s) => !NEW_FLOW_TOPICLESS_RUNNABLE_STEPS.has(s.name))
+      .map((s) => s.name)
+  );
+}
