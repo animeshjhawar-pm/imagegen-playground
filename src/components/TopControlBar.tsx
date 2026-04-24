@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePlayground } from "@/context/PlaygroundContext";
 import {
   IMAGE_TYPES_BY_PAGE,
@@ -28,11 +28,44 @@ export function TopControlBar({ onRunAll, isRunningAll }: TopControlBarProps) {
   const { pageType, imageType, clients } = state;
   const [importOpen, setImportOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  // True when the dialog was opened automatically because the user just
+  // completed a page-type + image-type selection without any clients yet.
+  // On cancel, we fall through to adding a blank client so the user
+  // always lands on SOMETHING actionable.
+  const autoOpenedRef = useRef(false);
   const pipeline = pageType && imageType ? PIPELINES[`${pageType}:${imageType}`] : null;
 
   const imageTypeOptions = pageType ? IMAGE_TYPES_BY_PAGE[pageType] : [];
   const hasSelection    = pageType !== null && imageType !== null;
   const canAddClient    = hasSelection; // Fix 7: disabled until both selected
+
+  // Auto-open Import dialog (Presets tab is the default) the first time
+  // the user completes both dropdown selections without any clients. If
+  // they cancel without picking anything, we add a blank client so the
+  // pipeline table isn't empty. Re-fires if they later remove every
+  // client and re-select an image type.
+  useEffect(() => {
+    if (hasSelection && clients.length === 0 && !importOpen) {
+      autoOpenedRef.current = true;
+      setImportOpen(true);
+    }
+  }, [hasSelection, clients.length, importOpen]);
+
+  function handleDialogCancel() {
+    const wasAuto = autoOpenedRef.current;
+    autoOpenedRef.current = false;
+    setImportOpen(false);
+    if (wasAuto && clients.length === 0) {
+      // Auto-open fallback: user cancelled without selecting → blank client.
+      dispatch({ type: "ADD_CLIENT" });
+    }
+  }
+
+  function handleAddBlankFromDialog() {
+    autoOpenedRef.current = false;
+    setImportOpen(false);
+    dispatch({ type: "ADD_CLIENT" });
+  }
 
   const selectCls = `
     bg-neutral-900 border border-neutral-700 rounded
@@ -157,11 +190,14 @@ export function TopControlBar({ onRunAll, isRunningAll }: TopControlBarProps) {
 
       <ImportClientDialog
         isOpen={importOpen}
-        onCancel={() => setImportOpen(false)}
+        onCancel={handleDialogCancel}
         onImport={(seeds) => {
+          autoOpenedRef.current = false;
           dispatch({ type: "IMPORT_CLIENTS", seeds });
           setImportOpen(false);
         }}
+        onAddBlank={handleAddBlankFromDialog}
+        pageType={pageType}
       />
 
       <ExportCsvDialog

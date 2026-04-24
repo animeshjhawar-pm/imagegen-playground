@@ -7,7 +7,7 @@ import { PipelineTable } from "@/components/PipelineTable";
 import { EmptyState } from "@/components/EmptyState";
 import { DryRunToggle } from "@/components/DryRunToggle";
 import { ConfirmRunAllModal } from "@/components/ConfirmRunAllModal";
-import { PIPELINES } from "@/config/pipelines";
+import { PIPELINES, getDisabledStepsForFlow } from "@/config/pipelines";
 import { runStep } from "@/lib/runStep";
 import { resolveInputs } from "@/lib/resolveInputs";
 import { estimateCost } from "@/lib/costEstimates";
@@ -51,6 +51,17 @@ function PlaygroundInner() {
     const diff = flowType === "old" ? step.diffOld : step.diffNew;
     if (diff === "skipped") return;
 
+    // Picker steps carry no provider call; their output is set directly
+    // by the user (or auto-initialised to options[0]). Running them would
+    // clobber the picked description with the raw options JSON via the
+    // renderOnly template, so skip from Run-All / Run-Step-Name entirely.
+    if (step.picker) return;
+
+    // Skip any step the UI has greyed out (e.g. service/category pipelines
+    // for clients without a prefetched topic). Same rule both flows.
+    const disabledSteps = getDisabledStepsForFlow(pipelineKey, client.context, flowType);
+    if (disabledSteps.has(step.name)) return;
+
     const flow =
       flowType === "old"
         ? client.oldFlow
@@ -70,15 +81,28 @@ function PlaygroundInner() {
 
     const resolved = resolveInputs(step, client, flowType, imageType ?? undefined, flowIndex);
 
+    // Fold any per-input user overrides back in so Run-All respects the
+    // same dropdown choices (e.g. aspect_ratio) as per-step runs.
+    const effectiveInputs = Object.fromEntries(
+      step.inputs.map((i) => {
+        const overridden = stepState?.inputOverrides?.[i.name]
+          ? stepState.inputs[i.name] ?? ""
+          : resolved[i.name] ?? "";
+        return [i.name, overridden];
+      })
+    );
+
     try {
       const result = await runStep({
         pageType: pageType!,
         imageType: imageType!,
         flowType,
         step,
-        resolvedInputs: resolved,
+        resolvedInputs: effectiveInputs,
         aspectRatio:
-          step.name === "generate_image" ? defaultAspectRatio : undefined,
+          step.name === "generate_image"
+            ? (effectiveInputs["aspect_ratio"] || defaultAspectRatio)
+            : undefined,
         isDryRun,
         clientId: client.id,
         pipelineKey,
@@ -135,8 +159,12 @@ function PlaygroundInner() {
           ];
           return Promise.all(
             lanes.map(async ({ flowType, flowIndex }) => {
+              const ar =
+                (flowType === "old"
+                  ? pipeline.defaultAspectRatioOld
+                  : pipeline.defaultAspectRatioNew) ?? pipeline.defaultAspectRatio;
               for (const step of pipeline.steps) {
-                await runOne(step, client, flowType, flowIndex, pipelineKey, pipeline.defaultAspectRatio);
+                await runOne(step, client, flowType, flowIndex, pipelineKey, ar);
               }
             })
           );
@@ -165,9 +193,13 @@ function PlaygroundInner() {
             ...client.newFlows.map((_, i) => ({ flowType: "new" as const, flowIndex: i })),
           ];
           return Promise.all(
-            lanes.map(({ flowType, flowIndex }) =>
-              runOne(step, client, flowType, flowIndex, pipelineKey, pipeline.defaultAspectRatio)
-            )
+            lanes.map(({ flowType, flowIndex }) => {
+              const ar =
+                (flowType === "old"
+                  ? pipeline.defaultAspectRatioOld
+                  : pipeline.defaultAspectRatioNew) ?? pipeline.defaultAspectRatio;
+              return runOne(step, client, flowType, flowIndex, pipelineKey, ar);
+            })
           );
         })
       );
@@ -191,9 +223,14 @@ function PlaygroundInner() {
           ...client.newFlows.map((f) => ({ flowType: "new" as const, flow: f })),
         ];
         for (const { flowType, flow } of lanes) {
+          const disabledSteps = getDisabledStepsForFlow(
+            `${pageType}:${imageType}`, client.context, flowType,
+          );
           for (const step of pipeline.steps) {
             const diff = flowType === "old" ? step.diffOld : step.diffNew;
             if (diff === "skipped") continue;
+            if (step.picker) continue; // picker = no provider call
+            if (disabledSteps.has(step.name)) continue;
             const stepState = flow.stepStates[step.name];
             if (stepState?.isOutputOverride && stepState.output) continue;
             stepCount += 1;
@@ -226,6 +263,11 @@ function PlaygroundInner() {
         for (const { flowType, flow } of lanes) {
           const diff = flowType === "old" ? step.diffOld : step.diffNew;
           if (diff === "skipped") continue;
+          if (step.picker) continue;
+          const disabledSteps = getDisabledStepsForFlow(
+            `${pageType}:${imageType}`, client.context, flowType,
+          );
+          if (disabledSteps.has(step.name)) continue;
           const stepState = flow.stepStates[step.name];
           if (stepState?.isOutputOverride && stepState.output) continue;
           stepCount += 1;
@@ -261,7 +303,7 @@ function PlaygroundInner() {
             className="ml-2 px-2 py-0.5 rounded text-[10px] font-semibold tracking-wide
               bg-neutral-800 border border-neutral-700 text-neutral-400 uppercase"
           >
-            Internal · v0.1
+            Internal · v12.0
           </span>
         </h1>
 

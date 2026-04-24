@@ -114,13 +114,27 @@ export function ClientGroup({
     <>
       <tr
         ref={headerRowRef}
-        className="border-b border-neutral-800 bg-neutral-900 sticky top-[41px] z-[5]"
+        // When the client group is collapsed, the whole row is a click
+        // target so users don't have to aim for the small chevron. When
+        // expanded, clicks pass through so inline controls (rename /
+        // Remove / Chevron A) keep working normally.
+        onClick={
+          client.isCollapsed
+            ? () => dispatch({ type: "TOGGLE_CLIENT_COLLAPSE", clientId: client.id })
+            : undefined
+        }
+        className={`border-b border-neutral-800 bg-neutral-900 sticky top-[41px] z-[5] ${
+          client.isCollapsed ? "cursor-pointer hover:bg-neutral-800/70 transition-colors" : ""
+        }`}
       >
         <td colSpan={colSpan} className="px-5 py-4">
           <div className="flex items-center gap-0">
             {/* Chevron A — collapses entire client group */}
             <button
-              onClick={() => dispatch({ type: "TOGGLE_CLIENT_COLLAPSE", clientId: client.id })}
+              onClick={(e) => {
+                e.stopPropagation();
+                dispatch({ type: "TOGGLE_CLIENT_COLLAPSE", clientId: client.id });
+              }}
               className="w-5 h-5 flex items-center justify-center mr-3 rounded
                 text-neutral-400 hover:text-neutral-100 hover:bg-neutral-800 transition-colors flex-shrink-0"
               title={client.isCollapsed ? "Expand client" : "Collapse client"}
@@ -146,7 +160,7 @@ export function ClientGroup({
               />
             ) : (
               <button
-                onClick={() => setEditingName(true)}
+                onClick={(e) => { e.stopPropagation(); setEditingName(true); }}
                 className="group flex items-center gap-1.5 text-lg font-semibold ml-1
                   text-neutral-100 hover:text-violet-300 transition-colors"
                 title="Click to rename"
@@ -174,7 +188,10 @@ export function ClientGroup({
 
             {/* Remove button */}
             <button
-              onClick={() => dispatch({ type: "REMOVE_CLIENT", clientId: client.id })}
+              onClick={(e) => {
+                e.stopPropagation();
+                dispatch({ type: "REMOVE_CLIENT", clientId: client.id });
+              }}
               className="text-xs text-neutral-500 hover:text-red-400 transition-colors ml-4"
               title="Remove client"
             >
@@ -188,32 +205,33 @@ export function ClientGroup({
       {!client.isCollapsed && (
         <>
           {/* ── Chevron B: context panel ────────────────────────────────── */}
-          {/* Indented with ml-8 so it's visually nested under Chevron A */}
-          <tr className="border-b border-neutral-800/60 bg-neutral-950/60">
+          {/* Indented with ml-8 so it's visually nested under Chevron A.
+           *  Whole row is clickable so users can toggle without aiming
+           *  for the small chevron/label exactly. */}
+          <tr
+            className="border-b border-neutral-800/60 bg-neutral-950/60 cursor-pointer
+              hover:bg-neutral-900/60 transition-colors group/ctxrow"
+            onClick={() =>
+              dispatch({ type: "TOGGLE_CLIENT_CONTEXT_COLLAPSE", clientId: client.id })
+            }
+          >
             <td colSpan={colSpan} className="px-5 py-1.5">
-              <div className="ml-8">
-                <button
-                  onClick={() =>
-                    dispatch({ type: "TOGGLE_CLIENT_CONTEXT_COLLAPSE", clientId: client.id })
-                  }
-                  className="flex items-center gap-1.5 group"
-                >
-                  {/* Chevron B — smaller than Chevron A */}
-                  <span className="w-4 h-4 flex items-center justify-center flex-shrink-0
-                    text-neutral-500 group-hover:text-neutral-300 transition-colors">
-                    {client.isContextCollapsed
-                      ? <ChevronRight className="w-3.5 h-3.5" />
-                      : <ChevronDown  className="w-3.5 h-3.5" />}
-                  </span>
-                  <span className="text-xs font-medium tracking-wider uppercase text-neutral-400
-                    group-hover:text-neutral-200 transition-colors">
-                    Client Context
-                  </span>
-                  <span className="text-neutral-600 text-xs">·</span>
-                  <span className="text-[10px] text-neutral-600 font-mono">
-                    {filledCtx}/{totalCtx} filled
-                  </span>
-                </button>
+              <div className="ml-8 flex items-center gap-1.5 select-none">
+                {/* Chevron B — smaller than Chevron A */}
+                <span className="w-4 h-4 flex items-center justify-center flex-shrink-0
+                  text-neutral-500 group-hover/ctxrow:text-neutral-300 transition-colors">
+                  {client.isContextCollapsed
+                    ? <ChevronRight className="w-3.5 h-3.5" />
+                    : <ChevronDown  className="w-3.5 h-3.5" />}
+                </span>
+                <span className="text-xs font-medium tracking-wider uppercase text-neutral-400
+                  group-hover/ctxrow:text-neutral-200 transition-colors">
+                  Client Context
+                </span>
+                <span className="text-neutral-600 text-xs">·</span>
+                <span className="text-[10px] text-neutral-600 font-mono">
+                  {filledCtx}/{totalCtx} filled
+                </span>
               </div>
             </td>
           </tr>
@@ -231,9 +249,13 @@ export function ClientGroup({
             </tr>
           )}
 
-          {/* Old flow — always exactly one lane. */}
+          {/* Old flow — always exactly one lane, rendered as the first row
+           *  so shared (rowspan'd) cells like the Choose Image Description
+           *  picker attach to it. */}
           <FlowRow flowType="old" client={client} pipeline={pipeline}
-            pageType={pageType} imageType={imageType} />
+            pageType={pageType} imageType={imageType}
+            isFirstFlowRow={true}
+            totalFlowRows={1 + laneCount} />
 
           {/* New flow lanes — one row per entry in client.newFlows.
            *  Added lanes (index > 0) carry a trash icon; the last lane
@@ -250,6 +272,8 @@ export function ClientGroup({
                 pipeline={pipeline}
                 pageType={pageType}
                 imageType={imageType}
+                isFirstFlowRow={false}
+                totalFlowRows={1 + laneCount}
                 labelAdornment={
                   (canRemove || isLast) ? (
                     <div className="flex items-center gap-1">

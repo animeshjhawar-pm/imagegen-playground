@@ -33,16 +33,47 @@ export interface GenerateImageParams {
   googleSearch?: boolean;
 }
 
-// Tuned for Vercel Hobby's 60s function timeout. Leaves ~5s headroom for
-// the initial POST + retry sleep + response serialization.
-const MAX_WAIT_MS   = 50_000; // 50s polling budget
-const POLL_INTERVAL = 2_000;  // 2 seconds between polls
+// Budget sized for the 300s Vercel function timeout (see vercel.json).
+// Image generation with img2img on gpt-image-2 / seedream-4 can take
+// 60–120s; nano-banana-pro is usually 10–30s. Keep ~15s headroom for the
+// POST + final serialization.
+const MAX_WAIT_MS   = 280_000; // 280s total budget
+const POLL_INTERVAL = 2_000;   // 2s between polls
+// Replicate supports `Prefer: wait=<seconds>` (max 60) — the initial POST
+// holds the connection open until either the prediction finishes or the
+// wait window elapses. For fast models this lets us skip polling entirely.
+const INITIAL_WAIT_SECONDS = 60;
 // Matches stormbreaker's services/replicate/replicate.py:
 // @backoff.on_exception(backoff.expo, Exception, max_tries=3)
 const MAX_RETRIES   = 3;
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+/**
+ * gpt-image-2's Replicate schema restricts `aspect_ratio` to exactly
+ * three values: "1:1" | "3:2" | "2:3". Pipelines can legitimately
+ * request ratios outside that set (e.g. blog:cover / blog:infographic
+ * lock to 16:9, blog:thumbnail new flow to 3:2). Map each incoming
+ * ratio to the closest supported one so the user can switch models on
+ * those pipelines without hitting a 422 from Replicate.
+ *
+ * Mapping — wider-than-square → 3:2, taller-than-square → 2:3,
+ * square-ish → 1:1. Anything already in the supported set passes
+ * through unchanged.
+ */
+function mapAspectRatioForGptImage2(ratio: string): "1:1" | "3:2" | "2:3" {
+  if (ratio === "1:1" || ratio === "3:2" || ratio === "2:3") return ratio;
+  const m = /^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/.exec(ratio);
+  if (!m) return "1:1"; // Unparseable — safe default.
+  const w = Number(m[1]);
+  const h = Number(m[2]);
+  if (!(w > 0) || !(h > 0)) return "1:1";
+  const r = w / h;
+  if (r > 1.1) return "3:2"; // 16:9, 4:3, 5:3, etc.
+  if (r < 0.9) return "2:3"; // 9:16, 3:4, etc.
+  return "1:1";
 }
 
 function buildModelInput(
@@ -85,16 +116,26 @@ function buildModelInput(
   }
 
   if (model === "openai/gpt-image-2") {
-    // gpt-image-2 wraps each image in `{ value: url }` (different from the
-    // other models) and lives on `input_images`, not `image_input`.
-    const input_images = (imageInput ?? []).map((url) => ({ value: url }));
+    // gpt-image-2 uses `input_images` (not `image_input`) and — contrary
+    // to some older sample cURLs floating around — expects a plain array
+    // of URL strings. Wrapping each URL in `{ value: url }` triggers a
+    // 422 from Replicate: `input.input_images.0: Invalid type. Expected:
+    // string, given: object`.
+    //
+    // Allowed `aspect_ratio` values on this model are a strict enum:
+    // "1:1" | "3:2" | "2:3". Any other ratio (e.g. 16:9 which blog:cover
+    // and blog:infographic lock to) returns another 422: `aspect_ratio
+    // must be one of the following: "1:1", "3:2", "2:3"`. Map the
+    // pipeline's requested ratio to the closest supported one so the
+    // user can still pick gpt-image-2 on those pipelines without hitting
+    // a validation error.
     return {
       prompt,
       quality: "high",
       background: "auto",
       moderation: "auto",
-      aspect_ratio: aspectRatio,
-      input_images,
+      aspect_ratio: mapAspectRatioForGptImage2(aspectRatio),
+      input_images: imageInput ?? [],
       output_format: "webp",
       number_of_images: 1,
       output_compression: 90,
@@ -116,8 +157,11 @@ export async function generateImage(params: GenerateImageParams): Promise<Replic
   const input = buildModelInput(model, params);
   const endpoint = `https://api.replicate.com/v1/models/${model}/predictions`;
 
-  // POST prediction with retry on transient failures
+  // POST prediction with retry on transient failures. Uses
+  // `Prefer: wait=<seconds>` so a fast prediction can come back in the
+  // POST response with status=succeeded and we skip polling entirely.
   let predictionId: string | null = null;
+  let immediateResult: ReplicateResult | null = null;
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
       const resp = await fetch(endpoint, {
@@ -125,6 +169,7 @@ export async function generateImage(params: GenerateImageParams): Promise<Replic
         headers: {
           Authorization: `Token ${token}`,
           "Content-Type": "application/json",
+          Prefer: `wait=${INITIAL_WAIT_SECONDS}`,
         },
         body: JSON.stringify({ input }),
       });
@@ -139,9 +184,25 @@ export async function generateImage(params: GenerateImageParams): Promise<Replic
         );
       }
 
-      const json = (await resp.json()) as { id?: string; error?: string };
+      const json = (await resp.json()) as {
+        id?: string;
+        status?: string;
+        output?: string | string[];
+        error?: string;
+      };
       if (json.error) throw new Error(`Replicate error: ${json.error}`);
       if (!json.id)   throw new Error("Replicate returned no prediction ID");
+      // Happy path: `Prefer: wait` held the connection until the prediction
+      // completed — no polling needed.
+      if (json.status === "succeeded") {
+        const image_url = Array.isArray(json.output) ? json.output[0] : (json.output ?? "");
+        if (!image_url) throw new Error("Replicate succeeded but output was empty");
+        immediateResult = { image_url };
+      } else if (json.status === "failed" || json.status === "canceled") {
+        throw new Error(
+          `Replicate prediction ${json.status}: ${json.error ?? "no error message"}`
+        );
+      }
       predictionId = json.id;
       break;
     } catch (err) {
@@ -150,7 +211,8 @@ export async function generateImage(params: GenerateImageParams): Promise<Replic
     }
   }
 
-  if (!predictionId) throw new Error("Failed to create Replicate prediction");
+  if (immediateResult) return immediateResult;
+  if (!predictionId)   throw new Error("Failed to create Replicate prediction");
 
   // Poll until succeeded or failed
   const deadline = Date.now() + MAX_WAIT_MS;

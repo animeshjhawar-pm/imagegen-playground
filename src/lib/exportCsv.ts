@@ -25,6 +25,31 @@ export interface CsvExportOptions {
   includeNewFlow: boolean;
 }
 
+/**
+ * Coerce a step's raw output into the value we actually want in the CSV.
+ *
+ * Most steps: return the raw output verbatim.
+ * Picker steps (`generate_page_structure` in service + category): the
+ * output is supposed to be the single selected description, but if the
+ * user hasn't clicked yet and auto-init didn't fire for some reason —
+ * or if the state is stale from before the picker redesign — the cell
+ * may still hold the raw JSON array. Pick element [0] in that case so
+ * the CSV has a meaningful value against every flow row.
+ */
+function coerceStepOutputForCsv(stepName: string, raw: string, isPicker: boolean): string {
+  if (!raw) return "";
+  if (!isPicker) return raw;
+  const trimmed = raw.trim();
+  if (!trimmed.startsWith("[")) return trimmed;
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (Array.isArray(parsed) && typeof parsed[0] === "string") {
+      return parsed[0];
+    }
+  } catch { /* ignore — fall through */ }
+  return trimmed;
+}
+
 export function buildOutputsCsv(
   clients: ClientState[],
   pipeline: PipelineDefinition,
@@ -33,6 +58,9 @@ export function buildOutputsCsv(
   const stepNames = pipeline.steps
     .map((s) => s.name)
     .filter((n) => opts.stepNames.has(n));
+  const pickerStepNames = new Set(
+    pipeline.steps.filter((s) => s.picker).map((s) => s.name)
+  );
 
   // flow_label: human-readable ("Old", "New", "New 2", …).
   const header = ["client_id", "client_name", "flow_type", "flow_label", ...stepNames];
@@ -42,14 +70,20 @@ export function buildOutputsCsv(
     if (!opts.clientIds.has(client.id)) continue;
     if (opts.includeOldFlow) {
       const cells = [client.id, client.name, "old", "Old"];
-      for (const n of stepNames) cells.push(client.oldFlow.stepStates[n]?.output ?? "");
+      for (const n of stepNames) {
+        const raw = client.oldFlow.stepStates[n]?.output ?? "";
+        cells.push(coerceStepOutputForCsv(n, raw, pickerStepNames.has(n)));
+      }
       rows.push(cells);
     }
     if (opts.includeNewFlow) {
       client.newFlows.forEach((flow, idx) => {
         const label = idx === 0 ? "New" : `New ${idx + 1}`;
         const cells = [client.id, client.name, "new", label];
-        for (const n of stepNames) cells.push(flow.stepStates[n]?.output ?? "");
+        for (const n of stepNames) {
+          const raw = flow.stepStates[n]?.output ?? "";
+          cells.push(coerceStepOutputForCsv(n, raw, pickerStepNames.has(n)));
+        }
         rows.push(cells);
       });
     }

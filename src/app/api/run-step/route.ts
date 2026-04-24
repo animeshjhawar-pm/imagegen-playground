@@ -227,10 +227,14 @@ async function runLiveStep(
         return fail(`No system prompt defined for ${stepName} (${flowType} flow)`);
       }
 
+      // Flow-specific user template falls back to the shared one.
+      const userTemplateForFlow =
+        (flowType === "new" ? stepDef.userPromptTemplateNew : stepDef.userPromptTemplateOld) ??
+        stepDef.userPromptTemplate;
       const userPrompt =
         userPromptOverride ??
-        (stepDef.userPromptTemplate
-          ? interpolate(stepDef.userPromptTemplate, vars)
+        (userTemplateForFlow
+          ? interpolate(userTemplateForFlow, vars)
           : Object.entries(effectiveInputs)
               .map(([k, v]) => `${k}:\n${v}`)
               .join("\n\n"));

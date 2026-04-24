@@ -1,13 +1,48 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { ImportedClientSeed } from "@/state/playgroundReducer";
-import { CLIENT_SAMPLES, getClientSampleBySlug } from "@/config/client-samples";
+import { CLIENT_SAMPLES, getClientSampleBySlug, type ClientSample } from "@/config/client-samples";
+import type { PageType } from "@/config/pipelines";
 
 interface ImportClientDialogProps {
   isOpen: boolean;
   onCancel: () => void;
   onImport: (seeds: ImportedClientSeed[]) => void;
+  /**
+   * Optional escape hatch: when provided, renders an explicit
+   * "+ Add Blank Row" button so the user can bail out of importing
+   * preset/CSV data and just scaffold an empty client instead. Parent
+   * is responsible for dispatching ADD_CLIENT and closing the dialog.
+   */
+  onAddBlank?: () => void;
+  /**
+   * Current page type. Used on the Presets tab to flag clients whose
+   * data doesn't cover this pipeline (e.g. no service page for service
+   * pipelines). Passed as null before the user picks a page type.
+   */
+  pageType?: PageType | null;
+}
+
+/**
+ * Does this preset client have DB-fetched data for the given page type?
+ *   blog     → always applicable (every preset has a homepage + logos,
+ *              which is enough for every blog flow).
+ *   service  → needs at least one entry in serviceImageDescriptions.
+ *   category → needs at least one entry in categoryImageDescriptions.
+ *   null     → always applicable (no page type selected yet).
+ */
+function isSampleApplicable(sample: ClientSample, pageType: PageType | null | undefined): boolean {
+  if (!pageType || pageType === "blog") return true;
+  if (pageType === "service")  return sample.serviceImageDescriptions.length > 0;
+  if (pageType === "category") return sample.categoryImageDescriptions.length > 0;
+  return true;
+}
+
+function inapplicableReason(pageType: PageType | null | undefined): string {
+  if (pageType === "service")  return "No service page available";
+  if (pageType === "category") return "No category page available";
+  return "Not applicable";
 }
 
 type Tab = "single" | "csv" | "presets";
@@ -143,8 +178,10 @@ function csvToSeeds(text: string): { seeds: ImportedClientSeed[]; errors: string
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
-export function ImportClientDialog({ isOpen, onCancel, onImport }: ImportClientDialogProps) {
-  const [tab, setTab] = useState<Tab>("single");
+export function ImportClientDialog({
+  isOpen, onCancel, onImport, onAddBlank, pageType = null,
+}: ImportClientDialogProps) {
+  const [tab, setTab] = useState<Tab>("presets");
 
   // Single-client form
   const [name, setName]                       = useState("");
@@ -177,10 +214,20 @@ export function ImportClientDialog({ isOpen, onCancel, onImport }: ImportClientD
     setAdvanced({});
     setCsvFilename(""); setCsvSeeds([]); setCsvErrors([]);
     setSelectedPresetSlugs(new Set());
-    setTab("single");
+    setTab("presets");
   }
 
+  // Which preset slugs have data for the currently-selected page type.
+  // Computed once per render; cheap (14 samples).
+  const applicableSlugs = useMemo(
+    () => new Set(
+      CLIENT_SAMPLES.filter((s) => isSampleApplicable(s, pageType)).map((s) => s.slug),
+    ),
+    [pageType],
+  );
+
   function togglePreset(slug: string) {
+    if (!applicableSlugs.has(slug)) return; // can't pick inapplicable samples
     setSelectedPresetSlugs((prev) => {
       const next = new Set(prev);
       if (next.has(slug)) next.delete(slug); else next.add(slug);
@@ -205,14 +252,27 @@ export function ImportClientDialog({ isOpen, onCancel, onImport }: ImportClientD
         sample.sampleBlogTopic ||
         "";
       const context: Record<string, string> = {
-        client_homepage_url:      sample.url,
-        company_logo_url:         sample.primaryLogoUrl,
-        business_context:         businessContext,
-        design_tokens_json:       sample.designTokensJson,
-        company_info_json:        sample.companyInfoJson,
-        paa_data_json:            sample.paaDataJson,
-        service_catalog_json:     sample.serviceCatalogJson,
-        product_information_json: sample.productInformationJson,
+        client_homepage_url:              sample.url,
+        company_logo_url:                 sample.primaryLogoUrl,
+        business_context:                 businessContext,
+        design_tokens_json:               sample.designTokensJson,
+        company_info_json:                sample.companyInfoJson,
+        paa_data_json:                    sample.paaDataJson,
+        service_catalog_json:             sample.serviceCatalogJson,
+        product_information_json:         sample.productInformationJson,
+        // Topic options arrays are JSON-stringified so they flow through
+        // the Record<string, string> context shape. The Choose Image
+        // Description picker parses them back.
+        new_flow_service_topic_options:     JSON.stringify(sample.serviceImageDescriptions),
+        new_flow_category_topic_options:    JSON.stringify(sample.categoryImageDescriptions),
+        // Blog per-image-type options. The cover/thumbnail fallback
+        // context field stays empty — their pickers rely on the free-text
+        // area alone.
+        new_flow_blog_topic_options:         JSON.stringify(sample.blogTopicOptions),
+        new_flow_blog_infographic_options:   JSON.stringify(sample.blogImageDescriptionOptions.infographic),
+        new_flow_blog_internal_options:      JSON.stringify(sample.blogImageDescriptionOptions.internal),
+        new_flow_blog_external_options:      JSON.stringify(sample.blogImageDescriptionOptions.external),
+        new_flow_blog_generic_options:       JSON.stringify(sample.blogImageDescriptionOptions.generic),
       };
       seeds.push({ name: sample.name, context });
     }
@@ -319,12 +379,23 @@ export function ImportClientDialog({ isOpen, onCancel, onImport }: ImportClientD
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <p className="text-xs text-neutral-400">
-                  Pick one or more of the 10 real prod clients. Each becomes its own client row, pre-filled with design tokens, company info, service catalog, PAA, and products.
+                  Pick one or more of the preset clients. Each becomes its own client row, pre-filled with design tokens, company info, service catalog, PAA, and products.
+                  {pageType && pageType !== "blog" && (
+                    <>
+                      {" "}Greyed-out rows don&rsquo;t have a published {pageType} page on
+                      record, so they can&rsquo;t seed this pipeline.
+                    </>
+                  )}
                 </p>
                 <div className="flex items-center gap-2 shrink-0 ml-3">
                   <button
-                    onClick={() => setSelectedPresetSlugs(new Set(CLIENT_SAMPLES.map((s) => s.slug)))}
+                    onClick={() => setSelectedPresetSlugs(new Set(applicableSlugs))}
                     className="text-[11px] text-violet-300 hover:text-violet-200"
+                    title={
+                      pageType && pageType !== "blog"
+                        ? `Select all applicable clients for ${pageType} pipelines`
+                        : "Select every preset client"
+                    }
                   >
                     Select all
                   </button>
@@ -342,17 +413,34 @@ export function ImportClientDialog({ isOpen, onCancel, onImport }: ImportClientD
                 <ul className="divide-y divide-neutral-800/70">
                   {CLIENT_SAMPLES.map((s) => {
                     const checked = selectedPresetSlugs.has(s.slug);
+                    const applicable = applicableSlugs.has(s.slug);
                     return (
                       <li key={s.slug}>
-                        <label className="flex items-start gap-3 px-3 py-2 cursor-pointer hover:bg-neutral-900/60 transition-colors">
+                        <label
+                          className={`flex items-start gap-3 px-3 py-2 transition-colors ${
+                            applicable
+                              ? "cursor-pointer hover:bg-neutral-900/60"
+                              : "cursor-not-allowed opacity-50"
+                          }`}
+                          title={applicable ? undefined : inapplicableReason(pageType)}
+                        >
                           <input
                             type="checkbox"
                             checked={checked}
+                            disabled={!applicable}
                             onChange={() => togglePreset(s.slug)}
-                            className="mt-[2px] accent-violet-500"
+                            className="mt-[2px] accent-violet-500 disabled:cursor-not-allowed"
                           />
                           <div className="flex-1 min-w-0">
-                            <div className="text-xs text-neutral-200 truncate">{s.name}</div>
+                            <div className="text-xs text-neutral-200 truncate flex items-center gap-2">
+                              <span className="truncate">{s.name}</span>
+                              {!applicable && (
+                                <span className="text-[9px] uppercase tracking-wider font-semibold
+                                  px-1 py-0.5 rounded bg-neutral-800 text-neutral-500 flex-shrink-0">
+                                  {inapplicableReason(pageType)}
+                                </span>
+                              )}
+                            </div>
                             <div className="text-[10px] text-neutral-500 font-mono truncate">{s.url}</div>
                           </div>
                         </label>
@@ -363,8 +451,11 @@ export function ImportClientDialog({ isOpen, onCancel, onImport }: ImportClientD
               </div>
 
               <p className="text-[11px] text-neutral-500">
-                {selectedPresetSlugs.size} of {CLIENT_SAMPLES.length} selected.
-                Step 1 (Firecrawl scrape) will run for each when you click “Run All”.
+                {selectedPresetSlugs.size} of {CLIENT_SAMPLES.length} selected
+                {pageType && pageType !== "blog" && (
+                  <> &middot; {applicableSlugs.size} applicable for {pageType} pipelines</>
+                )}
+                . Step 1 (Firecrawl scrape) will run for each when you click &ldquo;Run All&rdquo;.
               </p>
             </div>
           ) : tab === "single" ? (
@@ -606,6 +697,21 @@ export function ImportClientDialog({ isOpen, onCancel, onImport }: ImportClientD
 
         {/* Footer */}
         <div className="px-5 py-3 border-t border-neutral-800 flex items-center gap-2 flex-shrink-0">
+          {/* Escape hatch — skip importing entirely and scaffold a blank
+           *  client instead. Only surfaced when the parent passed
+           *  `onAddBlank`; the top-bar does, so blank-row stays one click
+           *  away even after the dialog auto-opens. */}
+          {onAddBlank && (
+            <button
+              onClick={onAddBlank}
+              title="Skip the import and add an empty client row to fill in manually"
+              className="px-3 py-1.5 text-sm rounded border border-dashed border-neutral-700
+                bg-neutral-900 text-neutral-400 hover:text-neutral-200 hover:border-neutral-500
+                transition-colors"
+            >
+              + Add Blank Row
+            </button>
+          )}
           <div className="flex-1" />
           <button
             onClick={handleCancel}

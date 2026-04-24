@@ -35,6 +35,49 @@ export interface ClientSample {
   sampleServiceTopic: string;
   sampleCategoryTopic: string;
   sampleBlogTopic: string;
+  /**
+   * Ordered list of service-page image descriptions sourced from the
+   * project's PUBLISHED service clusters at `page_info.images[].description`
+   * (most recent cluster first, deduped, capped at 5). The Choose Image
+   * Description picker in the service pipeline shows these as selectable
+   * options; the first is pre-selected as the default for Build Image
+   * Prompt. Empty array → disabled service row.
+   */
+  serviceImageDescriptions: string[];
+  /**
+   * Same shape as serviceImageDescriptions, but for category pages.
+   * Query: `page_info.industries[].images[].description` where
+   * `image_id LIKE 'generated-images/%'`. Capped at 5. Empty array
+   * currently for all presets (no preset project has the industries
+   * structure populated).
+   */
+  categoryImageDescriptions: string[];
+  /**
+   * Per-image-type picker options for the blog Choose Image Description
+   * step. One array per blog image type — infographic, internal,
+   * external, generic. The picker in each blog:<type> pipeline reads
+   * only the matching slice, so clients whose CSV data only covers some
+   * types just show fewer cards (and the free-text fallback still works).
+   *
+   * Cover + thumbnail pipelines read `blogTopicOptions` instead (the
+   * blog-post topic itself is the prompt seed there, not an image
+   * description).
+   */
+  blogImageDescriptionOptions: {
+    infographic: string[];
+    internal: string[];
+    external: string[];
+    generic: string[];
+  };
+  /**
+   * Blog post topics pulled from `clusters.topic` where `page_type =
+   * 'blog'`. 5 per client, deduped, most-recent-first. Used as picker
+   * options for the blog:cover and blog:thumbnail Step 3 (where the
+   * blog topic itself drives the cover/thumbnail template). Both
+   * pipelines also expose a free-text area so users can type a custom
+   * topic if none of the options fit.
+   */
+  blogTopicOptions: string[];
 }
 
 const CLIENT_ALLCARE_MEDICAL_TRANSPORT: ClientSample = {
@@ -317,6 +360,43 @@ const CLIENT_ALLCARE_MEDICAL_TRANSPORT: ClientSample = {
   paaDataJson: `[
   "What is the most requested support service for the elderly?"
 ]`,
+  serviceImageDescriptions: [
+    `Caring medical transport specialist helping elderly person in wheelchair into accessible van, bright natural lighting, professional healthcare setting`,
+    `Caring medical transport driver helping senior citizen board wheelchair-accessible van with safety equipment visible`,
+    `Caring medical transport specialist helping elderly senior citizen into accessible vehicle with wheelchair lift in sunny Florida setting`,
+    `Modern wheelchair-accessible van with hydraulic lift extended, medical transport specialist assisting elderly patient in wheelchair, clean professional vehicle exterior`,
+    `Medical transport vehicle with wheelchair accessibility lift, caring driver assisting elderly patient, modern healthcare van`,
+  ],
+  categoryImageDescriptions: [],
+  blogImageDescriptionOptions: {
+    infographic: [
+      `Comparison infographic displaying four patient transport modes as vertical columns or horizontal tiles. Column 1: Ground NEMT (ambulance van icon) — stable patients, cost-effective, wheelchair/stretcher. Column 2: Air Ambulance (aircraft icon) — critical condition, advanced life support, highest cost. Column 3: Commercial Flight with Medical Escort (seat/nurse icon) — stable, mobile patients, moderate cost. Column 4: Commercial Stretcher Transport (stretcher-on-plane icon) — cannot sit upright, mid-range cost. Include a "Best For" and "Cost Level" row under each. Use blue and teal color scheme with clean icons.`,
+      `Cascade/flow infographic illustrating how transportation barriers lead to compounding health outcomes for seniors. Vertical layout with a central downward arrow. Top node: "No Reliable Transportation." Five branching consequences below: Missed Medical Appointments, Delayed Medication Refills, Skipped Preventive Screenings, Escalated Emergency Situations, and Social Isolation → Depression. Include warning icons for each node. Use orange-to-red color gradient to convey increasing severity. Add a stat callout: "30% higher mortality risk for seniors 65–79."`,
+      `Comparison infographic showing three non-emergency medical transport types in a horizontal three-column layout. Left column: Ambulatory (walking figure icon) — for mobile patients post-anesthesia or on impairing medications. Center column: Wheelchair Transport (wheelchair icon) — for non-ambulatory patients who can sit upright, requires lift-equipped vehicle. Right column: Stretcher Transport (stretcher icon) — for patients who must remain flat, requires two-person trained team. Use blue, teal, and navy color scheme. Include one-line patient criteria under each column header.`,
+      `Data infographic summarizing four key senior NEMT statistics. Two-row, two-column grid layout. Top-left tile: "$18.93B NEMT market by 2031" with upward trend arrow icon. Top-right tile: "3.6M Americans miss appointments yearly" with calendar/warning icon. Bottom-left tile: "$150B annual healthcare cost from missed visits" with dollar icon. Bottom-right tile: "3–4M Medicaid beneficiaries use NEMT annually" with shield icon. Use blue and teal color scheme with bold numbers and brief one-line context beneath each stat.`,
+      `Process flow infographic showing 5 sequential stages of a stretcher transport trip. Horizontal layout left to right: Stage 1 - Booking and Intake (phone/clipboard icon), Stage 2 - Arrival and Assessment (checklist icon), Stage 3 - Safe Transfer and Loading (stretcher icon), Stage 4 - In-Transit Monitoring (heart monitor icon), Stage 5 - Arrival and Delivery (destination/building icon). Connect stages with arrows. Use a clean blue and teal color scheme. Include a one-line descriptor beneath each stage name.`,
+    ],
+    internal: [
+      `Photo or image representing AllCare Medical Transport serving the Flagler County and Palm Coast community. Should convey professional, compassionate senior transport in a local Florida setting. May show a transport vehicle, a staff member assisting an elderly patient, or the local service area context.`,
+      `Photo or image of a Non-Emergency Medical Transport vehicle with a trained staff member assisting a senior patient. Should show an accessible van with ramp deployed and a staff member in uniform helping with boarding or wheelchair securement. Conveys professionalism and patient safety.`,
+      `Photo or image representing AllCare Medical Transport's NEMT service. Should show a wheelchair-accessible transport vehicle with certified personnel assisting a wheelchair user. Should convey professional, medically equipped transport in a Florida service area context.`,
+      `Photo or image of a PASS-certified NEMT staff member assisting a wheelchair patient safely into a wheelchair-accessible transport vehicle. Should convey professionalism, patient safety, and proper transfer technique. Shows vehicle with accessibility ramp or lift deployed in an outdoor or facility setting.`,
+      `Photo or image representing AllCare Medical Transport's NEMT vehicle fleet. Should show a wheelchair-accessible or stretcher-capable transport vehicle, conveying professional medical transport service. Can include a staff member assisting a passenger. Should reflect a Florida-based, professional NEMT operation.`,
+    ],
+    external: [
+      `Photo or illustration of trained medical transport staff assisting a patient on a stretcher into a non-emergency medical transport vehicle. Should convey a calm, professional care environment with visible safety equipment and attendants in uniform.`,
+      `Image of a Ford Transit full-size van configured for wheelchair-accessible or commercial medical transport use. Should show the van's exterior with a ramp or lift system visible, conveying a professional NEMT or paratransit fleet context. Modern, clean vehicle in a commercial setting.`,
+      `Image of mail-order pharmacy home delivery packaging, showing prescription medication boxes or bottles delivered to a residential doorstep or mailbox. Should convey convenience of home delivery for maintenance medications. Clean, bright setting suggesting accessibility and ease of use.`,
+    ],
+    generic: [],
+  },
+  blogTopicOptions: [
+    `Wheelchair Requirements for Bus Transportation: Complete Guide`,
+    `Transport Chair vs Wheelchair: Key Differences & When to Use Each`,
+    `How to Transport a Patient on a Stretcher: Complete Guide`,
+    `Senior NEMT Services: Growing Demand Post-Pandemic`,
+    `What Is Stretcher Transport and How Does It Work?`,
+  ],
 };
 
 const CLIENT_EVOK_POLYMERS: ClientSample = {
@@ -705,6 +785,48 @@ const CLIENT_EVOK_POLYMERS: ClientSample = {
   "How big can injection molded parts be?",
   "How much does it cost to injection mold a part?"
 ]`,
+  serviceImageDescriptions: [
+    `High-precision CNC machined metal prototype component with detailed surface finish being measured with digital calipers in professional manufacturing facility`,
+    `Close-up of a high-quality overmolded plastic part with soft rubber grip material bonded seamlessly over rigid plastic substrate, showing professional manufacturing quality and precision molding`,
+    `Industrial injection molding manufacturing floor with automated machinery, quality control stations, and engineers inspecting plastic components`,
+    `Industrial injection molding machine with ABS plastic pellets, producing high-quality custom molded parts in a modern manufacturing facility`,
+    `High-quality nylon injection molded components, PA6 and PA66 parts, engineering plastic parts on white background, professional product photography`,
+  ],
+  categoryImageDescriptions: [],
+  blogImageDescriptionOptions: {
+    infographic: [
+      `Comparison infographic with two vertical columns. Left column titled "Toolroom / Toolmakers" with 4-5 key responsibilities: CNC programming, EDM machining, cavity repair, blueprint reading, tolerances in tenths of thousandths. Right column titled "Press Room / Operators" with 4-5 responsibilities: mold setup parameters, cycle monitoring, in-process quality checks, defect identification, ejection force tracking. Use wrench/gear icon for toolroom, press machine icon for operators. Include a two-way arrow labeled "Communication" connecting the columns at the bottom. Blue and orange color scheme.`,
+      `Process flow infographic showing 5 phases of injection molding timeline. Horizontal layout from left to right: Phase 1 - RFQ & Design Review (document with checkmark icon, 1-2 weeks), Phase 2 - Material Procurement (steel blocks icon, 1-3 weeks), Phase 3 - Machining & Assembly (CNC machine icon, 4-12+ weeks), Phase 4 - Sampling & Qualification (test tubes icon, 2-6 weeks), Phase 5 - Production Ramp-Up (factory icon, 2-4 weeks). Connect phases with arrows. Use blue gradient color scheme. Include week ranges under each phase name. Highlight Phase 3 as longest segment with slightly larger size or bold border.`,
+      `Comparison infographic displaying two columns side-by-side comparing ABS and Polycarbonate. Left column titled "ABS" with key properties: Cost ($2-3/kg with dollar icon), Processing Temp (200-250°C with thermometer icon), Surface Finish (excellent gloss with star icon), Heat Resistance (97°C with flame icon), Impact Strength (200-320 J/m with shield icon). Right column titled "Polycarbonate" with same categories showing higher values. Use blue color scheme for ABS column, green for PC column. Add checkmark or trophy icon to indicate winner for each property. Include brief one-line summary at bottom of each column.`,
+      `Comparison infographic displaying SPI mold classifications as five horizontal rows. Each row shows: Class number (101-105), expected cycle life range, key construction features (2-3 bullet points), and typical applications. Left column shows class designation, middle section lists specifications, right column shows cycle count with visual bar graph representation. Use gradient from dark blue (Class 101) to light blue (Class 105) to indicate decreasing durability. Include small icons: wrench for construction features, target for cycle life, factory for applications.`,
+      `Pie chart or segmented bar infographic titled "The 6 Most Common Injection Molding Defects (91% of All Issues)." Show six segments with percentages: Flash 35% (red), Sink Marks 25% (orange), Short Shots 18% (yellow), Warpage 12% (blue), Weld Lines 8% (purple), Other Defects 3% (gray). Include a small icon representing each defect type. Use a clean, high-contrast color scheme with labels showing defect name, percentage, and a one-line cause description per segment.`,
+    ],
+    internal: [
+      `Screenshot of EVOK's Autodesk Moldflow analysis interface showing mold filling simulation with fill time distribution across part geometry. Should display color-coded heat map indicating flow patterns and potential problem areas during injection molding process.`,
+      `Photo or image representing Evok Polymers' scientific molding and process development work. Could show an engineer or technician reviewing process data, working at an injection molding press, or examining precision-molded plastic components. Should convey technical expertise and a data-driven production environment.`,
+      `Screenshot or photo showing Evok's DFM collaboration process with engineering team reviewing part designs and mold flow analysis on computer screens. Should convey early-stage design optimization consultation with visible technical drawings or simulation results.`,
+      `Photo or illustration showing Evok's design optimization process with CAD engineering workstation. Should display engineer reviewing 3D CAD models on screen with prototype parts visible on desk, demonstrating iterative design refinement workflow for low-volume manufacturing projects.`,
+      `Screenshot or photo showcasing EVOK Polymers' Polyestimator tool interface or engineering workspace. Should display CAD analysis, material selection options, or cost breakdown features that demonstrate their proprietary optimization technology and transparent pricing approach.`,
+    ],
+    external: [
+      `Image of a cavity pressure monitoring system interface or display screen showing real-time pressure curves and process signatures from an injection molding operation. Should convey active data monitoring environment with waveform graphs or pressure readings visible. Industrial molding context preferred.`,
+      `Image showing CNC machining operation on injection mold tooling with visible steel mold base being precision machined. Should display industrial manufacturing environment with cutting tools, coolant system, and partially completed mold components.`,
+      `Image showing various ABS injection molded parts demonstrating different applications and finishes. Should include consumer electronics housings, automotive interior components, and appliance parts with visible glossy surface finishes in different colors.`,
+      `Image of an industrial chemical processing or aerospace facility showing fluid handling components such as valves, fittings, or piping systems. Should convey a high-temperature or corrosive-media environment where specialty polymer parts are in active use.`,
+      `Image showing high-performance plastic injection molded parts in demanding applications. Should display medical device components, aerospace brackets, or industrial parts made from specialty plastics like PEEK or PEI. Parts should appear precision-engineered with clean surfaces.`,
+    ],
+    generic: [
+      `Illustration of a product engineering team and molding partner collaborating around a table with part designs and a laptop displaying a mold flow analysis simulation. Show 3–4 professionals in a modern industrial office setting, engaged in discussion over printed technical drawings and a screen with simulation data. Clean, professional atmosphere with neutral tones. One person points to a highlighted section on the screen. Style: modern flat illustration with realistic proportions. Background shows a manufacturing floor visible through glass partition.`,
+      `Close-up illustration of a lightweight injection-molded PEEK structural bracket component in an aerospace assembly context. Show a dark gray polymer bracket with ribbed geometry mounted to a metal frame, with visible carbon-fiber texture suggesting reinforced PEEK material. Background suggests an aircraft interior panel or structural bay. Style: clean, technical product illustration with soft directional lighting emphasizing the material surface texture and part geometry. No people. Neutral industrial color palette.`,
+    ],
+  },
+  blogTopicOptions: [
+    `Top ASA 3D Printing Services for Rapid Prototyping in 2025`,
+    `Flash Defects in Injection Molding: Causes Diagnosis and Prevention`,
+    `12+ Best Injection Molding Companies with Competitive Pricing in 2025`,
+    `ABS vs Polypropylene vs Nylon: Ultimate Material Comparison for Injection Molding`,
+    `Is PEEK as Strong as Steel? Strength Properties and When to Use It`,
+  ],
 };
 
 const CLIENT_MOREX_RIBBON: ClientSample = {
@@ -2144,6 +2266,45 @@ const CLIENT_MOREX_RIBBON: ClientSample = {
   paaDataJson: `[
   "Where can I buy high-quality Christmas ribbon from U.S. manufacturers?"
 ]`,
+  serviceImageDescriptions: [],
+  categoryImageDescriptions: [
+    `Lace ribbon trim applied to a white bridal gown sash and prom dress neckline in a bridal boutique`,
+    `Craft table with lace ribbon spools, scissors, scrapbook pages, and hairbow supplies arranged for DIY projects`,
+    `Lace ribbon wrapped around a floral bouquet and tied on a gift box in a floral shop setting`,
+    `Baby shower table decorated with lace ribbon accents on balloons, centerpieces, and gift wrapping displays`,
+    `White satin ribbon tied around bridal bouquet with flowers on a wedding decoration table setting.`,
+  ],
+  blogImageDescriptionOptions: {
+    infographic: [
+      `Data infographic presenting three key US craft and hobby market statistics. Vertical card layout with three distinct panels: Panel 1 - Online craft supplies sales $24.9B in 2025 (upward arrow to $25.3B in 2026), Panel 2 - Brick-and-mortar fabric/craft stores $5.1B in 2025 (upward arrow to $5.2B in 2026), Panel 3 - 26% of US respondents name DIY/arts & crafts as a primary hobby. Use bold numbers, dollar-sign and percentage icons, and a blue and green color scheme with subtle upward trend indicators.`,
+      `Compliance flow infographic showing how Oeko-Tex Standard 100 certification connects ribbon suppliers to major US retailers. Vertical or horizontal chain layout with 3 nodes: Node 1 - Ribbon Supplier (factory/spool icon, "Oeko-Tex Certified"), Node 2 - Gift Packaging Company (box/bow icon, "Compliant Materials"), Node 3 - Major Retailers (store icon, showing Target and Amazon logos as examples). Connect nodes with arrows. Add brief descriptor under each node. Use blue and green color scheme with certification badge graphic.`,
+      `Comparison infographic showing tulle yardage requirements for three wreath form sizes. Vertical layout with three columns: 12-inch form (25–33 yards / 1.5–2 rolls), 14-inch form (35–50 yards / 2–3 rolls), 18-inch form (50+ yards / 3–4+ rolls). Each column includes a simple wreath icon scaled to relative size. Use a warm neutral and teal color scheme. Label each column with form size at top, yardage in the middle, and roll count at the bottom.`,
+      `Data visualization infographic presenting key floral and ribbon industry statistics. Three highlighted stat blocks arranged horizontally: Block 1 - "$7.9 Billion" US floral industry value in 2026 (flower icon), Block 2 - "11,744" US retail florist shops (storefront icon), Block 3 - "$31.31 Billion" global gift wrapping market by 2030 with "38.5% North America share" callout (globe/ribbon icon). Use green and gold color scheme. Clean, modern layout with bold numbers and supporting label text beneath each stat.`,
+      `Comparison infographic displaying six common wholesale ribbon types in a grid or tile layout. Each tile includes: ribbon type name (Grosgrain, Satin, Sheer/Organza, Wired Edge, Velvet, Glitter/Specialty), a representative icon or texture swatch, and a one-line primary use case (e.g., "Floral & hairbows," "Gift wrapping & bridal," "Craft & décor"). Use a neutral cream and ribbon-tone color palette. Include a brief caption noting demand drivers: floral, gift packaging, craft retail.`,
+    ],
+    internal: [
+      `Photo or display image of Morex Ribbon's product lineup showing a selection of ribbon styles including grosgrain, satin, sheer, and specialty options across multiple colors and widths. Should convey the breadth of the wholesale collection and premium presentation quality.`,
+      `Photo or catalog spread showcasing Morex Ribbon's product range, including grosgrain, satin, wired, velvet, and specialty ribbon styles across multiple colors and widths. Should convey breadth of selection and premium quality finish. Can show ribbon spools, retail display packaging, or catalog layout.`,
+      `Product image showing a curated assortment of premium ribbon materials including silk, crushed velvet, and linen options in neutral and rich tones. Should convey tactile luxury and high-end material quality suitable for VIP gifting and upscale hotel amenity packaging.`,
+      `Photo or display image of Morex Ribbon's raffia ribbon product line showing multiple color spools or retail packaging. Should convey the breadth of the color range and packaging formats available for wholesale buyers.`,
+      `Product display or catalog shot of Morex Ribbon's ribbon collection, showing a variety of ribbon styles including grosgrain, satin, sheer, and specialty printed options. Should convey the breadth of the product range across multiple widths and colors, ideally in a retail or wholesale presentation format.`,
+    ],
+    external: [
+      `Image of a large-scale ribbon or textile manufacturing facility showing production spools, automated weaving or finishing equipment, and an organized warehouse environment. Should convey industrial-scale output capacity suitable for global hotel chain supply requirements.`,
+      `Photo of decorative patriotic ribbon spools displayed together, showing wired edge and grosgrain styles in classic red, white, and blue colorways. Should convey a wholesale or retail ribbon product setting with multiple spool sizes visible. General product imagery suitable for a manufacturing or distribution context.`,
+      `Image showing an assortment of raffia ribbon spools in various colors and finishes — including matte, pearlized, and natural varieties — arranged together. Should convey product variety typical of a packaging supply company offering paper, synthetic, and natural raffia options.`,
+      `Image of custom-printed or eco-friendly packaging ribbons on wholesale spools, representing sustainable ribbon product lines used in gift packaging and retail settings. Should show ribbon rolls or spools in a warehouse or packaging context.`,
+      `Image of a wholesale ribbon showroom or trade show display featuring a wide variety of ribbon styles — velvet, satin, grosgrain, and wired — arranged on racks or shelves. Should convey the scale of a large-catalog supplier environment with holiday and seasonal ribbon options prominently featured.`,
+    ],
+    generic: [],
+  },
+  blogTopicOptions: [
+    `How to Make a Tulle Bow for Gifts: Step-by-Step Guide`,
+    `Top 10 Christmas Ribbon Manufacturers in the US`,
+    `Top 10 Lace Ribbon Manufacturers in the US`,
+    `Top 10 Burlap Ribbon Manufacturers in the US`,
+    `Top 10 Glitter Ribbon Manufacturers in the US`,
+  ],
 };
 
 const CLIENT_PERFECT_IMPRINTS: ClientSample = {
@@ -3548,6 +3709,44 @@ const CLIENT_PERFECT_IMPRINTS: ClientSample = {
   paaDataJson: `[
   "What are the 5 C's of event planning?"
 ]`,
+  serviceImageDescriptions: [],
+  categoryImageDescriptions: [
+    `College campus quad with students wearing branded university T-shirts and carrying custom logo tote bags at an orientation fair.`,
+    `Custom branded medical scrubs, first aid kits, and promotional wellness items displayed in a hospital or clinic setting`,
+    `Branded corporate promotional items including engraved tumblers, logo tote bags, and custom apparel on an office desk`,
+    `Custom trade show booth with retractable banners, branded tote bags, and promotional giveaway items on a display table at a convention center`,
+    `University recruitment fair booth with custom retractable banners, branded tote bags, and a table cover with school logo.`,
+  ],
+  blogImageDescriptionOptions: {
+    infographic: [
+      `Infographic showing three vertical columns representing key t-shirt screen printing quality factors. Column 1 - Fiber Type (yarn icon): Ring-spun cotton vs. open-end cotton vs. poly-blend, with brief note on ink adhesion for each. Column 2 - Fabric Weight (scale icon): Lightweight 3-5 oz, Midweight 5-6 oz, Heavyweight 6+ oz, with one-line print impact descriptor per tier. Column 3 - Construction (stitching icon): Side-seamed vs. tubular, pre-shrunk vs. untreated. Use blue and gold color scheme. Connect columns with thin horizontal divider.`,
+      `Two-sided benefit infographic illustrating the dual purpose of branded wellness gifts. Split layout with two columns: Left column titled "Employee Benefit" with 3 points — Feels valued as a person, Builds trust in employer, Reinforces healthy daily habits (icons: heart, handshake, checkmark). Right column titled "Business Benefit" with 3 points — Positive brand association, Strengthens internal culture, Increases retention and loyalty (icons: brand tag, building, upward arrow). Use a warm blue and green color scheme with a center dividing graphic of a branded product (water bottle or yoga mat).`,
+      `Data-driven infographic presenting three key consumer statistics about promotional products. Use a clean three-panel horizontal layout: Panel 1 - "65% Keep Promo Products 6+ Months" (calendar/clock icon), Panel 2 - "68% Cite Quality Materials as the Reason" (star/quality badge icon), Panel 3 - "62% Discard Items Due to Poor Quality" (trash icon with downward arrow). Use a blue-green color scheme for positive stats and muted red for the negative stat. Include large percentage numbers as focal points with brief supporting labels beneath each panel.`,
+      `Comparison infographic covering four key beach chair comfort factors. Use a 2x2 grid layout. Top-left: Seat Height (8"–14" range illustrated with side-profile icon), Top-right: Reclining Positions (arc diagram showing 5 positions from upright to flat), Bottom-left: Fabric Types (mesh vs. polyester breathability comparison with heat/sweat icons), Bottom-right: Armrest Materials (wood vs. metal with sun/temperature icons). Use a blue and sandy-beige color scheme with simple icons per cell.`,
+      `Data comparison infographic visualizing three key dwell time statistics. Vertical bar or card layout with three panels: Panel 1 - "Each Additional Minute" showing +23% lead quality increase (clock icon), Panel 2 - "4+ Minute Sessions" showing 28% vs 5% conversion rate comparison (hourglass icon), Panel 3 - "3+ Booth Elements Engaged" showing 68% higher conversion rate (cursor/touchpoint icon). Use blue and green color scheme with bold percentage callouts. Add brief explanatory label under each stat.`,
+    ],
+    internal: [
+      `Photo or composite image showcasing a range of branded corporate gift products offered by Perfect Imprints, such as custom drinkware, apparel, tech accessories, and branded office supplies. Should convey product variety and professional branding quality across multiple categories.`,
+      `Photo or product display image showing a variety of branded promotional items offered by Perfect Imprints, including apparel, drinkware, bags, and tech accessories. Should convey the breadth of product categories and decoration quality available. Display items together in a styled, professional arrangement.`,
+      `Photo or product display of custom-branded insulated drinkware options from Perfect Imprints, showing a selection of vacuum-insulated tumblers with laser engraving and logo imprinting. Should convey quality, variety of colors, and branded presentation suitable for corporate gifting.`,
+      `Photo or display of Perfect Imprints' custom merchandise catalog showing a variety of branded products including apparel, drinkware, bags, and tech accessories. Should convey the breadth of product options available to nonprofit clients.`,
+    ],
+    external: [
+      `Photo showing Comfort Colors garment-dyed t-shirts displayed in an assortment of earth tone and muted colors. Should convey the vintage, worn-in aesthetic and heavyweight fabric quality. Folded or flat-lay presentation showing color variety works well.`,
+      `Photo of an open branded wellness journal showing guided prompts for gratitude, goal-setting, or mood tracking. Should be displayed on a clean desk surface alongside a pen and perhaps a coffee mug. Conveys a calm, intentional workspace atmosphere suitable for a corporate wellness context.`,
+      `Image of a commercial multi-needle embroidery machine actively stitching a logo design onto a polo shirt or structured fabric item. Should show the needle mechanism, hoop, and visible embroidered branding in progress. Industrial or semi-commercial setting preferred to convey professional output quality.`,
+      `Photo or product image of an ultra-lightweight folding beach chair packed into its compact carry case, placed on or near sandy beach. Should convey the minimal packed size relative to a standard chair or everyday bag for size comparison purposes.`,
+      `Image showing a selection of premium stainless steel insulated travel mugs and tumblers displayed together. Should convey quality corporate drinkware options suitable for branded giveaways. Clean product photography style on neutral background.`,
+    ],
+    generic: [],
+  },
+  blogTopicOptions: [
+    `Event Planning for Bulk Orders: Q1 2026 Guide`,
+    `Custom Branded Merchandise Ordering Guide: Complete Guide`,
+    `How Promotional Products Support Employee Wellness Programs`,
+    `Screen Printing on Promotional Products: Complete Guide`,
+    `Best Eco-Friendly Corporate Gifts for Client Appreciation`,
+  ],
 };
 
 const CLIENT_POWELL_SYSTEMS_INC: ClientSample = {
@@ -4465,6 +4664,39 @@ const CLIENT_POWELL_SYSTEMS_INC: ClientSample = {
   "How much is a 40 ft container to buy?",
   "How much does a 20 ft shipping container cost to buy?"
 ]`,
+  serviceImageDescriptions: [],
+  categoryImageDescriptions: [
+    `Heavy-duty corrugated steel containers holding automotive parts and stampings in a modern automotive assembly plant with forklifts and production lines`,
+    `Gravity-feed steel containers positioned at workstations in a fastener manufacturing facility with workers accessing small parts and components efficiently`,
+    `Corrugated steel containers filled with hot metal castings in an industrial foundry with overhead cranes and molten metal operations`,
+    `Heavy-duty roll-over steel containers being used to dump metal scrap in an industrial recycling facility with sorting equipment`,
+    `Heavy-duty steel containers holding hot metal castings and forgings in an industrial foundry with workers in protective equipment`,
+  ],
+  blogImageDescriptionOptions: {
+    infographic: [
+      `Comparison infographic displaying three columns for Wood, Plastic, and Steel containers. Each column shows 5 key performance metrics with visual ratings: Durability (wood: 3/5 stars, plastic: 2/5 stars, steel: 5/5 stars), Moisture Resistance (wood: 1/5, plastic: 5/5, steel: 5/5), Repairability (wood: 4/5, plastic: 2/5, steel: 5/5), Fire Resistance (wood: 1/5, plastic: 1/5, steel: 5/5), and Lifespan displayed as years (wood: 5-10 years, plastic: 3-5 years, steel: 25-50 years). Use brown for wood column, blue for plastic, gray/silver for steel. Include relevant icons for each metric.`,
+      `Comparison infographic displaying five flute types in vertical columns. Each column shows: flute profile illustration at top, flute name (A, C, B, E, F), height measurement, flutes per foot count, and 2-3 key applications with icons. Left to right: A-Flute (cushioning icon), C-Flute (shipping box icon), B-Flute (can icon), E-Flute (retail box icon), F-Flute (cosmetics icon). Use gradient from darker to lighter blue across columns. Include visual scale showing relative flute heights.`,
+      `Comparison infographic showing steel gauge thickness specifications displayed as three vertical columns. Left column: 14-gauge steel (0.0747 inches thick, capacity up to 1,500 lbs, light blue color). Middle column: 12-gauge steel (0.1046 inches thick, capacity 1,500-2,500 lbs, medium blue color). Right column: 10-gauge steel (0.1345 inches thick, capacity 2,500+ lbs, dark blue color). Each column includes thickness measurement, load capacity range, and a visual representation of relative steel thickness. Add scale icon at top showing inverse gauge relationship. Include brief application note under each column.`,
+      `Pie chart infographic showing reusable transport packaging market share distribution. Display three segments: Food and Beverage (33%, largest segment in green), Automotive (22%, medium segment in blue), and Heavy Manufacturing/Industrial (remaining percentage, in gray). Include percentage labels on each segment and brief industry descriptor. Clean, modern design with legend at bottom. Title: "Reusable Transport Packaging Market Share by Industry".`,
+      `Waste reduction impact infographic showing before-and-after comparison. Left side titled "Disposable Containers" displays cardboard box icon with downward arrows leading to landfill icon, showing "30.5M tons annually to landfills" and "High disposal costs." Right side titled "Reusable Steel Containers" shows steel container icon with circular arrows indicating reuse cycle, displaying "85% waste diversion rate," "209 tons/day eliminated (example facility)," and "$319/ton scrap recovery value." Connect both sides with large arrow showing transformation. Use red/orange for disposable side, green for reusable side.`,
+    ],
+    internal: [
+      `Photo of corrugated steel containers in industrial warehouse setting showing the ribbed/fluted steel construction and stacked configuration. Should display containers loaded with parts, demonstrating load-bearing capacity and durability in active manufacturing environment.`,
+      `Photo of Powell Systems heavy-duty corrugated steel containers in industrial setting. Should show multiple containers stacked or arranged, displaying their robust construction, corrugated steel panels, and forklift access features. Industrial manufacturing or warehouse environment visible in background.`,
+      `Photo of heavy-duty steel containers in industrial manufacturing environment showing stacked units containing metal fasteners or forgings. Should display containers with visible load capacity, reinforced construction, and proper stacking configuration. Include forklift or material handling equipment in scene to show scale and typical usage context.`,
+      `Photo of Powell Systems' corrugated steel containers showing drop-bottom and gravity-feed designs. Should display containers in industrial setting with visible corrugated construction, reinforced corners, and distinctive design features. Include both standard and specialized models.`,
+      `Photo or technical illustration of Powell Systems steel container showing forklift entry points and stacking leg design. Should clearly display four-way forklift access, formed offset stacking legs, and underclearance. Technical/engineering perspective showing structural details.`,
+    ],
+    external: [],
+    generic: [],
+  },
+  blogTopicOptions: [
+    `Best Corrugated Steel Containers: Durability Meets Design`,
+    `Ultimate Guide to Choosing the Right Steel Container for Industrial Use`,
+    `The Ultimate Guide to Corrugated Box Design`,
+    `Corrugated Steel Containers Sustainability: A Smarter Long-Term Choice`,
+    `Why Are Corrugated Steel Sheets Ideal for Industrial Containers?`,
+  ],
 };
 
 const CLIENT_ROSSINI_EQUIPMENT_CORP: ClientSample = {
@@ -5651,6 +5883,47 @@ const CLIENT_ROSSINI_EQUIPMENT_CORP: ClientSample = {
   "Is 3000 hours a lot for an excavator?",
   "Do excavators hold their value?"
 ]`,
+  serviceImageDescriptions: [
+    `Excavator and crew preparing a residential building lot with grading, clearing, and foundation digging on a clean suburban job site`,
+    `Commercial excavation site with excavators, operators, soil movement, grading work, and active construction staging on a large jobsite`,
+    `Heavy excavator and crew preparing a residential home site with graded soil, foundation layout, and trucks on a cleared construction lot`,
+    `Excavator clearing a residential lot with brush piles, tree stumps, and graded soil on a rural property ready for construction`,
+    `Commercial excavation contractors operating excavators and loaders on an active New York construction site with grading, trenching, and material hauling underway`,
+  ],
+  categoryImageDescriptions: [
+    `Excavator digging foundation trench on active construction site with workers and building structure in background`,
+    `Excavator digging deep utility trench alongside road with orange safety cones and crew members directing work`,
+    `Skid steer with grapple attachment loading demolition debris into a dump truck on a cleared site with rubble piles`,
+  ],
+  blogImageDescriptionOptions: {
+    infographic: [
+      `Three-column comparison infographic contrasting septic tank materials: concrete, fiberglass, and steel. Each column includes a material icon at top, 3–4 key characteristics as bullet points (weight, removal method, relative cost, special considerations), and a cost impact label at the bottom (e.g., "Highest Cost," "Mid-Range," "Variable/High Risk"). Use a neutral gray and blue color scheme. Label columns clearly with material names. Connect with subtle dividing lines rather than arrows.`,
+      `Side-by-side comparison infographic showing excavator operator wage data. Left column labeled "National Average" showing $28.23/hr median wage. Right column labeled "New York State" showing $38.59/hr median wage. Below both columns, a third row labeled "Operated Rental Labor Cost (After Markup)" showing $70–$100/hr. Use upward arrows to show the compounding effect. Include a brief note about workers' comp, insurance, and margin. Blue for national, orange or red for New York to highlight premium. Clean, bold typography with dollar figures prominent.`,
+      `Infographic showing three common mid-project access road failure scenarios arranged in a vertical or horizontal row. Each panel includes: Failure 1 - Poor Subgrade (cracked road icon, "2-3x repair cost"), Failure 2 - Drainage Failure (flooded road icon, "emergency culvert cost"), Failure 3 - Frost Heave Damage (heaved pavement icon, "1-2 season failure"). Use red/orange warning color scheme. Include a bold callout stat: "Failures cost 2–3x more to fix than to prevent." Add warning triangle icons for visual emphasis.`,
+      `Bar or tiered comparison infographic showing per-mile transport costs across five distance bands. Horizontal layout with each band as a labeled row: 0–200 miles ($4.00–$5.00), 200–500 miles ($3.50–$4.00), 500–1,000 miles ($3.00–$3.50), 1,000–1,500 miles ($2.50–$3.00), 1,500+ miles ($1.00–$2.50). Use a descending color gradient from dark blue (highest cost) to light blue (lowest cost) to visually reinforce the declining rate trend. Include a road/distance icon beside each row. Title: "Per-Mile Rate Drops as Distance Increases."`,
+      `Comparison infographic displaying three excavation cost tiers as stacked horizontal bars or columns. Left to right: Tier 1 - Entry-Level ($5,000–$12,000, soft soil/easy access icon), Tier 2 - Mid-Range ($12,000–$20,000, standard basement icon), Tier 3 - High-End ($20,000–$35,000+, rocky terrain/restricted access icon). Below the tiers, show four cost driver callouts with icons: Rocky Terrain (pickaxe), Clay Soil (soil layer), Deep Excavation (depth arrow), Tight Site Access (barrier icon). Use blue and gray color scheme with bold dollar figures prominently displayed.`,
+    ],
+    internal: [
+      `Visual representation of a real-world 300-foot access road project cost breakdown for a Sullivan County, NY wooded lot. Should display line-item costs across all construction phases including clearing, surveying, subgrade prep, materials, drainage, grading, compaction, mobilization, and permits. Conveys a complete, realistic project budget scenario.`,
+      `Photo or image representing Rossini Equipment Corp.'s fleet and operations. Should show heavy construction equipment — excavators, bulldozers, or skid steers — staged and ready for deployment. Can include company branding or a Sullivan County/Hudson Valley regional setting. Conveys reliability, fleet readiness, and professional operation.`,
+      `Photo or image representing Rossini Equipment Corp's skid steer rental offerings. Should show one or more skid steers or compact track loaders available for rent, ideally on a job site or at the company yard. Should convey professional, well-maintained equipment ready for contractor use.`,
+      `Photo or image of heavy equipment — such as an excavator or mini excavator with a hydraulic breaker attachment — being used for concrete demolition on a residential or commercial job site. Should convey professional-grade equipment in an active work setting, ideally in a Northeast or Hudson Valley-style property environment.`,
+      `Photo or fleet lineup image of Rossini Equipment Corp's excavator rental fleet, showcasing the range of machine sizes available — from compact 9-ton to 31-ton hydraulic excavators. Should convey a well-maintained, production-ready fleet available for rent in the Hudson Valley region.`,
+    ],
+    external: [
+      `Photo of a skid steer with its engine compartment open, showing the engine, hoses, and drivetrain components. Should convey a hands-on mechanical inspection setting, with visible engine parts. Image should reflect a real-world pre-purchase walkthrough scenario on a job site or dealer lot.`,
+      `Photo of a heavy construction machine — such as an excavator or bulldozer — loaded on a lowboy or RGN trailer traveling on a highway. Should convey scale of oversize load transport. Pilot or escort vehicle visible if possible. Daytime, open road setting.`,
+      `Photo or image of an excavator lifting a large underground storage tank from an open excavation pit at an industrial or commercial job site. Should show the tank being rigged with chains or lifting attachments, with exposed soil walls visible around the excavation zone. Conveys scale of underground tank removal operations.`,
+    ],
+    generic: [],
+  },
+  blogTopicOptions: [
+    `5 Tips & What to Look For When Buying a Used Skid Steer`,
+    `How Much Does Stump Removal Cost in 2026?`,
+    `Foundation Backfill Cost Guide 2026: Prices & Calculator`,
+    `What to Know About the Hidden Costs of Access Roads`,
+    `What Does Septic Tank Removal Cost? Complete Pricing Guide`,
+  ],
 };
 
 const CLIENT_SENTINEL_ASSET_MANAGEMENT: ClientSample = {
@@ -5959,6 +6232,47 @@ const CLIENT_SENTINEL_ASSET_MANAGEMENT: ClientSample = {
   paaDataJson: `[
   "What is SmartAsset management?"
 ]`,
+  serviceImageDescriptions: [
+    `Professional financial advisor meeting with three-generation family around conference table reviewing estate documents and legacy planning materials in modern office setting`,
+    `Diverse financial planning team consulting with mature clients across conference table with estate planning documents, wealth management charts, trust documents, and digital tablets showing portfolio analytics in modern professional office setting`,
+    `Financial advisor meeting with affluent retired couple reviewing retirement portfolio documents at modern office desk`,
+    `Financial advisor and client discussing tax optimization strategies with portfolio documents and charts on desk`,
+    `Professional financial advisor presenting diversified investment portfolio charts and analysis to client in modern office setting`,
+  ],
+  categoryImageDescriptions: [],
+  blogImageDescriptionOptions: {
+    infographic: [
+      `Summary infographic listing four key OBBBA provisions in a vertical card layout. Each card contains an icon and one-line summary: Card 1 - Estate Exemption (shield icon, $15M starting 2026), Card 2 - Permanent Tax Rates (gavel icon, long-term certainty), Card 3 - Charitable Deduction Floor (hand-with-heart icon, 0.5% AGI floor 2026), Card 4 - Deduction Cap (percent icon, 35% cap for top earners 2026). Use gold and navy color scheme. Add a banner at top: "Act in 2025 Before Rules Tighten."`,
+      `Three-column comparison infographic titled "Why Family Wealth Erodes." Each column represents one culprit: Column 1 - Financial Unpreparedness (graduation cap with X icon), Column 2 - No Governance Structure (broken chain icon), Column 3 - Poor Tax Strategy (money draining icon). Include a brief 1-2 sentence description under each column heading. Use a red/amber warning color scheme with dark background. Add a bottom banner stat: "70% of wealthy families lose wealth by generation 2."`,
+      `Comparison infographic showing Social Security benefit levels at three claiming ages. Vertical bar chart layout with three bars: Age 62 (70% benefit, $700/month) in red, Age 67 FRA (100% benefit, $1,000/month) in blue, Age 70 (124% benefit, $1,240/month) in green. Include a callout showing the $6,480/year survivor benefit difference between early and delayed claiming. Label each bar with percentage and dollar amount. Use a clean, professional color scheme with clear annotations.`,
+      `Side-by-side comparison infographic contrasting "With Beneficiary Designation" vs. "Without (Probate)". Left column (green): asset access in days to weeks, zero court/legal fees, creditor protection intact, private transfer. Right column (red/orange): 6–9 month average timeline, 3–8% of estate value lost to fees, creditor claims possible, public court process. Use clock icon for time, dollar sign icon for costs, shield icon for protection. Clean two-column layout with a bold header at top.`,
+      `Comparison infographic showing three specialized irrevocable trust structures in a three-column layout. Left column: ILIT (Irrevocable Life Insurance Trust) — shield icon, key benefit: removes death benefit from taxable estate, provides estate liquidity. Middle column: SLAT (Spousal Lifetime Access Trust) — two-person icon, key benefit: transfers assets out of estate while spouse retains indirect access. Right column: QPRT (Qualified Personal Residence Trust) — house icon, key benefit: transfers home to heirs at reduced gift tax value. Use navy blue and gold color scheme. Include a brief one-line description under each trust name.`,
+    ],
+    internal: [
+      `Photo or illustration of a Sentinel Asset Management advisor meeting with a family to review estate planning and retirement strategy documents. Should convey a professional, consultative setting with visible documents or a laptop showing financial planning materials. Warm, approachable tone.`,
+      `Image of a financial advisor reviewing a retirement plan stress-test analysis with a client. Should show a professional setting with portfolio projections or scenario modeling displayed on screen. Conveys personalized planning and advisor-client relationship in a modern office environment.`,
+      `Branded diagram of Sentinel's PRIME risk framework showing all five risk categories: Purchasing Power Risk, Reinvestment Risk, Interest Rate Risk, Market Risk, and Exchange Risk. Should display the framework structure with each category clearly labeled. Clean, professional design consistent with a financial advisory firm's branding.`,
+      `Photo or illustration of a Sentinel Asset Management advisor meeting with a multi-generational family — parents and adult children — reviewing a legacy or estate plan together. Should convey a collaborative, professional advisory relationship. Modern office setting with documents and planning materials visible.`,
+      `Image of a financial advisor meeting with a client to review a personalized retirement income plan. Should show a professional advisor and client seated together, reviewing printed or on-screen portfolio documents, charts, or projections. Conveys a collaborative, professional planning environment appropriate for a wealth management firm context.`,
+    ],
+    external: [
+      `Photo of a modern assisted living facility showing a caregiver assisting an elderly resident in a comfortable, well-lit residential setting. Should convey professional long-term care services in a dignified environment. Suitable for illustrating real-world long-term care costs and planning context.`,
+      `Image of a retired couple reviewing healthcare documents or Medicare-related paperwork at a table. Should convey the reality of planning for significant medical expenses in retirement. Modern, realistic setting. No overly staged appearance. Should communicate thoughtful financial review of healthcare costs.`,
+      `Photo of a family or couple sitting across from a financial advisor at a desk, reviewing insurance documents or coverage paperwork. Should convey a professional planning consultation environment. Modern office setting with documents and laptop visible. Warm, approachable tone.`,
+      `Image of a financial advisory fee comparison chart or infographic showing different advisor compensation models. Should illustrate fee-only versus fee-based structures with associated cost ranges. General representation of advisor fee transparency in a professional financial planning context.`,
+    ],
+    generic: [
+      `Illustration of a financial advisor and client sitting across a desk in a modern professional office, reviewing documents together. Show printed financial charts, a laptop displaying an estate planning dashboard, and stacked folders labeled with investment and estate categories. Warm, professional lighting. The scene conveys coordination and planning. Style: clean, realistic illustration with a slightly flat design aesthetic. Two people visible, one pointing to a document while the other takes notes.`,
+      `Illustration of three professionals — a financial advisor, CPA, and estate attorney — seated around a conference table reviewing documents together. Each has a laptop or folder with their specialty visible. A shared document or screen at the center of the table connects all three. Modern office setting with natural light. Clean, professional atmosphere conveying collaboration and unified planning. Style: polished flat illustration with warm neutral tones and subtle professional detail.`,
+    ],
+  },
+  blogTopicOptions: [
+    `Why Naming Beneficiaries is Essential to Estate Planning`,
+    `Divorce Financial Planning: 6 Mistakes to Avoid`,
+    `Retirement Planning for Families: Personalized Services & Goals`,
+    `Diversifying Concentrated Portfolios with Custom SMAs: A Guide`,
+    `Estate Tax Planning: A Complete Guide`,
+  ],
 };
 
 const CLIENT_SYLUS: ClientSample = {
@@ -6234,6 +6548,49 @@ const CLIENT_SYLUS: ClientSample = {
   paaDataJson: `[
   "What is a data analytics company?"
 ]`,
+  serviceImageDescriptions: [
+    `Small business owner at a desk reviewing colorful financial dashboards and revenue charts on a laptop screen in a modern office`,
+    `Modern enterprise AI data platform interface displaying interactive dashboards with bar charts, KPI metrics, and real-time business analytics visualizations on a clean screen`,
+    `Modern SaaS analytics platform interface showing interactive KPI dashboards, data visualizations, and AI chat query panel on a desktop screen`,
+    `A modern business analytics software dashboard on a laptop screen showing colorful KPI charts, revenue graphs, and real-time data visualizations for enterprise teams`,
+    `A modern business intelligence dashboard on a laptop screen showing colorful KPI charts, bar graphs, and real-time data metrics in a clean enterprise UI`,
+  ],
+  categoryImageDescriptions: [],
+  blogImageDescriptionOptions: {
+    infographic: [
+      `Comparison infographic with two columns side-by-side. Left column titled "IT Alerting" with four rows: Primary Function (triggers notifications on threshold breaches), Timing (real-time or near-real-time), Output (alerts, pages, tickets), Goal (immediate response). Right column titled "IT Reporting" with matching rows. Use a contrasting two-color scheme — blue for Alerting, green for Reporting. Include a relevant icon per row (bell, clock, document, target). Clean, modern flat design layout.`,
+      `Comparison infographic illustrating four structural problems with traditional BI. Vertical layout with four labeled rows, each containing an icon and brief descriptor: Row 1 - Rigidity (locked padlock icon, "Pre-answered questions only"), Row 2 - Expert Bottleneck (hourglass icon, "Days or weeks to new reports"), Row 3 - Dashboard Sprawl (fragmented grid icon, "68% unused within 6 months"), Row 4 - Access Inequality (barrier/wall icon, "Only 20-25% of employees use BI"). Use red or amber color accents to signal problems. Clean, minimal design with dark text on white background.`,
+      `Comparison infographic displaying two columns side-by-side. Left column titled "Business Intelligence" with rows covering: Primary Question (what happened), Time Orientation (past/present), Data Type (structured), Outputs (dashboards/reports), Techniques (SQL/visualization), Tools (Tableau/Power BI/Looker), Users (managers/executives). Right column titled "Data Analytics" with corresponding contrasting entries. Use a blue color scheme for BI and a green scheme for Data Analytics. Include relevant icons per row. Add a center divider with row labels.`,
+      `Data-driven infographic presenting three key market statistics. Vertical layout with three distinct stat blocks: (1) Market Growth — "$15.4B in 2023 → $55B by 2030" with upward arrow and bar graph icon; (2) Build Time — "71% of teams need 3+ weeks per integration" with clock icon; (3) Scale Problem — "100+ apps per enterprise = 1:1 connectors unsustainable" with grid/app icon. Use blue and navy color scheme with bold number callouts. Each stat in its own card with supporting icon.`,
+      `Quick-reference infographic showing scheduling navigation paths for 6 platforms arranged in a grid or two-column layout. Each platform card includes: platform name with logo placeholder, navigation path as a step-by-step breadcrumb trail. Platforms: Adobe Workfront, Smartsheet, Tableau, Power BI, Looker, Metabase. Use a consistent arrow or chevron style to show each path. Blue and grey color scheme. Clean, table-style layout with alternating row shading for readability.`,
+    ],
+    internal: [
+      `Screenshot or interface view of the Sylus platform showing its core dashboard, including AI-generated report summaries, spike activity alerts, and data visualization panels. Should convey the unified alerting and reporting experience within a single interface.`,
+      `Screenshot or interface view of the Sylus platform showing a data analyst dashboard with plain-English query input, governed analysis results grounded in business logic, and shareable reporting output. Should convey enterprise-grade accuracy and compliance-ready design.`,
+      `Screenshot or interface view of Sylus's integration hub displaying the breadth of pre-built connectors across ERP, CRM, databases, cloud data warehouses, and spreadsheet sources. Should convey the one-click connectivity experience and the variety of supported data source categories.`,
+      `Screenshot or interface view of the Sylus analytics platform showing a multi-series chart generated from a plain-English query. Should display the dashboard interface with a visible data visualization, query input field, and connected data source indicators.`,
+      `Screenshot or interface preview of the Sylus AI analytics platform showing the natural language query input, an AI-generated dashboard with multiple chart types, and an AI-written summary panel. Should convey a clean, enterprise-grade interface with data visualizations visible.`,
+    ],
+    external: [
+      `Image illustrating enterprise data cost reduction outcomes, showing before-and-after business metrics in a dashboard or infographic style. Should convey operational efficiency gains through data infrastructure modernization. Relevant to healthcare or enterprise analytics context.`,
+      `Screenshot or mockup of a white-labeled integration marketplace interface showing a grid of SaaS connector logos organized by category (CRM, HRIS, Accounting, eCommerce). Should convey a polished, customer-facing product page that a SaaS company would embed on their own website.`,
+      `Example of a high-quality AI-generated image produced by a leading image generation tool, showcasing photorealistic or artistically styled output suitable for marketing or creative direction use cases. Should illustrate the professional visual quality achievable with modern AI image generators.`,
+      `Image of a finance or business team reviewing data dashboards and scenario planning reports on large monitors. Should convey a modern, data-driven financial planning environment with visible charts and metrics on screen. Corporate office setting appropriate for a global enterprise context.`,
+      `Screenshot or illustration of a dashboard-specific wireframing tool interface showing a canvas with pre-built chart components such as bar charts, KPI cards, donut charts, and data tables arranged in a typical analytics dashboard layout. Should convey a clean drag-and-drop design workspace.`,
+    ],
+    generic: [
+      `Abstract conceptual illustration of an AI system processing multi-variable data. Show a central glowing AI node connected by radiating lines to dozens of smaller labeled data points representing variables like login time, feature usage, team activity, and renewal rate. Dark background with blue and purple gradient color scheme. Data streams and connection lines animate toward the center node. Style: modern digital illustration with a clean, tech-focused aesthetic. Conveys scale and complexity of simultaneous variable analysis.`,
+      `Illustration of four professionals in separate business contexts — a sales manager, CMO, CFO, and HR leader — each viewing a glowing dashboard screen showing different metrics. Modern open-plan office setting with warm lighting. Each person shown in their department area with relevant data visualizations on their screen. Style: clean, modern flat illustration conveying cross-functional data visibility and real-time access.`,
+      `Illustration of two or three professionals in a modern office setting reviewing a data dashboard on a large monitor. One person points to a chart flagging a discrepancy while a colleague takes notes. Background shows a clean workspace with a secondary screen displaying documentation. Conveys a collaborative data validation workflow. Style: clean, modern flat illustration with warm neutral tones and subtle blue accents. Professional but approachable atmosphere.`,
+    ],
+  },
+  blogTopicOptions: [
+    `How to Automate Reports: Complete Guide`,
+    `AI-Generated Narratives for Automated Dashboards: Complete Guide`,
+    `Predictive Analytics & Forecasting`,
+    `AI-Driven Conversational Data Query Tools: Top Solutions for 2026`,
+    `Embedded Analytics in the Age of Generative AI`,
+  ],
 };
 
 const CLIENT_TERRAPIN_INDUSTRIAL_LLC: ClientSample = {
@@ -7105,6 +7462,45 @@ const CLIENT_TERRAPIN_INDUSTRIAL_LLC: ClientSample = {
   "Which type of outdoor enclosure will protect electrical equipment from corrosive agents?",
   "What Nema enclosure type is best suited for outdoor watertight applications?"
 ]`,
+  serviceImageDescriptions: [],
+  categoryImageDescriptions: [
+    `An insulated industrial enclosure on a pipe stand in a snowy arctic field site surrounded by frozen tundra in winter`,
+    `A GRP instrument enclosure mounted on a pipe stand at an oil and gas field site in freezing arctic conditions with industrial equipment in background`,
+    `Industrial instrument enclosure installed in a petrochemical plant with pipes, pressure gauges, and hazardous area signage visible in background`,
+    `Heated instrument protection enclosure mounted outdoors at a power generation facility with cooling towers and industrial infrastructure in background`,
+    `ThermaGuard explosion-proof instrument enclosure mounted on a pipe stand at an oil and gas field facility in extreme cold`,
+  ],
+  blogImageDescriptionOptions: {
+    infographic: [
+      `Comparison infographic with two vertical columns side-by-side. Left column titled "NEMA 3" and right column titled "NEMA 4." Each column contains 6-7 rows of protection characteristics: weather protection, dust resistance, water resistance, ice formation, corrosion resistance, IP equivalent, and washdown suitability. Use checkmarks, icons (raindrop, dust cloud, hose spray, snowflake, corrosion symbol), and color coding — light blue for NEMA 3, dark blue for NEMA 4. Highlight the washdown and water resistance rows to emphasize key differences. Include a banner at top noting typical industries for each rating.`,
+      `Four-category breakdown infographic showing electrical enclosure accessory types. Use a 2x2 grid layout. Top-left: Structural Accessories (bracket/rail icon) listing hinges, latches, DIN rails, pipe stands. Top-right: Environmental Accessories (shield icon) listing gaskets, seals, cable glands, vent filters. Bottom-left: Thermal Accessories (thermometer icon) listing heaters, coolers, insulation, thermostats. Bottom-right: Organizational Accessories (grid icon) listing terminal blocks, wire ducts, conduit fittings. Use consistent blue/gray color scheme with clear category headers and icons.`,
+      `Statistical infographic highlighting Pennsylvania's industrial footprint in 4 key data points. Use a 2x2 grid layout with large bold numbers as focal points: #4 nationally in power generation capacity (48,856 MW) with a lightning bolt icon, 1,250+ active Marcellus Shale wells with a gas flame icon, ~135 chemical plant sites with a flask icon, and 10 major refining/petrochemical complexes with a refinery tower icon. Use a dark blue and amber color scheme. Label each stat with a brief descriptor below.`,
+      `Requirements infographic listing 4 critical refinery enclosure standards in a vertical checklist layout. Item 1 - Hazardous Area Classification (explosion/flame icon): Class I Div 1/2 or ATEX Zone 1/2. Item 2 - Thermal Performance (thermometer icon): rated from -60°F to high process temps. Item 3 - Ingress Protection (shield icon): IP66/NEMA 4X minimum. Item 4 - Temperature Class (warning icon): T6 rating ≤85°C surface temp. Use orange and dark grey color scheme with bold icons for each row.`,
+      `Comparison infographic showing 5 key evaluation criteria for selecting climate-controlled instrument enclosures. Vertical layout with 5 rows, each representing one criterion: Active Temperature Management (thermometer icon), Ingress Protection Ratings (shield icon), Hazardous Area Certifications (flame/warning icon), Installation Flexibility (wrench icon), Maintainability (gear icon). For each criterion, include a one-line description of what to look for. Use a blue and orange color scheme with bold icons on the left and descriptor text on the right.`,
+    ],
+    internal: [
+      `Photo or product render of Terrapin Industrial's ThermaGuard heated enclosure liner system installed inside an instrument enclosure. Should show the heater cable liner, mounting bracket, and interior layout. Conveys the compact, space-saving design compared to traditional bulky finned heaters.`,
+      `Product visual of the Terrapin Industrial ThermaGuard modular enclosure system showing the heated liner, modular housing panels, and heater cable installation. Should convey the compact, field-installable design and key components. Display in an industrial field setting if possible.`,
+      `Photo or product render of the Terrapin Industrial ThermaGuard modular instrument enclosure system, showing the retrofittable design installed around a field instrument. Should highlight the modular construction, quick-connect entries, and heated liner components. Clean industrial setting preferred.`,
+      `Photo or product render of Terrapin Industrial's ThermaGuard modular instrument enclosure showing the quick-connect modular design installed around a live instrument in a power generation or process plant setting. Should highlight the multi-piece assembly and heated liner components.`,
+      `Photo or illustration of Terrapin Industrial's ThermaGuard modular enclosure system installed around an instrument in a field environment. Should show the retrofittable panel design assembled around existing instrumentation, conveying the modular construction and on-site installation capability in an industrial or oil & gas setting.`,
+    ],
+    external: [
+      `Image of a stainless steel or GRP industrial instrument enclosure mounted on a pipe stand in an outdoor refinery or petrochemical plant setting. Should show a weatherproof enclosure in a real field installation environment with visible process piping or industrial infrastructure in the background.`,
+      `Photo or product image of an industrial instrument enclosure in a stainless steel NEMA 4X configuration, installed outdoors at an industrial facility. Should show the enclosure mounted on a pipe stand or wall in a process plant environment, conveying rugged construction and weather resistance.`,
+      `Image of fiberglass (FRP) industrial instrument enclosures installed in a corrosive or chemical processing environment. Should show non-metallic enclosures mounted on pipe stands or walls, illustrating their use in harsh outdoor or chemical plant settings. Convey corrosion resistance and industrial durability.`,
+      `Photo of a hazardous area instrument enclosure installed in an active industrial facility — oil & gas plant, refinery, or offshore platform. Should show an enclosure mounted on a pipe stand or structural support in a classified area, with conduit entries and field wiring visible. Environment should clearly convey a hazardous industrial setting.`,
+      `Photo of hazardous area instrument enclosures mounted on an offshore platform or oil refinery structure, showing GRP or stainless steel enclosures rated for Zone 1/2 explosive atmospheres. Should convey harsh industrial environment with visible corrosion-resistant construction.`,
+    ],
+    generic: [],
+  },
+  blogTopicOptions: [
+    `Top 10 Weatherproof Electrical Enclosures with NEMA Protection`,
+    `Protecting Critical Equipment: Electrical Enclosures for Challenging Environments`,
+    `Top 10 Outdoor Industrial Instrument Enclosure Manufacturers For Extreme Weather`,
+    `Top 10 Industrial Instrument Enclosure Manufacturers For Hazardous Areas`,
+    `Top 10 Industrial Instrument Enclosure Manufacturers In The USA`,
+  ],
 };
 
 const CLIENT_TRINU_POWDER_COATING: ClientSample = {
@@ -7334,6 +7730,48 @@ const CLIENT_TRINU_POWDER_COATING: ClientSample = {
   "What is the best powder coat finish for metal parts?",
   "How long should powder coating last on metal?"
 ]`,
+  serviceImageDescriptions: [
+    `Professional abrasive blasting operation cleaning industrial metal component with protective equipment in modern facility`,
+    `Large industrial metal components on hanging rack inside commercial powder coating booth, bright colored powder application process`,
+    `High-tech automotive metal components on industrial racks inside powder coating facility with large production oven`,
+    `Large metal fabricated parts in industrial powder coating booth with professional application equipment and production oven`,
+    `Large industrial metal finishing facility showing powder coating booth, curing oven, and abrasive blasting equipment with finished metal components`,
+  ],
+  categoryImageDescriptions: [],
+  blogImageDescriptionOptions: {
+    infographic: [
+      `Comparison infographic showing three bumper size categories in vertical columns. Left column: "Standard Car Bumper" (20-30 lbs weight range, base pricing tier, small sedan icon). Middle column: "Truck/SUV Bumper" (40-60 lbs weight range, 30-50% price increase, pickup truck icon). Right column: "Full-Width Off-Road Bumper" (80-150 lbs weight range, 100-200% price increase, heavy-duty bumper icon). Use blue gradient from light to dark across columns. Include weight icons and upward trending price arrows showing relative cost increases.`,
+      `Comparison infographic showing two columns side-by-side. Left column titled "Coatings (Additive)" with 3 examples: Powder Coating (spray icon), Electroplating (electrical symbol), Hot-Dip Galvanizing (dipping icon). Right column titled "Surface Modifications (Substrate Alteration)" with 2 examples: Anodizing (chemical formula icon), Chemical Conversion (molecular icon). Each example includes brief one-line descriptor. Use blue for coatings column, green for modifications column. Include visual representation showing coating layer on top of metal vs. transformed metal surface structure.`,
+      `Comparison table infographic displaying 5 abrasive media types in vertical columns. Each column shows: abrasive name at top, cost range in bold, icon representing the material, and 2-3 key applications below. Left to right: Silica sand (warning icon, $20-$40/bag), Aluminum oxide (versatile icon, $40-$80/bag), Glass beads (smooth finish icon, $60-$100/bag), Walnut shells (eco-friendly leaf icon, $100-$300+), Dry ice (snowflake icon, $100-$300+). Use gradient from budget-friendly yellow to premium blue. Include "Best For" label under each application list.`,
+      `Pricing chart infographic showing powder coating costs by rim diameter. Vertical bar chart format with 7 bars representing rim sizes from 13" to 24-26". X-axis shows rim diameters (13" and smaller, 14"-15", 16"-17", 18"-19", 20"-21", 22"-23", 24"-26"). Y-axis shows price range from $50 to $175. Each bar displays the price clearly at the top. Use gradient blue color scheme, darker for larger sizes. Include rim icon silhouettes scaled proportionally to size next to each bar.`,
+      `Comparison infographic showing glass bead media lifecycle versus expendable abrasives. Left side: single-use sand/slag showing one-time use icon with X mark and "$0.20/lb" cost. Right side: glass beads showing circular recycling arrows with "20-30 cycles" and "$1.50-$2.50/lb" initial cost, then arrow pointing to "60-75% long-term savings" badge. Use green for reusable, red for expendable. Include calculator icon showing total cost comparison over project lifecycle.`,
+    ],
+    internal: [
+      `Photo showing examples of TriNu's specialized coating applications across different industries. Should display coated architectural aluminum components, marine-grade finished parts, and military-specification hardware demonstrating quality finish and durability. Arrange products to show variety of applications and coating quality.`,
+      `Side-by-side comparison photo showing budget powder coating finish versus premium powder coating finish on similar rims. Should clearly demonstrate the difference in surface quality, smoothness, and finish appearance between the two service levels.`,
+      `Photo showing proper surface preparation documentation setup including replica tape measurement on railcar steel surface, SSPC visual comparison standards chart, digital environmental monitoring equipment displaying temperature and humidity readings, and documentation clipboard with inspection forms. Should demonstrate comprehensive quality control and record-keeping process used in professional railcar surface preparation projects.`,
+      `Screenshot or photo of media blasting operation showing steel surface being cleaned with abrasive media. Should display blast equipment in action with visible media stream and partially cleaned steel component showing contrast between rusted and clean areas.`,
+      `Photo or image of powder coated industrial or marine components showcasing finished coating quality. Should convey durable, high-performance finish suitable for coastal Florida conditions. Can show coated metal parts, frames, or marine hardware with a clean, uniform surface finish.`,
+    ],
+    external: [
+      `Before and after comparison images showing steel surface preparation through abrasive blasting. Left side shows corroded, contaminated steel surface. Right side shows clean white metal blast finish with visible anchor pattern profile. Should demonstrate the surface texture difference achieved through SSPC-SP 5 white metal blast cleaning.`,
+      `Image showing sandblasting operation on elevated surface with scaffolding or lift equipment visible. Should display operator in protective gear working on high wall or building exterior, demonstrating accessibility challenges and safety equipment requirements in commercial sandblasting projects.`,
+      `Image showing metal surface preparation for powder coating in marine or military application. Should display white metal blast cleaned surface with visible texture, preparation equipment or blast media, and contrast between prepared and unprepared metal sections. Industrial setting with focus on surface quality standards.`,
+      `Image of industrial dry blasting operation on large steel structure showing operator in full protective equipment using pressure blasting equipment. Should display visible dust containment setup and steel surface being prepared. Industrial outdoor or contained environment setting.`,
+      `Image of large outdoor wooden deck or fence structure showing weathered, peeling paint or stain that requires restoration. Should display extensive surface area demonstrating ideal use case for media blasting. Visible coating failure and outdoor setting preferred.`,
+    ],
+    generic: [
+      `Illustration of a customer speaking with a shop technician in an industrial powder coating facility. Show two people in conversation — one in casual clothes holding a notepad with visible checklist, one in work uniform standing near coating equipment. Background shows spray booth and oven equipment. Clean, modern flat-illustration style with a blue and orange color scheme. Conveys a professional consultation atmosphere. No specific text visible on the notepad.`,
+      `Close-up illustration of precision-machined metal components—such as wheel rims or automotive brackets—displayed on a clean industrial surface, showing a uniform high-gloss finished surface. Background suggests a professional finishing or quality inspection environment with neutral lighting. Style: clean, photorealistic illustration with sharp detail emphasizing surface quality and mechanical precision. No people required.`,
+    ],
+  },
+  blogTopicOptions: [
+    `Sandblasting Wood: Professional Restoration and Refinishing Methods`,
+    `Media Blasting for Log Homes: Ultimate Restoration Guide`,
+    `Blasting Methods: Conquering Deep Corrosion with Expert Techniques`,
+    `How Much Does a Wet Abrasive Blasting Unit Cost in 2026?`,
+    `Architectural Powder Coating: Design, Durability & Innovation`,
+  ],
 };
 
 const CLIENT_7BROWN: ClientSample = {
@@ -7570,6 +8008,44 @@ const CLIENT_7BROWN: ClientSample = {
   serviceCatalogJson: `[]`,
   productInformationJson: `[]`,
   paaDataJson: `{}`,
+  serviceImageDescriptions: [],
+  categoryImageDescriptions: [
+    `Family grilling premium ribeye and brisket steaks outdoors on a backyard grill during a summer gathering.`,
+    `Athlete meal prepping individually wrapped Black Angus ground beef bricks and steak portions in a modern kitchen.`,
+    `Family loading individually wrapped beef packages into a large chest freezer in a home kitchen or garage setting.`,
+    `Chef in a professional steakhouse kitchen searing a thick dry-aged ribeye steak on a cast iron grill over high heat.`,
+    `Athlete meal prepping with portioned ground beef and steak cuts arranged on a kitchen counter next to protein containers.`,
+  ],
+  blogImageDescriptionOptions: {
+    infographic: [
+      `Side-by-side comparison infographic with two vertical columns. Left column titled "Bone-In Ribeye" with 3–4 characteristics: thermal insulation effect (up to 10°F cooler near bone), presentation advantage, protection during extended grilling, watch for uneven doneness. Right column titled "Boneless Ribeye" with characteristics: even cooking, easier handling, simpler slicing. Use a warm red/brown color scheme with a grill/flame icon at the top. Add a small steak silhouette illustration at the top of each column to visually differentiate the two cuts.`,
+      `Process flow infographic showing 4 steps to prep beef for cold grinding. Vertical or horizontal layout: Step 1 - Cut into 1-inch cubes (knife/cutting board icon), Step 2 - Spread on baking sheet in single layer (tray icon), Step 3 - Freeze 20-30 minutes until firm (snowflake/timer icon), Step 4 - Grind cold for clean texture (meat grinder icon). Connect steps with arrows. Use navy blue and cream color scheme with bold step numbers. Include brief one-line tip under each step.`,
+      `Comparison infographic showing 4 key reasons reverse searing suits picanha's anatomy. Vertical or 2x2 grid layout. Each quadrant has an icon and heading: 1 - Fat Cap Rendering (flame/droplet icon), 2 - Maillard Reaction (crust/browning icon), 3 - Moisture Retention (water droplet icon), 4 - Repeatability (thermometer icon). Include one-sentence descriptor under each heading. Use warm amber and charcoal color scheme to evoke steak and fire. Connect quadrants with subtle border lines.`,
+      `Process flow infographic showing 4 sequential prep steps before cooking ribeye. Vertical or horizontal layout: Step 1 - Temperature Rest (clock icon, "20–30 min before cooking"), Step 2 - Pat Dry (paper towel icon, "removes surface moisture"), Step 3 - Season Aggressively (salt shaker icon, "coarse salt, pepper, press in"), Step 4 - Optional Dry-Brine (fridge icon, "1–3 hrs or overnight"). Connect steps with arrows. Use warm amber and charcoal color scheme to evoke steak. Include one-line tip under each step label.`,
+      `Comparison infographic with three vertical columns side by side. Left column: "Ribeye" with attributes — rich intramuscular marbling, very tender, premium price, high fat content. Center column: "Coulotte" (highlighted) with attributes — rich via fat cap, tender at medium-rare, budget-friendly, lean interior. Right column: "Sirloin" with attributes — mild beefy flavor, firmer chew, lower price, minimal fat. Use icons for flavor, tenderness, fat, and price. Highlight coulotte column in gold to emphasize value. Clean, modern layout.`,
+    ],
+    internal: [
+      `Photo of a 7 Brown Farms Black Angus brisket showing the cut surface with visible marbling and fat cap. Should convey premium quality, proper fat coverage, and farm-direct sourcing. May include branded packaging or farm setting context.`,
+    ],
+    external: [
+      `Photo of a whole picanha cut displayed on a butcher block or wooden surface, showing the characteristic triangular shape and thick intact fat cap. Should convey a premium, specialty-butcher aesthetic with visible marbling. Natural lighting preferred.`,
+      `Image showing a cooked sirloin steak being sliced against the grain on a wooden cutting board. Should clearly illustrate the knife angle and direction relative to the muscle fibers. Close-up perspective with visible grain lines in the meat to demonstrate proper slicing technique.`,
+      `Photo of a cast iron skillet actively searing a steak with rendered beef tallow, showing a deep golden-brown crust. Should convey high-heat cooking in a home or professional kitchen environment. Rustic or natural lighting preferred.`,
+      `Side-by-side diagram or photo comparing a porterhouse steak and a T-bone steak, clearly showing the T-shaped bone and the relative size difference of the tenderloin section on each cut. Should display the two cuts labeled with visible structural differences, ideally on a butcher block or neutral background.`,
+      `Photo of golden, crispy french fries or roasted potatoes showing a visibly crunchy exterior and fluffy interior. Should convey high-heat frying results and rich color. Natural food photography style on a neutral or rustic background.`,
+    ],
+    generic: [
+      `Close-up illustration of a cooked coulotte steak resting on a wooden cutting board. A chef's knife is positioned perpendicular to the diagonal grain lines visible on the steak's surface. Show grain direction indicated with subtle parallel lines running diagonally across the meat, and a dotted cut line running perpendicular to those lines. Style: clean, instructional illustration with soft realistic lighting. Include small directional arrows labeling "grain direction" and "cut direction" for clarity.`,
+      `Illustration of a person holding a raw whole packer brisket at one end, allowing it to droop and flex downward under its own weight. Show the brisket bending at roughly a 45-degree angle or more to demonstrate ideal flexibility. Setting is a butcher shop or kitchen counter. One person in an apron, side-on view for clear visibility of the bend angle. Style: clean, realistic illustration with warm lighting. Focus on the brisket's natural droop as the key visual element.`,
+    ],
+  },
+  blogTopicOptions: [
+    `Beef Brisket Flat: Selection, Preparation & Cooking Guide`,
+    `Smoked Coulotte Steak: A Complete Cooking Guide`,
+    `How to Trim Dry Aged Ribeye: Complete Guide`,
+    `Why Buying Direct from Your Farmer Is the Best Choice`,
+    `Carnivore Diet Beef Brisket: Complete Cooking Guide`,
+  ],
 };
 
 const CLIENT_ABBAHVAC: ClientSample = {
@@ -7813,6 +8289,845 @@ const CLIENT_ABBAHVAC: ClientSample = {
   serviceCatalogJson: `[]`,
   productInformationJson: `[]`,
   paaDataJson: `{}`,
+  serviceImageDescriptions: [
+    `Professional HVAC technician in uniform performing detailed heat pump maintenance with tools and equipment in residential setting`,
+    `HVAC technician in uniform diagnosing and repairing outdoor heat pump unit with tools and testing equipment in residential setting`,
+    `HVAC technician installing modern heat pump unit outside residential home in Texas, professional service equipment visible`,
+    `HVAC technician in professional uniform installing outdoor heat pump unit on concrete pad beside residential home with Texas landscape`,
+    `HVAC technician in uniform installing outdoor heat pump unit on concrete pad beside residential home with tools and equipment visible`,
+  ],
+  categoryImageDescriptions: [],
+  blogImageDescriptionOptions: {
+    infographic: [],
+    internal: [],
+    external: [],
+    generic: [],
+  },
+  blogTopicOptions: [
+    `Gas vs Electric Tankless Water Heaters: Which is Better?`,
+    `How Much Does an HVAC System Cost in Austin, TX?`,
+    `How Much Does HVAC Cleaning Cost?`,
+    `Expert Tips for a Smooth HVAC Installation`,
+    `Mini Split HVAC System vs Baseboard Heating Systems`,
+  ],
+};
+
+const CLIENT_UNLEASHX: ClientSample = {
+  id: `77a7be80-61f2-4b2d-9579-584cda4df173`,
+  slug: `unleashx`,
+  name: `UnleashX`,
+  url: `https://unleashx.ai/`,
+  primaryLogoUrl: `https://file-host.link/website/unleashx-1r3z1u/assets/uploaded-assets/1775815478198000_b053301a49f5471391e5e7d1f3c836da`,
+  sampleServiceTopic: ``,
+  sampleCategoryTopic: ``,
+  sampleBlogTopic: ``,
+  designTokensJson: `{
+  "fonts": {
+    "body_font_url": "https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap",
+    "heading_font_url": "https://fonts.googleapis.com/css2?family=Urbanist:wght@300..700&display=swap"
+  },
+  "css_variables": {
+    "--shadow-lg": "0 10px 40px rgba(0, 0, 0, 0.6)",
+    "--shadow-md": "0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.4)",
+    "--shadow-s2": "0 2px 4px 0 rgba(0, 0, 0, 0.4)",
+    "--shadow-s3": "0 16px 32px -12px rgba(0, 0, 0, 0.6)",
+    "--shadow-s4": "0 4px 12px 0 rgba(119, 72, 223, 0.35)",
+    "--shadow-sm": "0px 1px 2px 0px rgba(0, 0, 0, 0.5)",
+    "--shadow-xl": "0 20px 40px rgba(0, 0, 0, 0.7)",
+    "--shadow-xs": "0px 1px 2px 0px rgba(0, 0, 0, 0.4)",
+    "--gradient-brand": "linear-gradient(to left, var(--color-brand-secondary), var(--color-brand-primary))",
+    "--color-brand-info": "#7748df",
+    "--color-brand-text": "#f1f2f3",
+    "--font-family-body": "Inter, ui-sans-serif, system-ui, sans-serif",
+    "--color-brand-black": "#0d0d0d",
+    "--color-brand-error": "#c1272d",
+    "--color-brand-white": "#000211",
+    "--animate-scroll-left": "scroll-left 60s linear infinite",
+    "--color-brand-gray-25": "#08091b",
+    "--color-brand-gray-50": "#0d0f22",
+    "--color-brand-primary": "#7748df",
+    "--color-brand-success": "#16a34a",
+    "--color-brand-warning": "#ffc107",
+    "--font-family-heading": "Urbanist, ui-sans-serif, system-ui, sans-serif",
+    "--hero-gradient-start": "rgba(119, 72, 223, 0.35)",
+    "--color-brand-gray-100": "#1a1c30",
+    "--color-brand-gray-200": "#242638",
+    "--color-brand-gray-300": "#3a3c50",
+    "--color-brand-gray-400": "#6a6e85",
+    "--color-brand-gray-500": "#8a8fa6",
+    "--color-brand-gray-600": "#a8accc",
+    "--color-brand-gray-700": "#c8ccdc",
+    "--color-brand-gray-800": "#dadde8",
+    "--color-brand-gray-900": "#f1f2f3",
+    "--color-gw-primary-100": "#1a1333",
+    "--color-gw-primary-200": "#2d1f5c",
+    "--color-gw-primary-300": "#4a2f99",
+    "--color-gw-primary-400": "#5f3bc0",
+    "--color-gw-primary-500": "#7748df",
+    "--color-gw-primary-600": "#8a5ee8",
+    "--color-gw-primary-700": "#a483f0",
+    "--color-brand-info-dark": "#1e40af",
+    "--color-brand-info-tint": "#0f2847",
+    "--color-brand-secondary": "#6600E8",
+    "--color-brand-error-dark": "#9d174d",
+    "--color-brand-error-tint": "#3a1624",
+    "--color-brand-info-light": "#3b82f6",
+    "--color-brand-neutral-50": "#08091b",
+    "--color-brand-text-muted": "#8a8fa6",
+    "--color-brand-error-light": "#ec8889",
+    "--color-brand-neutral-100": "#0d0f22",
+    "--color-brand-neutral-200": "#1a1c30",
+    "--color-brand-neutral-300": "#242638",
+    "--color-brand-neutral-400": "#6a6e85",
+    "--color-brand-neutral-500": "#8a8fa6",
+    "--color-brand-neutral-600": "#a8accc",
+    "--color-brand-neutral-700": "#c8ccdc",
+    "--color-brand-neutral-900": "#f1f2f3",
+    "--color-brand-primary-dark": "#5a35b0",
+    "--color-brand-success-dark": "#166534",
+    "--color-brand-success-tint": "#14361f",
+    "--color-brand-text-inverse": "#0d0d0d",
+    "--color-brand-text-primary": "#f1f2f3",
+    "--color-brand-primary-hover": "#8a5ee8",
+    "--color-brand-primary-light": "rgba(119, 72, 223, 0.12)",
+    "--color-brand-success-light": "#22c55e",
+    "--color-brand-text-tertiary": "#a8accc",
+    "--color-brand-primary-medium": "rgba(119, 72, 223, 0.2)",
+    "--color-brand-secondary-dark": "#7255D4",
+    "--color-brand-text-secondary": "#c8ccdc",
+    "--color-brand-secondary-hover": "#8366E8",
+    "--color-brand-secondary-light": "rgba(159, 137, 248, 0.1)",
+    "--color-brand-secondary-medium": "rgba(159, 137, 248, 0.2)",
+    "--color-brand-primary-foreground": "#ffffff",
+    "--background-image-gradient-brand": "linear-gradient(to left, var(--color-brand-secondary), var(--color-brand-primary))",
+    "--color-brand-secondary-foreground": "#ffffff"
+  }
+}`,
+  companyInfoJson: `{
+  "name": {
+    "dba_name": null,
+    "legal_name": null,
+    "company_name": "UnleashX"
+  },
+  "founded": {
+    "founded_date_year": null,
+    "years_in_business": null
+  },
+  "locations": {
+    "branch_locations": [],
+    "headquarters_address": null
+  },
+  "credentials": {
+    "memberships": [],
+    "accreditations": [],
+    "certifications": [],
+    "business_licenses": []
+  },
+  "company_size": {
+    "employee_count": null,
+    "annual_turnover": null
+  },
+  "service_team": {
+    "team_members": [
+      {
+        "bio": "Connects with prospects around the clock via calls, chat, and email, nurtures leads, sends follow-ups, autonomously updates your CRM, and closes deals until every opportunity converts. (English & Hindi)",
+        "name": "Peter",
+        "title": "Sales AI Employee",
+        "headshot_image": "https://unleashx.ai/_next/image/?url=%2Fimages%2FRohan.png&w=750&q=75"
+      },
+      {
+        "bio": "Re-engages dropped customers through voice, WhatsApp, and chat guides them through checkout, sends payment links, and autonomously tracks conversion until every lost cart turns into revenue. (English & Hindi)",
+        "name": "Sarah",
+        "title": "Cart Abandonment AI Employee",
+        "headshot_image": "https://unleashx.ai/_next/image/?url=%2Fimages%2Fsarah.webp&w=750&q=75"
+      },
+      {
+        "bio": "Sources and screens candidates across job boards, chat, and calls schedules interviews, sends reminders, coordinates hiring pipelines, and follows up autonomously until every position is filled. (English & Hindi)",
+        "name": "James",
+        "title": "HR Recruiter AI Employee",
+        "headshot_image": "https://unleashx.ai/_next/image/?url=%2Fimages%2Fjames.webp&w=750&q=75"
+      }
+    ],
+    "employee_count": null,
+    "years_of_experience": null
+  },
+  "company_story": {
+    "milestones": [],
+    "founding_story": null,
+    "company_history": null,
+    "growth_narrative": null
+  },
+  "phone_numbers": [
+    "+919911997433"
+  ],
+  "service_areas": [
+    "Global",
+    "India"
+  ],
+  "email_addresses": [],
+  "major_customers": [
+    {
+      "customer_name": "Blu Parrot",
+      "customer_logo_url": "https://unleashx.ai/_next/image/?url=%2Fimages%2Fcase-study%2Fblu-parrot.png&w=256&q=75"
+    },
+    {
+      "customer_name": "Property Point",
+      "customer_logo_url": "https://unleashx.ai/_next/image/?url=%2Fimages%2Fcase-study%2Fproperty.png&w=256&q=75"
+    },
+    {
+      "customer_name": "Edgy Scribblers",
+      "customer_logo_url": "https://unleashx.ai/_next/image/?url=%2Fimages%2Fcase-study%2Fedgy.png&w=256&q=75"
+    }
+  ],
+  "value_propositions": {
+    "key_benefits": [
+      "2.5x Lead Conversion",
+      "40% Cost Reduction",
+      "45 min Go Live Time",
+      "24/7 Active Operation",
+      "Reduces Manual Timelines by 40%",
+      "52% Faster Operational Speed",
+      "29% Consistent Project Turnaround",
+      "46% Faster Client Responses",
+      "33% Improved Campaign Efficiency",
+      "57% Faster Customer Follow-ups",
+      "31% Higher conversion from old leads"
+    ],
+    "market_positioning": "The leading provider of autonomous full-stack AI employees that handle end-to-end workflows across sales, support, hiring, and operations, going beyond basic voice bots to deliver complete digital workforce solutions.",
+    "competitive_advantages": [
+      "99% Uptime",
+      "98% Accuracy",
+      "2.5x Conversions",
+      "<700ms Latency",
+      "24/7 Reliability",
+      "Cross-System Sync with CRMs, APIs, and external platforms",
+      "Human In Loop combining AI speed with human oversight",
+      "100% Compliance Monitoring adhering to IRDAI, GDPR, and internal audit protocols"
+    ],
+    "unique_selling_propositions": [
+      "Full-Stack AI Employees that think, communicate, and execute across every channel",
+      "End-to-end productivity without external tools or dependencies",
+      "Autonomous AI employees that orchestrate workflows with 200+ tools",
+      "98% Human-Like Interactions with near-human precision across voice, chat, and task execution",
+      "Support for 100+ global languages and 12+ Indian languages including Tamil, Bangla, and 10+ Indian vernaculars",
+      "Production-ready AI employees deployable in minutes using pre-built templates",
+      "Central workflow orchestration platform to build, deploy, and manage AI employees"
+    ]
+  },
+  "awards_recognitions": [],
+  "social_media_profiles": {
+    "other": [],
+    "yelp_url": null,
+    "twitter_url": null,
+    "youtube_url": "https://www.youtube.com/@unleashXAI",
+    "facebook_url": "https://www.facebook.com/TryUnleashX/",
+    "linkedin_url": "https://www.linkedin.com/company/unleashx/?viewAsMember=true",
+    "whatsapp_url": "https://wa.me/919911997433",
+    "instagram_url": "https://www.instagram.com/unleashx.ai/"
+  },
+  "target_customer_segments": [
+    "Insurance",
+    "Banking & Finance",
+    "Automotive",
+    "E-Commerce",
+    "SaaS",
+    "Enterprises handling high-volume operations",
+    "Sales teams",
+    "Customer support operations",
+    "HR and recruitment departments"
+  ],
+  "mission_statement_company_values": {
+    "vision": null,
+    "taglines": [
+      "Build The Future Of Work",
+      "Intelligent AI Employees For Automotive",
+      "Deploy Full-Stack AI Employees, Not Just Isolated Agents"
+    ],
+    "core_values": [],
+    "mission_statement": null
+  }
+}`,
+  additionalInfoJson: `{
+  "business_profile": {
+    "inventory_nature": "100% Software-as-a-Service (SaaS) AI agents - no physical products, hardware, or traditional inventory; pre-built AI employee templates with customization capabilities across 100+ languages and 200+ tool integrations",
+    "business_identity": "Enterprise AI workforce platform providing autonomous AI employees that execute end-to-end business workflows across voice, chat, and task automation for sales, support, HR, and operations.",
+    "primary_verticals": [
+      "Sales & Lead Management AI Employees",
+      "Customer Support & Retention AI Employees",
+      "Insurance Operations AI Employees",
+      "E-commerce & Cart Recovery AI Employees",
+      "HR & Recruitment AI Employees",
+      "Banking & Financial Services AI Employees",
+      "Automotive Customer Engagement AI Employees"
+    ],
+    "explicit_out_of_scope": [
+      "Physical hardware or devices",
+      "Traditional human staffing or recruitment services",
+      "Generic chatbot builders without workflow orchestration",
+      "Single-channel voice-only bots",
+      "Consulting services without AI deployment",
+      "Data analytics tools without autonomous execution",
+      "CRM software (integrates with but does not replace)",
+      "Manual BPO or call center outsourcing",
+      "AI model training services",
+      "Custom software development unrelated to AI agents"
+    ]
+  }
+}`,
+  logoUrlsJson: `{
+  "favicon": "https://file-host.link/website/unleashx-1r3z1u/assets/logo/1774508835678034_4c654272a9334190a20e67ead7c1a404.svg",
+  "primary_logo": "https://file-host.link/website/unleashx-1r3z1u/assets/uploaded-assets/1775815478198000_b053301a49f5471391e5e7d1f3c836da"
+}`,
+  serviceCatalogJson: `[]`,
+  productInformationJson: `[]`,
+  paaDataJson: `{}`,
+  serviceImageDescriptions: [
+    `A modern dashboard showing an AI chatbot interface qualifying an EdTech prospect, with calendar scheduling and CRM sync visible on screen`,
+    `AI-powered virtual agent on a digital dashboard confirming a cash-on-delivery order with a customer via WhatsApp chat and voice call, with order details and confirmation status visible on screen`,
+    `HR professionals reviewing an AI-powered recruitment dashboard with candidate pipelines, automated screening scores, and interview scheduling tools on modern office screens`,
+    `A digital dashboard showing an AI agent managing group insurance enrollment displaying automated call flows, WhatsApp messages, and enrollment completion rates across a corporate employee list`,
+    `A modern digital dashboard showing AI chat, voice, and WhatsApp communication flows for an insurance company, with compliance indicators and multilingual options`,
+  ],
+  categoryImageDescriptions: [],
+  blogImageDescriptionOptions: {
+    infographic: [
+      `Process flow infographic showing 3 core autonomous AI voice assistant capabilities in e-commerce. Vertical or horizontal layout with three connected nodes: Node 1 - Process Refunds & Check Inventory (warehouse/refresh icon), Node 2 - Update CRMs & Trigger Follow-Ups (sync/bell icon), Node 3 - Close Deals Across Channels (checkmark/cart icon). Connect nodes with arrows. Use dark blue and teal color scheme. Add a headline: "What Modern AI Voice Assistants Execute Autonomously." Include brief one-line descriptor under each node.`,
+      `Classification infographic showing three distinct categories of voice AI APIs arranged in a vertical or horizontal three-column layout. Column 1: "Raw Model APIs" (waveform icon) — description: native speech-to-speech processing, example: OpenAI Realtime. Column 2: "Transcription/Synthesis APIs" (microphone icon) — description: specialized STT or TTS components, examples: Deepgram, ElevenLabs. Column 3: "Voice Agent Orchestration Platforms" (gear/network icon) — description: abstracts telephony and LLM coordination, example: Vapi. Use a blue and indigo color palette with clear icons and brief descriptors under each category name.`,
+      `Three-column comparison infographic contrasting RPA, Generative AI, and Agentic AI across four capability dimensions: Core Function, Handling Variance, Banking Application, and Autonomy Level. Vertical layout with each AI type as a labeled column header (RPA in grey, Generative AI in blue, Agentic AI in green). Each row uses icons to represent the dimension. Use checkmarks or gradient bars to indicate autonomy levels. Clean, modern design with a dark header row for dimension labels.`,
+      `Four-criteria evaluation framework infographic displayed in a 2x2 grid layout. Top-left: Low-Code Accessibility (gear/settings icon) — minimal coding to configure and deploy. Top-right: Voice Quality (waveform icon) — naturalness, latency, interruption handling. Bottom-left: Integration Depth (chain-link icon) — CRM, telephony, workflow compatibility. Bottom-right: Deployment Speed (rocket icon) — time from setup to live agent. Use blue and teal color scheme with bold labels and one-line descriptors per quadrant. Include a central connecting element or title badge.`,
+      `Comparison infographic illustrating voice AI latency benchmarks. Horizontal bar chart layout showing three tiers: Human Conversation Window (200-300ms, green), Target AI Latency (under 700ms, yellow), and Industry Median (1,400-1,700ms, red). Include a scale on the x-axis in milliseconds. Add a callout annotation noting that delays over 1 second trigger neurological stress responses. Use a dark tech-themed background with clean sans-serif typography and color-coded bars.`,
+    ],
+    internal: [
+      `Screenshot or product overview of UnleashX's Peter AI Employee platform, highlighting the lead qualification interface, 24/7 availability indicator, multilingual support, and CRM integration features. Should convey a modern AI-powered sales assistant environment with key operational capabilities visible.`,
+      `Screenshot or interface mockup of the UnleashX Peter AI Sales Employee confirming extracted entities during a live call before writing to Salesforce. Should display a conversation interface with visible entity confirmation prompts and a Salesforce record update panel alongside it.`,
+      `Illustration or interface screenshot of UnleashX's Sarah AI employee showing her multi-channel cart recovery workflow across voice, WhatsApp, and chat. Should convey 24/7 autonomous operation, customer re-engagement flow, and conversion tracking. Display the key touchpoints and communication channels in a clean dashboard or product interface view.`,
+      `Results graphic or case study highlight card for Property Point deployment showing two key outcomes: 57% faster customer follow-ups and 31% higher conversion from old leads. Should convey the UnleashX AI employee impact in a real-world sales context.`,
+      `Screenshot or interface view of the UnleashX platform showing the AI employee dashboard with active mortgage workflows, CRM update logs, and lead qualification activity. Should convey multi-channel automation across voice, chat, and email in a modern interface.`,
+    ],
+    external: [
+      `Screenshot or representative image of Google Dialogflow CX visual flow builder interface showing a conversational AI workflow for e-commerce. Should display multi-turn conversation paths, intent nodes, and flow connections typical of an enterprise chatbot configuration.`,
+      `Screenshot or illustration of a developer-facing voice AI platform dashboard showing call configuration settings, assistant setup, and call analytics metrics. Should convey a technical yet accessible interface suitable for both engineers and non-technical users configuring voice agents.`,
+      `Screenshot or interface view of a voice AI platform dashboard displaying live call monitoring, latency indicators, and conversation analytics. Should show a modern SaaS interface with active call data, response time metrics, and queue status. Conveys real-time operational visibility for dispatch teams.`,
+      `Screenshot or interface view of a cloud-based contact center AI platform showing real-time agent assist features, call routing queues, and live transcription. Should depict a financial services or mortgage contact center environment with active call metrics visible on screen.`,
+      `Screenshot or composite image showing major CRM platform interfaces — Salesforce, HubSpot, and Microsoft Dynamics — displayed side by side or in a collage format. Should convey the concept of enterprise CRM platforms supporting AI voice integration through native connectors or APIs.`,
+    ],
+    generic: [],
+  },
+  blogTopicOptions: [
+    `Voice AI IVR Integration with Mortgage Servicing Platforms`,
+    `Voice AI in Banking & Finance: Enabling 24/7 Customer Support`,
+    `How to Build an AI Voice Agent: Complete Guide`,
+    `How to Automate Subscription Contract Renewals: Complete Guide`,
+    `5 Best Practices for Integrating AI Voice Technology in Business`,
+  ],
+};
+
+const CLIENT_AHSHYDRAULICS: ClientSample = {
+  id: `b4064513-52a1-403d-b554-79632643d636`,
+  slug: `ahshydraulics`,
+  name: `AHS Hydraulics`,
+  url: `https://ahshydraulics.com/`,
+  primaryLogoUrl: `https://file-host.link/website/hydra-wolf-3x1f5h/assets/uploaded-assets/1770884938656000_f02944e58831493bac60c68f52df07c9`,
+  sampleServiceTopic: ``,
+  sampleCategoryTopic: ``,
+  sampleBlogTopic: ``,
+  designTokensJson: `{
+  "fonts": {
+    "body_font_url": "https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap",
+    "heading_font_url": "https://fonts.googleapis.com/css2?family=Urbanist:wght@300..700&display=swap"
+  },
+  "css_variables": {
+    "--color-brand-text": "#171717",
+    "--font-family-body": "Inter, ui-sans-serif, system-ui, sans-serif",
+    "--color-brand-primary": "#000000",
+    "--font-family-heading": "Urbanist, ui-sans-serif, system-ui, sans-serif",
+    "--color-brand-secondary": "#2563eb",
+    "--color-brand-text-muted": "#a3a3a3",
+    "--color-brand-primary-dark": "#000000",
+    "--color-brand-text-inverse": "#ffffff",
+    "--color-brand-text-primary": "#0a0a0a",
+    "--color-brand-primary-hover": "#1a1a1a",
+    "--color-brand-primary-light": "rgba(0, 0, 0, 0.05)",
+    "--color-brand-text-tertiary": "#737373",
+    "--color-brand-primary-medium": "rgba(0, 0, 0, 0.1)",
+    "--color-brand-secondary-dark": "#1e40af",
+    "--color-brand-text-secondary": "#404040",
+    "--color-brand-secondary-hover": "#1d4ed8",
+    "--color-brand-secondary-light": "rgba(37, 99, 235, 0.05)",
+    "--color-brand-secondary-medium": "rgba(37, 99, 235, 0.1)",
+    "--color-brand-primary-foreground": "#ffffff",
+    "--color-brand-secondary-foreground": "#ffffff"
+  }
+}`,
+  companyInfoJson: `{
+  "name": {
+    "dba_name": "HydraWolf Hydraulics",
+    "legal_name": "Automated Biomass Systems",
+    "company_name": "HydraWolf Hydraulics Mfg"
+  },
+  "founded": {
+    "founded_date_year": null,
+    "years_in_business": "Over a decade"
+  },
+  "locations": {
+    "branch_locations": [
+      "2235 Clarks Corners Rd, Marathon, NY 13803"
+    ],
+    "headquarters_address": "2235 Clarks Corners Road, Marathon, NY 13803"
+  },
+  "credentials": {
+    "memberships": [],
+    "accreditations": [],
+    "certifications": [],
+    "business_licenses": []
+  },
+  "company_size": {
+    "employee_count": 100,
+    "annual_turnover": null
+  },
+  "service_team": {
+    "team_members": [],
+    "employee_count": null,
+    "years_of_experience": null
+  },
+  "company_story": {
+    "milestones": [
+      "Established as subsidiary of Automated Biomass Systems",
+      "More than doubled number of employees during recent expansion",
+      "Expanded Timberwolf product line",
+      "Became sole distributor of hydraulic components for Timberwolf machines"
+    ],
+    "founding_story": "As Timberwolf firewood machines continued to evolve and become more efficient, ergonomic, and productive, so have the hydraulic components that drive these impressive pieces of equipment. This evolution led to the creation of HydraWolf Hydraulics Mfg as a dedicated subsidiary focused on hydraulic component manufacturing.",
+    "company_history": "HydraWolf Hydraulics Mfg is a subsidiary of Automated Biomass Systems, a manufacturer and distributor of Timberwolf Firewood Processing Equipment machines. All Timberwolf equipment is proudly engineered, manufactured, and assembled in the USA (Upstate NY). With over a decade in the firewood processing industry, Timberwolf recently expanded its product line up and more than doubled its number of employees.",
+    "growth_narrative": "Starting with over a decade of experience in the firewood processing industry, the company evolved from manufacturing Timberwolf equipment to establishing HydraWolf Hydraulics as a dedicated subsidiary. As the firewood machines became more efficient and productive, the company streamlined its hydraulic manufacturing and assembly processes, eventually more than doubling its workforce and expanding its product offerings to serve a broader range of heavy machinery applications beyond firewood processing."
+  },
+  "phone_numbers": [
+    "607-307-4029",
+    "+1 607-307-4029"
+  ],
+  "service_areas": [
+    "United States",
+    "Overseas (upon request)",
+    "Continental North America"
+  ],
+  "email_addresses": [
+    "info@ahshydraulics.com",
+    "info@hydra-wolf.com",
+    "Info@TimberWolfequip.com"
+  ],
+  "major_customers": [
+    {
+      "customer_name": "Timberwolf Firewood Processing Equipment",
+      "customer_logo_url": null
+    }
+  ],
+  "ratings_reviews": {
+    "GBP": {
+      "rating": null,
+      "review_count": null
+    }
+  },
+  "business_category": [
+    "Manufacturer"
+  ],
+  "target_geographies": [
+    "us"
+  ],
+  "value_propositions": {
+    "key_benefits": [
+      "Reliable product with exciting performance",
+      "Easy to use and maintain hydraulic cylinders",
+      "Superior components at an unbeatable price",
+      "Industry-leading customer service and support",
+      "Direct technical support from designers and builders"
+    ],
+    "market_positioning": "The direct manufacturer of American-made hydraulic components offering superior quality, reliability, and customer support for heavy machinery operations from log splitters to construction equipment.",
+    "competitive_advantages": [
+      "Over a decade of experience in the firewood processing industry",
+      "Continuously streamlining hydraulic manufacturing and assembly",
+      "Highest level of quality control through in-house fabrication",
+      "Direct manufacturer pricing",
+      "Two American manufacturing facilities",
+      "Team of engineers, welders, and operators who are fellow customers"
+    ],
+    "unique_selling_propositions": [
+      "Sole distributor of hydraulic cylinders, fittings, and other components key to Timberwolf machines",
+      "Purchasing direct from the manufacturer ensures customers receive the correct, high-quality part",
+      "All raw materials sourced from North America",
+      "Majority of hydraulic components fabricated in-house",
+      "Combination of tried and tested designs and innovative hydraulic functions"
+    ]
+  },
+  "awards_recognitions": [],
+  "social_media_profiles": {
+    "other": [],
+    "yelp_url": null,
+    "twitter_url": null,
+    "youtube_url": null,
+    "facebook_url": null,
+    "linkedin_url": null,
+    "whatsapp_url": null,
+    "instagram_url": null
+  },
+  "target_customer_segments": [
+    "Tractor operators",
+    "Firewood processing industry",
+    "Heavy machinery operators",
+    "Agricultural equipment users",
+    "Construction equipment operators",
+    "Log splitter operators",
+    "Marine applications",
+    "Tractor owners",
+    "Firewood processing operations"
+  ],
+  "mission_statement_company_values": {
+    "vision": null,
+    "taglines": [
+      "American Made Hydraulic Components for All Operations"
+    ],
+    "core_values": [
+      "Quality control and continuous improvement",
+      "Customer service and support",
+      "American manufacturing excellence"
+    ],
+    "mission_statement": "Our experienced team of professionals are not only dedicated to their craft, but they are also fellow heavy machine operators and customers."
+  }
+}`,
+  additionalInfoJson: `{
+  "business_profile": {
+    "inventory_nature": "95% Replacement Parts & Components / 5% Assembled Hydraulic Cylinders as whole units. Focus on aftermarket hydraulic parts for firewood processors, log splitters, construction equipment, agricultural machinery, and industrial hydraulic systems. All products are new, American-made components.",
+    "business_identity": "American manufacturer and direct distributor of hydraulic components and replacement parts for firewood processing equipment, heavy machinery, and industrial applications, emphasizing in-house fabrication and direct-from-manufacturer sales.",
+    "primary_verticals": [
+      "Hydraulic Cylinders",
+      "Hydraulic Valves",
+      "Hydraulic Pumps",
+      "Hydraulic Fittings",
+      "Firewood Machine Parts (Wedges, Push Blocks, Table Grates, Belts)",
+      "Power Transmission Components (Bellhousings, Sprockets, Couplers)",
+      "Filtration & Fluid Management (Filters, Tanks, Gauges)",
+      "Firewood Processing Machine Parts",
+      "Hydraulic Pumps & Valves",
+      "Timberwolf Machine Parts (Wedges, Push Blocks, Table Grates)",
+      "Hydraulic System Components (Filters, Manifolds, Seal Kits, Tanks)",
+      "Power Transmission (Bellhousings, Sprockets, Couplers)",
+      "Conveyor Systems Parts (Belts, Rollers, Drive Components)"
+    ],
+    "explicit_out_of_scope": [
+      "Complete firewood processing machines or splitters (whole units)",
+      "Equipment rentals",
+      "Repair services or on-site maintenance",
+      "Used or refurbished parts",
+      "Non-Timberwolf brand equipment",
+      "Residential/consumer-grade products",
+      "Installation services",
+      "Equipment financing or leasing",
+      "Complete Firewood Processing Machines",
+      "Rentals",
+      "Repair Services",
+      "Used/Refurbished Equipment",
+      "Residential/Consumer Products",
+      "Non-Hydraulic Machinery",
+      "Installation Services",
+      "On-Site Service Calls",
+      "Complete machines or whole equipment units (tractors, forklifts, bulldozers, complete firewood processors)",
+      "Equipment rentals or leasing",
+      "Non-hydraulic machinery",
+      "Residential consumer goods",
+      "Third-party branded equipment sales",
+      "Pneumatic systems",
+      "Electrical components or motors (except as integrated in specific assemblies)"
+    ]
+  }
+}`,
+  logoUrlsJson: `{
+  "favicon": "https://file-host.link/website/hydra-wolf-3x1f5h/assets/logo/1770201935425288_46aef0a31e4a464d8a57fbd8c98ee71b.webp",
+  "gbp_url": "https://file-host.link/website/hydra-wolf-3x1f5h/assets/logo/1770113798664611_06e5da7d76ac443e815b9357dcb0b5a8.webp",
+  "primary_logo": "https://file-host.link/website/hydra-wolf-3x1f5h/assets/uploaded-assets/1770884938656000_f02944e58831493bac60c68f52df07c9"
+}`,
+  serviceCatalogJson: `[]`,
+  productInformationJson: `[]`,
+  paaDataJson: `{}`,
+  serviceImageDescriptions: [],
+  categoryImageDescriptions: [
+    `Construction excavator with hydraulic elbow fittings on heavy equipment at an active job site`,
+    `Agricultural tractor with hydraulic elbow fittings connecting implement systems in a farm field setting`,
+    `Modern agricultural tractor with hydraulic connections and fittings operating in a farm field with visible hydraulic hose systems`,
+    `Industrial manufacturing facility showing hydraulic-powered machinery and equipment with visible hydraulic hoses and fitting connections`,
+    `Firewood processing equipment with hydraulic log splitter showing hydraulic cylinders, hoses, and fittings in outdoor working environment`,
+  ],
+  blogImageDescriptionOptions: {
+    infographic: [],
+    internal: [],
+    external: [],
+    generic: [],
+  },
+  blogTopicOptions: [
+    `How to Connect Hydraulic Hoses: Expert Safety & Technique Guide`,
+    `How to Bleed Air from Closed Loop Hydraulic Systems`,
+    `Hydraulic Cylinder Seal Direction: Installation Guide for Perfect Alignment`,
+    `Hydraulic Cylinder Maintenance: The Ultimate Guide for 2024`,
+    `JIC Fitting Female Connections: Expert Insights and Technical Understanding`,
+  ],
+};
+
+const CLIENT_VAPORKOTE: ClientSample = {
+  id: `3f9760fb-9676-454f-bc0b-d2c5649b26c0`,
+  slug: `vaporkote`,
+  name: `Vaporkote`,
+  url: `https://vaporkote.com/`,
+  primaryLogoUrl: `https://file-host.link/website/vaporkote-87lem1/assets/logo/logo.webp`,
+  sampleServiceTopic: ``,
+  sampleCategoryTopic: ``,
+  sampleBlogTopic: ``,
+  designTokensJson: `{
+  "fonts": {
+    "body_font_url": "https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap",
+    "heading_font_url": "https://fonts.googleapis.com/css2?family=Urbanist:wght@300..700&display=swap"
+  },
+  "css_variables": {
+    "--color-brand-text": "#1A1A1A",
+    "--font-family-body": "Inter, ui-sans-serif, system-ui, sans-serif",
+    "--color-brand-primary": "#BA4B27",
+    "--font-family-heading": "Urbanist, ui-sans-serif, system-ui, sans-serif",
+    "--color-brand-secondary": "#1A1A1A",
+    "--color-brand-text-muted": "#998E8A",
+    "--color-brand-primary-dark": "#7D2F12",
+    "--color-brand-text-inverse": "#ffffff",
+    "--color-brand-text-primary": "#1A1A1A",
+    "--color-brand-primary-hover": "#9E3D1D",
+    "--color-brand-primary-light": "rgba(186, 75, 39, 0.05)",
+    "--color-brand-text-tertiary": "#6B6260",
+    "--color-brand-primary-medium": "rgba(186, 75, 39, 0.1)",
+    "--color-brand-secondary-dark": "#0A0A0A",
+    "--color-brand-text-secondary": "#3D3D3D",
+    "--color-brand-secondary-hover": "#2E2E2E",
+    "--color-brand-secondary-light": "rgba(26, 26, 26, 0.05)",
+    "--color-brand-secondary-medium": "rgba(26, 26, 26, 0.1)",
+    "--color-brand-primary-foreground": "#ffffff",
+    "--color-brand-secondary-foreground": "#ffffff"
+  }
+}`,
+  companyInfoJson: `{
+  "name": {
+    "dba_name": null,
+    "legal_name": null,
+    "company_name": "VaporKote"
+  },
+  "founded": {
+    "founded_date_year": 1987,
+    "years_in_business": "Over 37 years"
+  },
+  "locations": {
+    "branch_locations": [],
+    "headquarters_address": "1270 N Grove St Anaheim, CA 92806"
+  },
+  "credentials": {
+    "memberships": [],
+    "accreditations": [
+      "Adheres to ASTM, ASME, SAE, API and other engineering codes and practices"
+    ],
+    "certifications": [],
+    "business_licenses": []
+  },
+  "company_size": {
+    "employee_count": null,
+    "annual_turnover": null
+  },
+  "service_team": {
+    "team_members": [],
+    "employee_count": null,
+    "years_of_experience": null
+  },
+  "company_story": {
+    "milestones": [
+      "1987: Founded VaporKote"
+    ],
+    "founding_story": "Founded in 1987, VaporKote began with a simple yet profound vision to redefine the standards of wear and corrosion resistance.",
+    "company_history": "VaporKote, where our story is etched in the legacy of several years of unwavering commitment to excellence. Founded in 1987, VaporKote has evolved into a beacon of innovation and reliability in the realm of industrial protection. Our journey began with a simple yet profound vision to redefine the standards of wear and corrosion resistance. Over the years, we've cultivated a reputation not just as a coating service provider but as a transformative force, manufacturing confidence and longevity for our clients.",
+    "growth_narrative": "VaporKote has evolved from its founding in 1987 into a beacon of innovation and reliability in the realm of industrial protection. Over the years, the company has cultivated a reputation not just as a coating service provider but as a transformative force, manufacturing confidence and longevity for clients. The company has seamlessly blended longevity, product quality, and technical prowess into the fabric of its existence, expanding capabilities to include manufacturing coated parts and processing large components using state-of-the-art furnaces."
+  },
+  "phone_numbers": [
+    "(714) 632-8607",
+    "+1 714-632-8607"
+  ],
+  "service_areas": [],
+  "working_hours": {
+    "Friday": [
+      "8AM-5PM"
+    ],
+    "Monday": [
+      "8AM-5PM"
+    ],
+    "Sunday": [
+      "Closed"
+    ],
+    "Tuesday": [
+      "8AM-5PM"
+    ],
+    "Saturday": [
+      "Closed"
+    ],
+    "Thursday": [
+      "8AM-5PM"
+    ],
+    "Wednesday": [
+      "8AM-5PM"
+    ]
+  },
+  "email_addresses": [
+    "sales@vaporkote.com"
+  ],
+  "major_customers": [],
+  "ratings_reviews": {
+    "GBP": {
+      "rating": 5,
+      "review_count": 2
+    }
+  },
+  "business_category": [
+    "Metal heat treating service"
+  ],
+  "target_geographies": [
+    "us"
+  ],
+  "value_propositions": {
+    "key_benefits": [
+      "Extended equipment life",
+      "Reduced maintenance costs",
+      "Unparalleled performance",
+      "Saves customers hundreds of thousands of dollars a year in maintenance costs",
+      "Prevents component failures",
+      "Minimizes downtime",
+      "Superior corrosion resistance",
+      "Enhanced wear protection",
+      "Cost-effective method of extending service life"
+    ],
+    "market_positioning": "The trusted partner dedicated to preservation of equipment and enhancement of operational efficiency through innovative diffusion coating technologies that redefine industry standards for wear and corrosion resistance.",
+    "competitive_advantages": [
+      "Several years of industry longevity since 1987",
+      "Quality and technical expertise",
+      "State-of-the-art furnaces for aluminizing and boronizing large components",
+      "Comprehensive suite of services from ideation to production and distribution",
+      "Advanced facilities and experienced professionals",
+      "Adherence to ASTM, ASME, SAE, API and other engineering codes and practices",
+      "Metallurgical analysis and certification of diffusion coatings",
+      "Flexibility and adaptability with customized services"
+    ],
+    "unique_selling_propositions": [
+      "Formulate on-site powder mixes ensuring coatings are finely tuned to meet unique requirements",
+      "Chemical vapor deposition processes form an intermetallic compound at the surface of the base metal",
+      "VaporKoted parts consistently outperform other surface treatments and more costly untreated materials",
+      "Manufacturing capabilities for large parts up to 68 inch diameter",
+      "Achieves RC75+ equivalency surface hardness, harder than tungsten carbide cutting tools",
+      "Resulting surface hardness of 1500 Knoop (RC75+ equivalency)"
+    ]
+  },
+  "awards_recognitions": [],
+  "social_media_profiles": {
+    "other": [],
+    "yelp_url": null,
+    "twitter_url": null,
+    "youtube_url": null,
+    "facebook_url": null,
+    "linkedin_url": null,
+    "whatsapp_url": null,
+    "instagram_url": null
+  },
+  "target_customer_segments": [
+    "Manufacturing",
+    "Petrochemical",
+    "Oil Refining",
+    "Mining",
+    "Oil Drilling",
+    "Agriculture",
+    "Oil Production",
+    "Aerospace",
+    "Pulp & Paper",
+    "Heat Exchanger Manufacturing"
+  ],
+  "mission_statement_company_values": {
+    "vision": "Our vision at VaporKote is rooted in the belief that every industrial asset deserves a shield of resilience. We envision a future where wear and corrosion are not challenges but opportunities for enhancement. As industry pioneers, we strive to be at the forefront of technological advancements, consistently offering cutting-edge solutions that redefine the lifespan of industrial equipment. Our vision is to be the trusted name that industries turn to when they seek innovation, reliability, and a partner who understands the language of metallurgy.",
+    "taglines": [
+      "Pioneering Industrial Excellence with Cutting-Edge Coating Innovations"
+    ],
+    "core_values": [],
+    "mission_statement": "To provide comprehensive, efficient, and reliable coating solutions. We embark on each project with the mission to enhance the lifespan of your equipment through precision boronizing and aluminizing processes. Our mission is to be the driving force behind your success, delivering not just coatings but a shield of confidence that empowers industries to operate at elevated levels. We are dedicated to continuous improvement, staying abreast of industry standards, and ensuring that our clients benefit from the most advanced protective coatings in the market. At VaporKote, our mission is your longevity."
+  }
+}`,
+  additionalInfoJson: `{
+  "business_profile": {
+    "inventory_nature": "100% Service-Based Operations - No product inventory sold; company provides coating application services, custom manufacturing of coated components, and engineering consulting rather than distributing pre-made parts or equipment.",
+    "business_identity": "Industrial coating service provider specializing in thermal diffusion processes (boronizing and aluminizing) for wear and corrosion protection, with integrated manufacturing and machining capabilities for coated components.",
+    "primary_verticals": [
+      "Boronizing/Boriding Services",
+      "Aluminizing/Calorizing Services",
+      "Thermal Diffusion Coatings",
+      "PVD Coatings",
+      "Heat Treatment Services",
+      "Custom Component Manufacturing",
+      "Machining and Repair Services"
+    ],
+    "explicit_out_of_scope": [
+      "Uncoated Parts Sales",
+      "Equipment Rentals",
+      "Coating Removal Services",
+      "Paint/Liquid Coatings",
+      "Electroplating Services",
+      "Powder Coating (Decorative)",
+      "Residential/Consumer Products",
+      "Software-Only Solutions",
+      "Raw Material Distribution",
+      "Third-Party Equipment Sales"
+    ]
+  }
+}`,
+  logoUrlsJson: `{
+  "favicon": "https://file-host.link/website/vaporkote-87lem1/assets/logo/1773332211707053_1ba70b0326934057be2fb1088aa41ebd.png",
+  "gbp_url": "https://file-host.link/website/vaporkote-87lem1/assets/logo/1773332145168347_3d29bce479274631b6db8699a8fe3dd0.webp",
+  "primary_logo": "https://file-host.link/website/vaporkote-87lem1/assets/logo/logo.webp"
+}`,
+  serviceCatalogJson: `[]`,
+  productInformationJson: `[]`,
+  paaDataJson: `{}`,
+  serviceImageDescriptions: [
+    `Industrial process engineer in safety gear inspecting metal components on a manufacturing floor with coating equipment and machinery in background`,
+    `Large industrial furnace performing high-temperature thermal processing on metal components, glowing heat, technician observing controls`,
+    `A large industrial heat treating furnace glowing orange with metal components inside, technician monitoring controls in a factory setting`,
+    `Heavy-duty CNC machining center cutting a large metal component with tight tolerances, sparks visible, industrial shop floor setting`,
+    `Industrial technicians fabricating a large custom heat exchanger in a professional manufacturing facility with welding equipment and precision tools`,
+  ],
+  categoryImageDescriptions: [],
+  blogImageDescriptionOptions: {
+    infographic: [
+      `Infographic showing four primary wear mechanisms in a 2x2 grid layout. Top-left: Abrasive Wear (grinding/particle icon), Top-right: Erosive Wear (liquid/particle impingement icon), Bottom-left: Adhesive Wear/Galling (two surfaces bonding icon), Bottom-right: Fretting Wear (oscillating motion icon). Each quadrant includes the mechanism name, a one-line definition, and a common industrial example. Use a blue and orange color scheme with clear borders separating each quadrant.`,
+      `Statistical breakdown infographic showing two sets of failure data side by side. Left panel titled "Failure Mode" with two horizontal bar segments: Clogging/Blockage 54% (orange), Internal Leakage 41% (red), with a small "other" remainder. Right panel titled "Root Cause" with two segments: Hardware Design Deficiencies 63% (dark blue), Deficient Maintenance 30% (light blue), remainder unlabeled. Include a bold header: "What Causes Industrial Heat Exchanger Failures?" Use warning/alert iconography. Clean, data-forward layout with percentage labels prominently displayed.`,
+      `Labeled anatomy diagram of a tubular heat exchanger in horizontal cutaway view. Identify and label five core components: Tubes (carrying fluid, shown as parallel cylinders), Tube Sheets (thick end plates, shown at each end), Shell (outer cylindrical vessel), Baffles (internal plates directing flow in serpentine path), and Headers (front and rear fluid distribution chambers). Use arrows to indicate fluid flow directions. Blue color for tube-side fluid, orange for shell-side fluid. Clean technical illustration style with clear callout lines.`,
+      `Side-by-side comparison infographic with two columns: "Nitriding" (left, blue) and "Conventional Heat Treatment" (right, orange). Five rows covering: Surface Hardness, Case Depth, Dimensional Distortion, Corrosion Resistance, and Cycle Time & Cost. Each row includes a bold label, a small relevant icon (e.g., hardness diamond, ruler, distortion wave, shield, clock), and concise value descriptors. Use alternating row shading for readability. Title at top: "Nitriding vs. Conventional Heat Treatment." Clean, industrial design style.`,
+      `Vertical or horizontal icon-based infographic listing 5 performance outcomes of aluminum heat treatment. Each outcome as a distinct tile: 1 - Increased tensile and yield strength (upward arrow icon), 2 - Improved hardness (shield/diamond icon), 3 - Restored ductility and formability (flex/bend icon), 4 - Stress relief (pressure release icon), 5 - Uniform chemistry (molecule/grid icon). Use a blue and silver color scheme referencing aluminum. Include brief descriptor phrase beneath each tile label.`,
+    ],
+    internal: [
+      `Photo or close-up image of industrial heat exchanger tubes that have undergone diffusion coating treatment (boronizing or aluminizing). Should show the treated tube surface finish and, if available, a cross-section or side-by-side comparison with uncoated tubes. Can include lab or production environment context reflecting VaporKote's coating process.`,
+      `Image depicting the diffusion coating process applied to heat exchanger tubing or components. Should convey the metallurgical surface treatment environment, showing treated metal components or the coating application process. Industrial setting with visible treated parts.`,
+      `Photo or image of VaporKote's industrial furnace facility showing large-capacity processing equipment used for boronizing or aluminizing of oversized components. Should convey the scale of the operation and the industrial-grade nature of the diffusion coating process. Image may show furnace interior, treated components, or facility floor.`,
+      `Photo or close-up of a component treated with VaporKote's boronizing process, suitable for mining, drilling, or agricultural equipment contexts. Should convey high-performance surface treatment and industrial durability. May show tooling, shaft, or wear-critical part with visible treated surface.`,
+      `Photo or image of VaporKote's industrial diffusion coating facility showing large-capacity furnaces used to process components. Should convey the scale of operations and the industrial environment where boronizing and aluminizing processes are carried out on heavy components.`,
+    ],
+    external: [
+      `Photo of an industrial shell-and-tube heat exchanger installed in a refinery or chemical processing facility. Should show the cylindrical shell design with visible tube bundle connections and pipe fittings. Conveys heavy-duty industrial scale and high-pressure operating environment.`,
+      `Photo or image of large-scale industrial air-cooled heat exchanger (fin-fan cooler) installed at a petrochemical or refinery facility. Should show multiple tube bundles with fan assemblies above, conveying the scale and industrial setting. Outdoor installation preferred.`,
+      `Image showing industrial powder coating process with an electrostatic spray gun applying dry polymer powder to a metal component, with a curing oven visible in the background. Should convey a professional finishing facility environment with visible coating application equipment.`,
+      `Image depicting pipeline corrosion damage in an oil and gas industrial setting. Should show visible internal corrosion or degraded metal components to illustrate the consequences of inadequate surface protection. Industrial environment with pipes or downhole equipment visible.`,
+      `Image of industrial oil and gas processing facility components, including valves, process piping, and heat exchanger assemblies in an active refinery or processing plant environment. Should convey the scale and chemical severity of the operating environment where corrosion-resistant coatings are critical.`,
+    ],
+    generic: [],
+  },
+  blogTopicOptions: [
+    `Physical Vapor Deposition (PVD): Process, Applications & Benefits`,
+    `The Importance of High-Tolerance Machining: Complete Guide`,
+    `Anti-Corrosion Coatings 101: What They Are & Why They Matter`,
+    `PVD Coating for Stainless Steel: Benefits & Applications`,
+    `Heat Exchanger Efficiency: Complete Guide & Analysis`,
+  ],
 };
 
 export const CLIENT_SAMPLES: ClientSample[] = [
@@ -7828,6 +9143,9 @@ export const CLIENT_SAMPLES: ClientSample[] = [
   CLIENT_TRINU_POWDER_COATING,
   CLIENT_7BROWN,
   CLIENT_ABBAHVAC,
+  CLIENT_UNLEASHX,
+  CLIENT_AHSHYDRAULICS,
+  CLIENT_VAPORKOTE,
 ];
 
 export function getClientSampleBySlug(slug: string): ClientSample | undefined {

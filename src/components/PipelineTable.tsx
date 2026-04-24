@@ -61,21 +61,27 @@ export function PipelineTable({ onRunStep, runningScope }: PipelineTableProps) {
                   <div className="flex items-center gap-2">
                     <span className="text-neutral-600 font-mono">{i + 1}.</span>
                     <span className="text-neutral-300 font-semibold truncate flex-1">{step.title}</span>
-                    <button
-                      onClick={() => onRunStep(step.name)}
-                      disabled={!canRun}
-                      title={
-                        !canRun
-                          ? (isRunning ? "Another run is in progress" : "Add at least one client first")
-                          : `Run this step for all ${clients.length} client${clients.length === 1 ? "" : "s"}`
-                      }
-                      className="px-2 py-0.5 text-[10px] rounded font-medium
-                        bg-violet-700/70 text-violet-50 hover:bg-violet-600
-                        disabled:opacity-30 disabled:cursor-not-allowed
-                        transition-colors whitespace-nowrap"
-                    >
-                      {isThisRunning ? "Running…" : "▶ Run all"}
-                    </button>
+                    {/* Picker steps don't make a provider call, so there's
+                     *  nothing to "run all" — the selection is set directly
+                     *  in the cell via click. Hide the button rather than
+                     *  disabling it so the header stays uncluttered. */}
+                    {!step.picker && (
+                      <button
+                        onClick={() => onRunStep(step.name)}
+                        disabled={!canRun}
+                        title={
+                          !canRun
+                            ? (isRunning ? "Another run is in progress" : "Add at least one client first")
+                            : `Run this step for all ${clients.length} client${clients.length === 1 ? "" : "s"}`
+                        }
+                        className="px-2 py-0.5 text-[10px] rounded font-medium
+                          bg-violet-700/70 text-violet-50 hover:bg-violet-600
+                          disabled:opacity-30 disabled:cursor-not-allowed
+                          transition-colors whitespace-nowrap"
+                      >
+                        {isThisRunning ? "Running…" : "▶ Run all"}
+                      </button>
+                    )}
                   </div>
                 </th>
               );

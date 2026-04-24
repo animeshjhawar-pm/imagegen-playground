@@ -109,7 +109,10 @@ function makeNewClient(
     oldFlow: pipeline ? makeEmptyFlowState(pipeline) : empty,
     newFlows: [pipeline ? makeEmptyFlowState(pipeline) : empty],
     isCollapsed: false,
-    isContextCollapsed: false,
+    // Start with the context panel collapsed — imports typically fill all
+    // the context fields, so there's nothing useful to see in the panel
+    // by default. User can expand (the whole bar is clickable) to inspect.
+    isContextCollapsed: true,
   };
 }
 
@@ -250,6 +253,16 @@ export type PlaygroundAction =
       warning?: string;
     }
   | {
+      /** Write `output` into the named step across every flow on this
+       *  client (old + all new lanes). Used by the Choose Image Description
+       *  picker, whose cell is rendered once per client but whose selection
+       *  must propagate to every flow's downstream Build Image Prompt. */
+      type: "SET_SHARED_STEP_OUTPUT";
+      clientId: string;
+      stepName: string;
+      output: string;
+    }
+  | {
       type: "SET_STEP_STATUS";
       clientId: string;
       flowType: "old" | "new";
@@ -333,8 +346,13 @@ export type PlaygroundAction =
 export const initialState: PlaygroundState = {
   pageType: null,
   imageType: null,
-  clients: [makeNewClient(null, "client_1", "Client 1")],
-  nextClientId: 2,
+  // Start empty so the TopControlBar auto-open flow triggers on the
+  // user's first (pageType, imageType) selection. A default seeded
+  // client here would block the `clients.length === 0` guard and the
+  // Import dialog would never open unless the user removed the row
+  // manually first.
+  clients: [],
+  nextClientId: 1,
   lastAddedClientId: null,
 };
 
@@ -348,15 +366,17 @@ export function playgroundReducer(
 ): PlaygroundState {
   switch (action.type) {
     case "SELECT_PAGE_TYPE":
+      // Switching page type drops all clients so the user's next pick
+      // doesn't drag service/category presets into the blog pipeline
+      // (and vice versa). The TopControlBar auto-open flow re-triggers
+      // with an empty client list, giving a clean Presets picker scoped
+      // to the new page type.
       return {
         ...state,
         pageType: action.pageType,
         imageType: null,
-        clients: state.clients.map((c) => ({
-          ...c,
-          oldFlow: { stepStates: {} },
-          newFlows: c.newFlows.map(() => ({ stepStates: {} })),
-        })),
+        clients: [],
+        lastAddedClientId: null,
       };
 
     case "SELECT_IMAGE_TYPE": {
@@ -512,6 +532,22 @@ export function playgroundReducer(
           warning: action.warning,
         }))
       );
+
+    case "SET_SHARED_STEP_OUTPUT": {
+      const apply = (s: StepState): StepState => ({
+        ...s,
+        output: action.output,
+        lastRunOutput: action.output,
+        status: "completed",
+        isOutputOverride: false,
+        error: undefined,
+      });
+      return updateClient(state, action.clientId, (c) => ({
+        ...c,
+        oldFlow: updateFlowStep(c.oldFlow, action.stepName, apply),
+        newFlows: c.newFlows.map((f) => updateFlowStep(f, action.stepName, apply)),
+      }));
+    }
 
     case "SET_STEP_STATUS":
       return updateClient(state, action.clientId, (c) =>

@@ -55,6 +55,25 @@ interface StepCellProps {
   pageType: PageType;
   imageType: ImageType;
   defaultAspectRatio: string;
+  /**
+   * When true, the step is gated off for this (pipeline, flow) because
+   * a required piece of client context is missing (see FlowRow →
+   * getDisabledStepsForFlow). Renders a greyed-out body and hides the
+   * Run button.
+   */
+  disabled?: boolean;
+  /**
+   * Applied to the outer <td>. Used by FlowRow so shared cells (picker
+   * steps) span across all of a client's flow rows (old + every new
+   * lane). Non-picker rows receive no rowSpan.
+   */
+  rowSpan?: number;
+  /**
+   * True when this cell represents a step that's shared across all of
+   * the client's flows. Selection dispatches write to every flow state
+   * at once via SET_SHARED_STEP_OUTPUT instead of the per-flow variant.
+   */
+  sharedAcrossFlows?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -62,6 +81,8 @@ interface StepCellProps {
 // ---------------------------------------------------------------------------
 export function StepCell({
   step, flowType, flowIndex = 0, clientId, client, pageType, imageType, defaultAspectRatio,
+  disabled = false,
+  rowSpan, sharedAcrossFlows = false,
 }: StepCellProps) {
   const { dispatch, isDryRun } = usePlayground();
   const pipelineKey = `${pageType}:${imageType}`;
@@ -87,14 +108,60 @@ export function StepCell({
   const isRunning  = stepState.status === "running";
   const isFailed   = stepState.status === "failed";
 
+  // ── Picker step (Choose Image Description) ───────────────────────────────
+  // Parse the options_json input into a string[] for the picker UI. When
+  // the step has no output yet, auto-select options[0] so downstream
+  // steps see a usable value without the user having to click.
+  const pickerOptions: string[] | null = useMemo(() => {
+    if (!step.picker) return null;
+    const raw = sourceResolved["options_json"] ?? "";
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.filter((s) => typeof s === "string") : [];
+    } catch {
+      return [];
+    }
+  }, [step.picker, sourceResolved]);
+
+  useEffect(() => {
+    if (!step.picker || !pickerOptions || pickerOptions.length === 0) return;
+    if (disabled) return;
+    // Initialise to options[0] when empty; leaves manual overrides alone.
+    if ((stepState.output ?? "").trim() === "" && !stepState.isOutputOverride) {
+      if (sharedAcrossFlows) {
+        dispatch({
+          type: "SET_SHARED_STEP_OUTPUT",
+          clientId, stepName: step.name,
+          output: pickerOptions[0],
+        });
+      } else {
+        dispatch({
+          type: "SET_STEP_RUN_OUTPUT",
+          clientId, flowType, flowIndex,
+          stepName: step.name,
+          output: pickerOptions[0],
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pickerOptions?.length, step.picker]);
+
   const requiredInputsMissing = step.inputs
     .filter((i) => i.required)
     .some((i) => getEffectiveInputValue(i.name, stepState, sourceResolved).trim() === "");
 
   // ── Effective prompts (override OR template) ───────────────────────────────
+  // Per-flow user templates fall back to the shared one. Lets a step
+  // (e.g. Build Image Prompt for service/category) send a different
+  // user payload per flow — old = just description, new = description +
+  // business_context + company_info.
+  const userTemplateForFlow =
+    (flowType === "old" ? step.userPromptTemplateOld : step.userPromptTemplateNew) ??
+    step.userPromptTemplate;
   const hasPromptTemplate = !!(
     (flowType === "old" ? step.systemPromptOld : step.systemPromptNew) ||
-    step.userPromptTemplate
+    userTemplateForFlow
   );
   const hasPromptOverride = !!stepState.promptOverride;
 
@@ -124,8 +191,8 @@ export function StepCell({
     }
 
     const systemPrompt = systemTemplate ? interpolate(systemTemplate, vars) : "";
-    const userPrompt = step.userPromptTemplate
-      ? interpolate(step.userPromptTemplate, vars)
+    const userPrompt = userTemplateForFlow
+      ? interpolate(userTemplateForFlow, vars)
       : Object.entries(effectiveInputs)
           .map(([k, v]) => `${k}:\n${v}`)
           .join("\n\n");
@@ -154,6 +221,7 @@ export function StepCell({
   // ---------------------------------------------------------------------------
   async function handleRun(opts?: { systemPrompt?: string; userPrompt?: string }) {
     if (stepState.isOutputOverride) return;
+    if (disabled) return;
 
     const effectiveInputs = Object.fromEntries(
       step.inputs.map((i) => [
@@ -173,7 +241,10 @@ export function StepCell({
       const result = await runStep({
         pageType, imageType, flowType, step,
         resolvedInputs: effectiveInputs,
-        aspectRatio: step.name === "generate_image" ? defaultAspectRatio : undefined,
+        aspectRatio:
+          step.name === "generate_image"
+            ? (effectiveInputs["aspect_ratio"] || defaultAspectRatio)
+            : undefined,
         isDryRun,
         clientId,
         pipelineKey,
@@ -243,24 +314,42 @@ export function StepCell({
   const cellBgClass     = isFailed ? "bg-red-950/20" : "";
 
   return (
-    <td className={`align-top p-0 min-w-[360px] max-w-[360px] ${cellBorderClass} ${cellBgClass}`}>
+    <td
+      rowSpan={rowSpan}
+      className={`align-top p-0 min-w-[360px] max-w-[360px] ${cellBorderClass} ${cellBgClass}`}
+    >
       <div className="flex flex-col h-full">
 
         {/* ── Header ─────────────────────────────────────────────────────── */}
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-neutral-800 bg-neutral-900/50 flex-wrap">
-          <StatusDot status={isSkipped ? "idle" : stepState.status} />
+        <div className={`flex items-center gap-2 px-3 py-2 border-b border-neutral-800 bg-neutral-900/50 flex-wrap ${
+          disabled ? "opacity-50" : ""
+        }`}>
+          <StatusDot status={(isSkipped || disabled) ? "idle" : stepState.status} />
           <span className="text-xs font-semibold text-neutral-200 truncate flex-1">{step.title}</span>
           {step.name === "generate_image" && (
             <span className="text-[9px] font-mono text-neutral-500 px-1.5 py-0.5 bg-neutral-800 rounded">
               {defaultAspectRatio}
             </span>
           )}
-          <span className={`text-[9px] font-mono ${PROVIDER_COLOR[step.provider] ?? "text-neutral-500"}`}>
-            {step.model}
-          </span>
-          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${badge.className}`}>
-            {badge.label}
-          </span>
+          {/* Generate Image on service/category pipelines exposes a model
+           *  picker in the new flow, so hard-coding "google/nano-banana-pro"
+           *  in the header would contradict whatever the user picked. Hide
+           *  the model pill on that step for those page types; other steps
+           *  keep the provider/model label since they run a fixed model. */}
+          {!(step.name === "generate_image" && (pageType === "service" || pageType === "category")) && (
+            <span className={`text-[9px] font-mono ${PROVIDER_COLOR[step.provider] ?? "text-neutral-500"}`}>
+              {step.model}
+            </span>
+          )}
+          {/* Diff badges compare new flow to old flow, so they're only
+           *  meaningful on the old-flow row. Hiding them on new-flow rows
+           *  keeps the header clean — users already know they're on the
+           *  new flow from the "NEW" label on the left. */}
+          {flowType === "old" && (
+            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${badge.className}`}>
+              {badge.label}
+            </span>
+          )}
         </div>
 
         {/* ── Body ───────────────────────────────────────────────────────── */}
@@ -268,14 +357,135 @@ export function StepCell({
           <div className="flex items-center justify-center flex-1 px-3 py-8">
             <span className="text-[11px] text-neutral-700 italic">— Not in Old Flow —</span>
           </div>
+        ) : disabled ? (
+          // Gated off because the client's required page-topic context is
+          // empty (no PUBLISHED service/category cluster with an image
+          // description). See getDisabledStepsForFlow.
+          <div className="flex items-center justify-center flex-1 px-3 py-8">
+            <span className="text-[11px] text-neutral-700 italic text-center">
+              {(() => {
+                const pageNoun =
+                  pageType === "service"  ? "service page"  :
+                  pageType === "category" ? "category page" :
+                                            "page";
+                const prefix = flowType === "old" ? "Old flow disabled" : "Disabled";
+                return `— ${prefix}: no ${pageNoun} is available for this client —`;
+              })()}
+            </span>
+          </div>
+        ) : step.picker ? (
+          // ── Picker body: selectable cards of pre-fetched descriptions ────
+          // One step shared across old + new flow. No LLM, no Run button.
+          // Clicking a card commits that option as the step's output, which
+          // flows straight into the downstream Build Image Prompt step.
+          <div className="flex flex-col gap-3 p-3 flex-1">
+            <span className="text-[9px] uppercase tracking-widest text-neutral-600">
+              Image Description Options
+            </span>
+            {pickerOptions && pickerOptions.length > 0 ? (
+              <div className="flex flex-col gap-1.5">
+                {pickerOptions.map((opt, i) => {
+                  const isSelected = (stepState.output ?? "") === opt;
+                  // Truncate non-selected cards to 2 lines so long descriptions
+                  // don't blow out the cell. Selected card expands to full text
+                  // so the user can see exactly what's feeding downstream.
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        const action = sharedAcrossFlows
+                          ? { type: "SET_SHARED_STEP_OUTPUT" as const, clientId, stepName: step.name, output: opt }
+                          : { type: "SET_STEP_RUN_OUTPUT" as const, clientId, flowType, flowIndex, stepName: step.name, output: opt };
+                        dispatch(action);
+                      }}
+                      title={isSelected ? undefined : "Click to select (expands to full text)"}
+                      className={`text-left p-2 rounded border text-[11px] font-mono leading-relaxed transition-colors
+                        ${isSelected
+                          ? "border-violet-500 bg-violet-950/30 text-neutral-100"
+                          : "border-neutral-800 bg-neutral-950/40 text-neutral-400 hover:border-neutral-600 hover:text-neutral-200"
+                        }`}
+                    >
+                      <span className="text-[9px] uppercase tracking-widest text-violet-400/80 mr-2 font-sans">
+                        {isSelected
+                          ? (i === 0 ? "● Default" : "● Selected")
+                          : `Option ${i + 1}`}
+                      </span>
+                      <span
+                        className={isSelected ? "" : "line-clamp-2"}
+                        style={isSelected ? undefined : {
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical" as const,
+                          overflow: "hidden",
+                        }}
+                      >
+                        {opt}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              !step.pickerAllowCustom && (
+                <div className="py-4 text-center text-[11px] italic text-neutral-700">
+                  No description options available for this client.
+                </div>
+              )
+            )}
+
+            {/* Free-text description — only when pickerAllowCustom. Typed
+             *  text is written straight into the step output (shared
+             *  across flows), overriding any selected option card. */}
+            {step.pickerAllowCustom && (
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] uppercase tracking-widest text-neutral-600">
+                  Or type a custom description
+                </span>
+                <textarea
+                  value={stepState.output ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    const action = sharedAcrossFlows
+                      ? { type: "SET_SHARED_STEP_OUTPUT" as const, clientId, stepName: step.name, output: v }
+                      : { type: "SET_STEP_RUN_OUTPUT" as const, clientId, flowType, flowIndex, stepName: step.name, output: v };
+                    dispatch(action);
+                  }}
+                  rows={3}
+                  placeholder="Type an image description here — fed into Generate Image Prompt for both flows."
+                  className="w-full text-[11px] font-mono text-neutral-200 leading-relaxed
+                    bg-neutral-950 border border-neutral-700 rounded p-2 resize-y
+                    focus:outline-none focus:ring-1 focus:ring-violet-500
+                    min-h-[60px] max-h-[200px]"
+                  spellCheck={false}
+                />
+              </div>
+            )}
+
+            <p className="text-[10px] text-neutral-600 leading-relaxed">
+              Selected/typed description flows into <span className="text-neutral-400">Generate Image Prompt</span>.
+              {pickerOptions && pickerOptions.length > 0
+                ? " First option is the default — click another card or type in the text area to override."
+                : step.pickerAllowCustom
+                  ? " No preset options for this client yet — type your own above."
+                  : ""}
+            </p>
+          </div>
         ) : (
           <div className="flex flex-col gap-3 p-3 flex-1">
 
-            {/* Inputs */}
-            {step.inputs.length > 0 && (
+            {/* Inputs — filtered to those that apply to this flow.
+             *  When a step input declares `flows: ["new"]` (or "old"),
+             *  it's hidden from the other flow's cell so the UI only
+             *  shows fields whose values actually feed this flow's run. */}
+            {(() => {
+              const visibleInputs = step.inputs.filter(
+                (i) => !i.flows || i.flows.includes(flowType),
+              );
+              if (visibleInputs.length === 0) return null;
+              return (
               <div className="flex flex-col gap-2">
                 <span className="text-[9px] uppercase tracking-widest text-neutral-600">Inputs</span>
-                {step.inputs.map((inputDef) => {
+                {visibleInputs.map((inputDef) => {
                   const isOverridden = !!stepState.inputOverrides[inputDef.name];
                   const displayVal = getEffectiveInputValue(inputDef.name, stepState, sourceResolved);
 
@@ -285,6 +495,7 @@ export function StepCell({
                       label={`${inputDef.label}${inputDef.required ? "" : " (opt)"}`}
                       value={displayVal}
                       readOnly={false}
+                      options={inputDef.options}
                       isManualOverride={isOverridden}
                       overrideBadgeLabel="OVERRIDE"
                       overrideBadgeTooltip="Input manually overridden. Click 'Reset to upstream' to use the live source value."
@@ -306,7 +517,8 @@ export function StepCell({
                   );
                 })}
               </div>
-            )}
+              );
+            })()}
 
             {/* ── Image model picker (generate_image, new flow only) ──── */}
             {step.name === "generate_image" && flowType === "new" && (

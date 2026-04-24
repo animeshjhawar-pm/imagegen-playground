@@ -19,6 +19,11 @@ interface CollapsibleFieldProps {
   overrideBadgeTooltip?: string;
   /** Reset-link label — defaults to "Reset Override". */
   resetOverrideLabel?: string;
+  /**
+   * When present, renders a <select> dropdown inline instead of the
+   * expand/textarea flow. Used for enumerated values like aspect_ratio.
+   */
+  options?: string[];
 }
 
 function tryFormatJson(value: string): string {
@@ -38,6 +43,7 @@ export function CollapsibleField({
   overrideBadgeLabel = "EDITED",
   overrideBadgeTooltip = "Manually overridden.",
   resetOverrideLabel = "Reset Override",
+  options,
 }: CollapsibleFieldProps) {
   const [expanded, setExpanded] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -191,6 +197,53 @@ export function CollapsibleField({
       )}
     </div>
   );
+
+  // ── Dropdown view (enumerated values like aspect_ratio) ─────────────────
+  // Skip the expand/textarea flow entirely when `options` is provided;
+  // render a labelled <select> inline so the value is always visible.
+  if (options && options.length > 0) {
+    return (
+      <div className="flex flex-col gap-1 min-w-0">
+        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+          <span className="text-[10px] uppercase tracking-widest text-neutral-500 truncate">
+            {label}
+          </span>
+          {isManualOverride && (
+            <>
+              <span
+                title={overrideBadgeTooltip}
+                className="text-[9px] font-bold px-1 py-0.5 rounded bg-amber-900/60 text-amber-400 cursor-help flex-shrink-0"
+              >
+                {overrideBadgeLabel}
+              </span>
+              {onResetOverride && (
+                <button
+                  onClick={onResetOverride}
+                  className="text-[9px] text-neutral-500 hover:text-red-400 underline transition-colors flex-shrink-0"
+                >
+                  {resetOverrideLabel}
+                </button>
+              )}
+            </>
+          )}
+        </div>
+        <select
+          value={value}
+          disabled={readOnly}
+          onChange={(e) => onChange?.(e.target.value)}
+          className="w-full text-[11px] font-mono text-neutral-200
+            bg-neutral-950 border border-neutral-700 rounded px-2 py-1.5
+            focus:outline-none focus:ring-1 focus:ring-violet-500
+            disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <option value="">{placeholder ?? "— select —"}</option>
+          {options.map((opt) => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
+      </div>
+    );
+  }
 
   // ── Collapsed view ───────────────────────────────────────────────────────
   if (!expanded) {
