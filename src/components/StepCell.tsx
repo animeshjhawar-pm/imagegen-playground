@@ -330,12 +330,13 @@ export function StepCell({
               {defaultAspectRatio}
             </span>
           )}
-          {/* Generate Image on service/category pipelines exposes a model
-           *  picker in the new flow, so hard-coding "google/nano-banana-pro"
-           *  in the header would contradict whatever the user picked. Hide
-           *  the model pill on that step for those page types; other steps
-           *  keep the provider/model label since they run a fixed model. */}
-          {!(step.name === "generate_image" && (pageType === "service" || pageType === "category")) && (
+          {/* Generate Image in the new flow exposes a model picker, so
+           *  a hard-coded model pill in the header would contradict
+           *  whatever the user selected. Hide the pill for every new-
+           *  flow generate_image cell (all page types). Old-flow rows
+           *  still show the label since they always run the default
+           *  model — no picker there. */}
+          {!(step.name === "generate_image" && flowType === "new") && (
             <span className={`text-[9px] font-mono ${PROVIDER_COLOR[step.provider] ?? "text-neutral-500"}`}>
               {step.model}
             </span>
