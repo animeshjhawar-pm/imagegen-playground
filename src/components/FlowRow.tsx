@@ -23,12 +23,19 @@ interface FlowRowProps {
   /** Total number of flow rows rendered for this client (1 old + N new).
    *  Used as the rowSpan for shared cells. */
   totalFlowRows: number;
+  /** Run every step for this single (client, flow, lane) left-to-right. */
+  onRunRow: (clientId: string, flowType: "old" | "new", flowIndex: number) => void;
+  /** Global running scope; used to disable the Run-row button when any
+   *  other run is in flight, and to highlight the button when THIS row
+   *  is the one running. */
+  runningScope: null | "all" | string;
 }
 
 export function FlowRow({
   flowType, flowIndex = 0, labelAdornment,
   client, pipeline, pageType, imageType,
   isFirstFlowRow, totalFlowRows,
+  onRunRow, runningScope,
 }: FlowRowProps) {
   const flow =
     flowType === "old"
@@ -56,10 +63,17 @@ export function FlowRow({
       ? pipeline.defaultAspectRatioOld
       : pipeline.defaultAspectRatioNew) ?? pipeline.defaultAspectRatio;
 
+  // Disable Run-row while any other run is in flight; highlight when
+  // THIS row is the one currently running.
+  const thisRowScope = `row:${client.id}:${flowType}:${flowIndex}`;
+  const isThisRowRunning = runningScope === thisRowScope;
+  const isAnyRunning = runningScope !== null;
+  const canRunRow = !isAnyRunning || isThisRowRunning;
+
   return (
     <tr className="border-b border-neutral-800/60 last:border-0">
       {/* Flow label */}
-      <td className="align-top px-3 py-2 whitespace-nowrap min-w-[60px] max-w-[60px]">
+      <td className="align-top px-3 py-2 whitespace-nowrap min-w-[88px] max-w-[88px]">
         <div className="flex flex-col gap-1 items-start">
           <span
             className={`text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded ${
@@ -71,6 +85,29 @@ export function FlowRow({
             {label}
           </span>
           {labelAdornment}
+          {/* Per-row Run All — runs every step for this single lane
+           *  left-to-right, fail-stops if any step fails. */}
+          <button
+            onClick={() => onRunRow(client.id, flowType, flowIndex)}
+            disabled={!canRunRow}
+            title={
+              isThisRowRunning
+                ? "This row is running…"
+                : isAnyRunning
+                  ? "Another run is in progress"
+                  : `Run every step for this ${label} row, left to right`
+            }
+            className={`mt-0.5 px-1.5 py-0.5 text-[9px] rounded font-medium whitespace-nowrap
+              transition-colors inline-flex items-center gap-1
+              ${isThisRowRunning
+                ? "bg-violet-600 text-white animate-pulse"
+                : "bg-neutral-800 text-neutral-300 hover:bg-violet-700/60 hover:text-violet-50"
+              }
+              disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-neutral-800
+              disabled:hover:text-neutral-300`}
+          >
+            {isThisRowRunning ? "Running…" : "▶ Run row"}
+          </button>
         </div>
       </td>
 

@@ -18,8 +18,12 @@ const PAGE_TYPE_OPTIONS: { value: PageType; label: string }[] = [
   { value: "category", label: "Category" },
 ];
 
+export type RunScope = "both" | "old" | "new";
+
 interface TopControlBarProps {
-  onRunAll: () => void;
+  /** Fire a full-pipeline run across every client, scoped to the chosen
+   *  flow(s). `"both"` preserves the original Run All behaviour. */
+  onRunAll: (scope: RunScope) => void;
   isRunningAll: boolean;
 }
 
@@ -33,6 +37,7 @@ export function TopControlBar({ onRunAll, isRunningAll }: TopControlBarProps) {
   // On cancel, we fall through to adding a blank client so the user
   // always lands on SOMETHING actionable.
   const autoOpenedRef = useRef(false);
+  const [runAllMenuOpen, setRunAllMenuOpen] = useState(false);
   const pipeline = pageType && imageType ? PIPELINES[`${pageType}:${imageType}`] : null;
 
   const imageTypeOptions = pageType ? IMAGE_TYPES_BY_PAGE[pageType] : [];
@@ -176,17 +181,65 @@ export function TopControlBar({ onRunAll, isRunningAll }: TopControlBarProps) {
         ⤓ Export CSV
       </button>
 
-      {/* Run All — violet primary CTA */}
-      <button
-        onClick={onRunAll}
-        disabled={!hasSelection || clients.length === 0 || isRunningAll}
-        className="px-4 py-1.5 text-sm rounded font-medium
-          bg-violet-600 text-white hover:bg-violet-500
-          disabled:opacity-40 disabled:cursor-not-allowed
-          transition-colors"
-      >
-        {isRunningAll ? "Running…" : "▶ Run All"}
-      </button>
+      {/* Run All — violet primary CTA with scope dropdown. Same pattern
+       *  as the per-step column Run-all button; lets the user restrict
+       *  the wave to Old / New / both flows. */}
+      <div className="relative">
+        <button
+          onClick={() =>
+            setRunAllMenuOpen((v) => !v)
+          }
+          disabled={!hasSelection || clients.length === 0 || isRunningAll}
+          className="px-4 py-1.5 text-sm rounded font-medium
+            bg-violet-600 text-white hover:bg-violet-500
+            disabled:opacity-40 disabled:cursor-not-allowed
+            transition-colors inline-flex items-center gap-1.5"
+        >
+          {isRunningAll ? "Running…" : "▶ Run All"}
+          {!isRunningAll && (
+            <svg viewBox="0 0 12 12" width="9" height="9" fill="currentColor" aria-hidden>
+              <path d="M2 4l4 4 4-4H2z" />
+            </svg>
+          )}
+        </button>
+        {runAllMenuOpen && hasSelection && clients.length > 0 && !isRunningAll && (
+          <>
+            <div
+              className="fixed inset-0 z-30"
+              onClick={() => setRunAllMenuOpen(false)}
+            />
+            <div
+              className="absolute right-0 top-[calc(100%+6px)] z-40 min-w-[200px]
+                rounded border border-neutral-700 bg-neutral-900 shadow-xl shadow-black/50
+                py-1"
+            >
+              <button
+                onClick={() => { setRunAllMenuOpen(false); onRunAll("both"); }}
+                className="w-full text-left px-3 py-2 text-[12px] text-neutral-100
+                  hover:bg-violet-900/50 transition-colors flex items-center gap-2"
+              >
+                <span className="text-violet-400">▶</span>
+                Run all
+                <span className="text-[9px] text-neutral-500 uppercase tracking-wider ml-auto">default</span>
+              </button>
+              <button
+                onClick={() => { setRunAllMenuOpen(false); onRunAll("old"); }}
+                className="w-full text-left px-3 py-2 text-[12px] text-neutral-300
+                  hover:bg-neutral-800 transition-colors"
+              >
+                Only Old flow
+              </button>
+              <button
+                onClick={() => { setRunAllMenuOpen(false); onRunAll("new"); }}
+                className="w-full text-left px-3 py-2 text-[12px] text-neutral-300
+                  hover:bg-neutral-800 transition-colors"
+              >
+                Only New flow
+              </button>
+            </div>
+          </>
+        )}
+      </div>
 
       <ImportClientDialog
         isOpen={importOpen}

@@ -8,8 +8,6 @@ interface RunStepParams {
   resolvedInputs: Record<string, string>;
   /** Pipeline-level aspect ratio, injected for generate_image step. */
   aspectRatio?: string;
-  /** Phase 3: dry-run → mocked; live → real provider calls. */
-  isDryRun: boolean;
   /** Phase 3: observability metadata forwarded to Portkey. */
   clientId: string;
   /** Phase 3: `${pageType}:${imageType}` — lets the route resolve the full StepDefinition server-side. */
@@ -38,7 +36,7 @@ interface RunStepResult {
 export async function runStep(params: RunStepParams): Promise<RunStepResult> {
   const {
     pageType, imageType, flowType, step, resolvedInputs, aspectRatio,
-    isDryRun, clientId, pipelineKey,
+    clientId, pipelineKey,
     systemPromptOverride, userPromptOverride, stepConfig,
     signal,
   } = params;
@@ -47,7 +45,6 @@ export async function runStep(params: RunStepParams): Promise<RunStepResult> {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-dry-run": isDryRun ? "true" : "false",
     },
     body: JSON.stringify({
       pageType,

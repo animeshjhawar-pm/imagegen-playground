@@ -84,7 +84,7 @@ export function StepCell({
   disabled = false,
   rowSpan, sharedAcrossFlows = false,
 }: StepCellProps) {
-  const { dispatch, isDryRun } = usePlayground();
+  const { dispatch } = usePlayground();
   const pipelineKey = `${pageType}:${imageType}`;
 
   const flow =
@@ -245,7 +245,6 @@ export function StepCell({
           step.name === "generate_image"
             ? (effectiveInputs["aspect_ratio"] || defaultAspectRatio)
             : undefined,
-        isDryRun,
         clientId,
         pipelineKey,
         systemPromptOverride: opts?.systemPrompt ?? stepState.promptOverride?.systemPrompt,
@@ -524,6 +523,8 @@ export function StepCell({
             {step.name === "generate_image" && flowType === "new" && (
               <ImageModelPicker
                 config={stepState.stepConfig}
+                pageType={pageType}
+                imageType={imageType}
                 onChange={(patch) =>
                   dispatch({
                     type: "UPDATE_STEP_CONFIG",
@@ -716,32 +717,78 @@ type ImageModelId =
   | "google/nano-banana-pro"
   | "google/nano-banana-2"
   | "bytedance/seedream-4"
-  | "openai/gpt-image-2";
+  | "openai/gpt-image-2"
+  | "black-forest-labs/flux-2-flex";
 
 const IMAGE_MODELS: Array<{
   id: ImageModelId;
   label: string;
   price: string;
 }> = [
-  { id: "google/nano-banana-pro", label: "nano-banana-pro", price: "$0.15 / image · 2K" },
-  { id: "google/nano-banana-2",   label: "nano-banana-2",   price: "$0.101 / image · 2K" },
-  { id: "bytedance/seedream-4",   label: "seedream-4",      price: "$0.03 / image · 2K" },
-  { id: "openai/gpt-image-2",     label: "gpt-image-2",     price: "$0.128 / image" },
+  { id: "google/nano-banana-pro",     label: "nano-banana-pro", price: "$0.15 / image · 2K" },
+  { id: "google/nano-banana-2",       label: "nano-banana-2",   price: "$0.101 / image · 2K" },
+  { id: "bytedance/seedream-4",       label: "seedream-4",      price: "$0.03 / image · 2K" },
+  { id: "openai/gpt-image-2",         label: "gpt-image-2",     price: "$0.128 / image" },
+  { id: "black-forest-labs/flux-2-flex", label: "flux-2-flex",  price: "1 MP · steps=30" },
 ];
+
+/**
+ * Per-pipeline allow-list. Keeps model options relevant to the page
+ * type the user is working in:
+ *   - gpt-image-2 is only useful for service / category pages (its
+ *     strict 1:1/3:2/2:3 aspect enum doesn't fit blog sizes cleanly).
+ *   - flux-2-flex is a blog-infographic-only variant for now (the
+ *     reference cURL the team is evaluating against).
+ *   - Everything else is available everywhere.
+ */
+function isModelAllowedFor(
+  id: ImageModelId,
+  pageType: PageType,
+  imageType: ImageType,
+): boolean {
+  if (id === "openai/gpt-image-2") {
+    return pageType === "service" || pageType === "category";
+  }
+  if (id === "black-forest-labs/flux-2-flex") {
+    return pageType === "blog" && imageType === "infographic";
+  }
+  return true;
+}
 
 function ImageModelPicker({
   config,
+  pageType,
+  imageType,
   onChange,
 }: {
   config: Record<string, unknown> | undefined;
+  pageType: PageType;
+  imageType: ImageType;
   onChange: (patch: Record<string, unknown>) => void;
 }) {
+  const visibleModels = IMAGE_MODELS.filter((m) =>
+    isModelAllowedFor(m.id, pageType, imageType),
+  );
+
+  const configured =
+    typeof config?.model === "string" &&
+    IMAGE_MODELS.some((m) => m.id === config.model)
+      ? (config.model as ImageModelId)
+      : null;
+
   const selected: ImageModelId =
-    (typeof config?.model === "string" &&
-      (IMAGE_MODELS.some((m) => m.id === config.model)
-        ? (config.model as ImageModelId)
-        : null)) ||
-    "google/nano-banana-pro";
+    configured && visibleModels.some((m) => m.id === configured)
+      ? configured
+      : "google/nano-banana-pro";
+
+  // If the saved model isn't valid for this pipeline (e.g. user had
+  // gpt-image-2 selected, then switched Page Type to blog), snap the
+  // stored config back to the default so the backend + UI agree.
+  useEffect(() => {
+    if (configured && !visibleModels.some((m) => m.id === configured)) {
+      onChange({ model: "google/nano-banana-pro" });
+    }
+  }, [configured, visibleModels, onChange]);
 
   const imageSearch  = typeof config?.imageSearch  === "boolean" ? config.imageSearch  : false;
   const googleSearch = typeof config?.googleSearch === "boolean" ? config.googleSearch : false;
@@ -753,7 +800,7 @@ function ImageModelPicker({
       </span>
 
       <div className="flex flex-col gap-1">
-        {IMAGE_MODELS.map((m) => {
+        {visibleModels.map((m) => {
           const isActive = m.id === selected;
           return (
             <label

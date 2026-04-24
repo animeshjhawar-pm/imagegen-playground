@@ -1,19 +1,29 @@
 "use client";
 
+import { useState } from "react";
 import { usePlayground } from "@/context/PlaygroundContext";
 import { PIPELINES } from "@/config/pipelines";
 import { ClientGroup } from "./ClientGroup";
 
+export type StepRunScope = "both" | "old" | "new";
+
 interface PipelineTableProps {
-  /** Fire a run-all for a single step across every client (both flows). */
-  onRunStep: (stepName: string) => void;
-  /** null | "all" | stepName — drives the per-step header button state. */
+  /** Fire a run-all for a single step across the chosen flows for every
+   *  client. `scope` defaults to "both" at the call site. */
+  onRunStep: (stepName: string, scope: StepRunScope) => void;
+  /** Fire the full pipeline left-to-right for a single (client, flow, lane). */
+  onRunRow: (clientId: string, flowType: "old" | "new", flowIndex: number) => void;
+  /** null | "all" | stepName | "row:…" — drives per-step button state. */
   runningScope: null | "all" | string;
 }
 
-export function PipelineTable({ onRunStep, runningScope }: PipelineTableProps) {
+export function PipelineTable({ onRunStep, onRunRow, runningScope }: PipelineTableProps) {
   const { state } = usePlayground();
   const { pageType, imageType, clients, lastAddedClientId } = state;
+
+  // Which column's Run-all scope menu is open? null = none. Only one
+  // at a time; clicking another column's button closes the previous menu.
+  const [openScopeMenu, setOpenScopeMenu] = useState<string | null>(null);
 
   if (!pageType || !imageType) return null;
 
@@ -34,6 +44,11 @@ export function PipelineTable({ onRunStep, runningScope }: PipelineTableProps) {
   // colSpan = Flow label col + N step cols + Final Output col
   const colSpan = 1 + pipeline.steps.length + 1;
 
+  function pickScope(stepName: string, scope: StepRunScope) {
+    setOpenScopeMenu(null);
+    onRunStep(stepName, scope);
+  }
+
   return (
     <div className="overflow-x-auto flex-1">
       {pipeline.alignmentNote && (
@@ -53,6 +68,7 @@ export function PipelineTable({ onRunStep, runningScope }: PipelineTableProps) {
             {/* Step headers */}
             {pipeline.steps.map((step, i) => {
               const isThisRunning = runningScope === step.name;
+              const isMenuOpen = openScopeMenu === step.name;
               return (
                 <th
                   key={step.name}
@@ -66,21 +82,68 @@ export function PipelineTable({ onRunStep, runningScope }: PipelineTableProps) {
                      *  in the cell via click. Hide the button rather than
                      *  disabling it so the header stays uncluttered. */}
                     {!step.picker && (
-                      <button
-                        onClick={() => onRunStep(step.name)}
-                        disabled={!canRun}
-                        title={
-                          !canRun
-                            ? (isRunning ? "Another run is in progress" : "Add at least one client first")
-                            : `Run this step for all ${clients.length} client${clients.length === 1 ? "" : "s"}`
-                        }
-                        className="px-2 py-0.5 text-[10px] rounded font-medium
-                          bg-violet-700/70 text-violet-50 hover:bg-violet-600
-                          disabled:opacity-30 disabled:cursor-not-allowed
-                          transition-colors whitespace-nowrap"
-                      >
-                        {isThisRunning ? "Running…" : "▶ Run all"}
-                      </button>
+                      <div className="relative">
+                        <button
+                          onClick={() =>
+                            setOpenScopeMenu(isMenuOpen ? null : step.name)
+                          }
+                          disabled={!canRun}
+                          title={
+                            !canRun
+                              ? (isRunning ? "Another run is in progress" : "Add at least one client first")
+                              : `Run this step — choose scope (all flows / old only / new only)`
+                          }
+                          className="px-2 py-0.5 text-[10px] rounded font-medium
+                            bg-violet-700/70 text-violet-50 hover:bg-violet-600
+                            disabled:opacity-30 disabled:cursor-not-allowed
+                            transition-colors whitespace-nowrap inline-flex items-center gap-1"
+                        >
+                          {isThisRunning ? "Running…" : "▶ Run all"}
+                          {!isThisRunning && (
+                            <svg viewBox="0 0 12 12" width="8" height="8" fill="currentColor" aria-hidden>
+                              <path d="M2 4l4 4 4-4H2z" />
+                            </svg>
+                          )}
+                        </button>
+                        {isMenuOpen && canRun && (
+                          <>
+                            {/* Backdrop — click outside closes menu */}
+                            <div
+                              className="fixed inset-0 z-30"
+                              onClick={() => setOpenScopeMenu(null)}
+                            />
+                            <div
+                              className="absolute right-0 top-[calc(100%+4px)] z-40 min-w-[180px]
+                                rounded border border-neutral-700 bg-neutral-900 shadow-lg shadow-black/40
+                                py-1"
+                            >
+                              <button
+                                onClick={() => pickScope(step.name, "both")}
+                                className="w-full text-left px-3 py-1.5 text-[11px] text-neutral-100
+                                  hover:bg-violet-900/50 transition-colors flex items-center gap-2"
+                              >
+                                <span className="text-violet-400">▶</span>
+                                Run all
+                                <span className="text-[9px] text-neutral-500 uppercase tracking-wider ml-auto">default</span>
+                              </button>
+                              <button
+                                onClick={() => pickScope(step.name, "old")}
+                                className="w-full text-left px-3 py-1.5 text-[11px] text-neutral-300
+                                  hover:bg-neutral-800 transition-colors"
+                              >
+                                Only old nodes
+                              </button>
+                              <button
+                                onClick={() => pickScope(step.name, "new")}
+                                className="w-full text-left px-3 py-1.5 text-[11px] text-neutral-300
+                                  hover:bg-neutral-800 transition-colors"
+                              >
+                                Only new nodes
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
                     )}
                   </div>
                 </th>
@@ -114,6 +177,8 @@ export function PipelineTable({ onRunStep, runningScope }: PipelineTableProps) {
                 imageType={imageType}
                 colSpan={colSpan}
                 isLastAdded={client.id === lastAddedClientId}
+                onRunRow={onRunRow}
+                runningScope={runningScope}
               />
             ))
           )}

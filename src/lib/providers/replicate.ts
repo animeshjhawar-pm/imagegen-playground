@@ -14,7 +14,8 @@ export type ImageModel =
   | "google/nano-banana-pro"
   | "google/nano-banana-2"
   | "bytedance/seedream-4"
-  | "openai/gpt-image-2";
+  | "openai/gpt-image-2"
+  | "black-forest-labs/flux-2-flex";
 
 export const DEFAULT_IMAGE_MODEL: ImageModel = "google/nano-banana-pro";
 
@@ -112,6 +113,25 @@ function buildModelInput(
       image_input: imageInput ?? [],
       enhance_prompt: true,
       sequential_image_generation: "disabled",
+    };
+  }
+
+  if (model === "black-forest-labs/flux-2-flex") {
+    // Blog-infographic-only option. Input shape matches the reference
+    // cURL — steps=30, guidance=4.5, resolution="1 MP", WEBP output at
+    // q80. `input_images` always sent as an array (empty when no logo
+    // is provided).
+    return {
+      prompt,
+      steps: 30,
+      guidance: 4.5,
+      resolution: "1 MP",
+      aspect_ratio: aspectRatio,
+      input_images: imageInput ?? [],
+      output_format: "webp",
+      output_quality: 80,
+      safety_tolerance: 2,
+      prompt_upsampling: true,
     };
   }
 

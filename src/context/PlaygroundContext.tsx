@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useReducer, useState } from "react";
+import React, { createContext, useContext, useReducer } from "react";
 import {
   playgroundReducer,
   initialState,
@@ -10,13 +10,15 @@ import {
 
 // ---------------------------------------------------------------------------
 // Context value
+//
+// Dry-run / test-run mode was removed on 2026-04-24 — the playground now
+// always hits real providers. The previous `isDryRun` toggle was hiding
+// real failures (silent empty Portkey responses, etc.) behind mocked
+// outputs.
 // ---------------------------------------------------------------------------
 interface PlaygroundContextValue {
   state: PlaygroundState;
   dispatch: React.Dispatch<PlaygroundAction>;
-  /** Test Run ON → mocked responses; OFF → real API calls. Default: ON. */
-  isDryRun: boolean;
-  setIsDryRun: (v: boolean) => void;
 }
 
 const PlaygroundContext = createContext<PlaygroundContextValue | null>(null);
@@ -26,10 +28,9 @@ const PlaygroundContext = createContext<PlaygroundContextValue | null>(null);
 // ---------------------------------------------------------------------------
 export function PlaygroundProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(playgroundReducer, initialState);
-  const [isDryRun, setIsDryRun] = useState(true); // default ON — safe by default
 
   return (
-    <PlaygroundContext.Provider value={{ state, dispatch, isDryRun, setIsDryRun }}>
+    <PlaygroundContext.Provider value={{ state, dispatch }}>
       {children}
     </PlaygroundContext.Provider>
   );

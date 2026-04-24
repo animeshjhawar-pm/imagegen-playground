@@ -1,10 +1,12 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { usePlayground } from "@/context/PlaygroundContext";
 import type { PipelineDefinition, PageType, ImageType } from "@/config/pipelines";
 import type { ClientState, PlaygroundAction } from "@/state/playgroundReducer";
 import { FlowRow } from "./FlowRow";
+import { CompareViewDialog } from "./CompareViewDialog";
 
 // ---------------------------------------------------------------------------
 // Inline SVG chevrons — no lucide-react dep
@@ -71,6 +73,10 @@ interface ClientGroupProps {
   imageType: ImageType;
   colSpan: number;
   isLastAdded: boolean;
+  /** Run the full pipeline left-to-right for one (client, flow, lane). */
+  onRunRow: (clientId: string, flowType: "old" | "new", flowIndex: number) => void;
+  /** null | "all" | stepName | "row:…" — drives per-row button state. */
+  runningScope: null | "all" | string;
 }
 
 // ---------------------------------------------------------------------------
@@ -78,11 +84,36 @@ interface ClientGroupProps {
 // ---------------------------------------------------------------------------
 export function ClientGroup({
   client, position, pipeline, pageType, imageType, colSpan, isLastAdded,
+  onRunRow, runningScope,
 }: ClientGroupProps) {
   const { dispatch } = usePlayground();
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(client.name);
+  const [compareOpen, setCompareOpen] = useState(false);
   const headerRowRef = useRef<HTMLTableRowElement>(null);
+
+  // Resolve the LATEST generate_image output for each flow. We always
+  // use newFlows[0] for the "New" side so the Compare CTA stays stable
+  // even when the user has added extra New lanes. The CTA is only shown
+  // when both sides have a non-empty output.
+  const newGenImageOutput =
+    client.newFlows[0]?.stepStates?.["generate_image"]?.output?.trim() ?? "";
+  const oldGenImageOutput =
+    client.oldFlow?.stepStates?.["generate_image"]?.output?.trim() ?? "";
+  const canCompare = !!newGenImageOutput && !!oldGenImageOutput;
+
+  // Picker step output (shared across flows) — the human-readable
+  // description the user selected as the seed for Build Image Prompt.
+  // Surfaced in the Compare dialog so reviewers know what brief the two
+  // images were generated against.
+  const pickerStep = pipeline.steps.find((s) => s.picker);
+  const inputDescription = pickerStep
+    ? (
+        client.oldFlow?.stepStates?.[pickerStep.name]?.output ??
+        client.newFlows[0]?.stepStates?.[pickerStep.name]?.output ??
+        ""
+      ).trim()
+    : "";
 
   // Fix 8: scroll into view for newly-added clients
   useEffect(() => {
@@ -186,6 +217,27 @@ export function ClientGroup({
 
             <div className="flex-1" />
 
+            {/* Compare View CTA — surfaces only when BOTH old and new
+             *  flow's generate_image step have produced non-empty output
+             *  (i.e. we have two images to compare). Clicking opens a
+             *  full-viewport 50/50 dialog with zoom + pan per side. */}
+            {canCompare && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCompareOpen(true);
+                }}
+                title="Open the new vs. old generate_image output side-by-side"
+                className="text-xs px-2 py-1 rounded font-medium mr-2
+                  border border-violet-700/60 bg-violet-950/40 text-violet-200
+                  hover:bg-violet-900/60 hover:border-violet-500/80
+                  transition-colors inline-flex items-center gap-1.5"
+              >
+                <span aria-hidden>⧉</span>
+                Compare View
+              </button>
+            )}
+
             {/* Remove button */}
             <button
               onClick={(e) => {
@@ -255,7 +307,9 @@ export function ClientGroup({
           <FlowRow flowType="old" client={client} pipeline={pipeline}
             pageType={pageType} imageType={imageType}
             isFirstFlowRow={true}
-            totalFlowRows={1 + laneCount} />
+            totalFlowRows={1 + laneCount}
+            onRunRow={onRunRow}
+            runningScope={runningScope} />
 
           {/* New flow lanes — one row per entry in client.newFlows.
            *  Added lanes (index > 0) carry a trash icon; the last lane
@@ -274,6 +328,8 @@ export function ClientGroup({
                 imageType={imageType}
                 isFirstFlowRow={false}
                 totalFlowRows={1 + laneCount}
+                onRunRow={onRunRow}
+                runningScope={runningScope}
                 labelAdornment={
                   (canRemove || isLast) ? (
                     <div className="flex items-center gap-1">
@@ -318,6 +374,19 @@ export function ClientGroup({
             );
           })}
         </>
+      )}
+      {/* Compare dialog — portaled to <body> so it escapes the <tbody>
+       *  ancestor (non-<tr> children are invalid there). */}
+      {compareOpen && typeof document !== "undefined" && createPortal(
+        <CompareViewDialog
+          isOpen={compareOpen}
+          clientName={client.name}
+          newImageUrl={newGenImageOutput}
+          oldImageUrl={oldGenImageOutput}
+          inputDescription={inputDescription}
+          onClose={() => setCompareOpen(false)}
+        />,
+        document.body,
       )}
     </>
   );
