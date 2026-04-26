@@ -71,6 +71,11 @@ export function resolveInputs(
       continue;
     }
 
+    if (source.kind === "literal") {
+      resolved[inputDef.name] = source.value;
+      continue;
+    }
+
     // config / user_input — no automatic resolution
     resolved[inputDef.name] = "";
   }

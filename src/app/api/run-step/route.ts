@@ -298,14 +298,19 @@ async function runLiveStep(
       const promptMatch = finalPrompt.match(/<final_prompt>([\s\S]*?)<\/final_prompt>/);
       const cleanPrompt = promptMatch ? promptMatch[1].trim() : finalPrompt;
 
-      const imageInputRaw = inputs["image_input"]?.trim();
-      const userLogoUrls = imageInputRaw && imageInputRaw.length > 0 ? [imageInputRaw] : [];
-      // Step def's fixedReferenceImageUrls are extra reference images
-      // appended to image_input on every run (e.g. the custom:cover
-      // tester pipeline pins a fixed layout-reference image alongside
-      // the user's company logo).
-      const fixedRefs = stepDef.fixedReferenceImageUrls ?? [];
-      const imageInputArr = [...userLogoUrls, ...fixedRefs];
+      // image_input is the array Replicate uses for img2img references.
+      // The first slot is the user's logo (`image_input` cell); any
+      // additional inputs declared with `imageInputMember: true` are
+      // appended in declaration order (custom:cover uses this to add
+      // a fixed layout-scaffold URL alongside the logo). Empty values
+      // are skipped.
+      const imageInputArr: string[] = [];
+      for (const inputDef of stepDef.inputs) {
+        const isMember = inputDef.name === "image_input" || inputDef.imageInputMember;
+        if (!isMember) continue;
+        const v = inputs[inputDef.name]?.trim();
+        if (v) imageInputArr.push(v);
+      }
       const imageInput = imageInputArr.length > 0 ? imageInputArr : undefined;
 
       // Model + model-specific toggles come from stepConfig (new-flow UI).

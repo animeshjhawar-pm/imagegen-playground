@@ -62,7 +62,14 @@ export type StepInputSource =
   | { kind: "user_input" }
   | { kind: "step_output"; stepName: string; field?: string }
   | { kind: "config" }
-  | { kind: "client_context"; field: string };
+  | { kind: "client_context"; field: string }
+  /**
+   * Pipeline-level constant. Pre-fills the input with the literal value;
+   * the user can still override it per-run via the cell. Used by the
+   * custom:cover tester pipeline to surface the fixed layout-reference
+   * image URL as an editable input alongside the company logo.
+   */
+  | { kind: "literal"; value: string };
 
 export interface StepInputDef {
   name: string;
@@ -84,6 +91,14 @@ export interface StepInputDef {
    * generate_image's `aspect_ratio`.
    */
   options?: string[];
+  /**
+   * For image-generation steps: when true, this input's value is
+   * appended to the Replicate `image_input` array (in declaration
+   * order) alongside the standard `image_input` field. Empty values
+   * are skipped. Used by custom:cover to surface a second reference
+   * URL slot next to the company logo.
+   */
+  imageInputMember?: boolean;
   /**
    * Restrict the input to specific flows. When omitted, the input is
    * shown in every flow. Use this to hide an input that's only wired
@@ -183,13 +198,6 @@ export interface StepDefinition {
    */
   fixedAspectRatioOld?: string;
   fixedAspectRatioNew?: string;
-  /**
-   * For image-generation steps: extra reference image URLs that are
-   * appended to the Replicate `image_input` array on every run, after
-   * the user-provided logo. Used by the custom:cover tester pipeline
-   * to always pin a layout reference image alongside the brand logo.
-   */
-  fixedReferenceImageUrls?: string[];
 }
 
 export interface ClientContextField {
@@ -566,8 +574,6 @@ function makeGenerateImageStep(opts: {
    *  old flow = 1:1, new flow = 3:2. */
   fixedAspectRatioOld?: string;
   fixedAspectRatioNew?: string;
-  /** Extra reference image URLs appended to image_input on every run. */
-  fixedReferenceImageUrls?: string[];
 }): StepDefinition {
   const inputs: StepInputDef[] = [
     {
@@ -615,7 +621,6 @@ function makeGenerateImageStep(opts: {
     fixedAspectRatio: opts.fixedAspectRatio,
     fixedAspectRatioOld: opts.fixedAspectRatioOld,
     fixedAspectRatioNew: opts.fixedAspectRatioNew,
-    fixedReferenceImageUrls: opts.fixedReferenceImageUrls,
   };
 }
 
@@ -976,21 +981,46 @@ const generateCustomCoverPromptStep: StepDefinition = {
 };
 
 /**
- * Custom-tester Generate Image step. Always 16:9; always pins the
- * fixed layout-reference image alongside whatever logo URL the client
- * has set, so the model has a consistent visual scaffold to compose
- * against. The reference URL is hardcoded (per the user's request) —
- * to swap it, edit CUSTOM_COVER_REFERENCE_IMAGE_URL below.
+ * Custom-tester Generate Image step. Always 16:9; surfaces a second
+ * reference-image URL field alongside the company-logo input so the
+ * Replicate `image_input` array carries [logo, reference] on every
+ * run. The reference URL is pre-filled with the configured layout-
+ * reference image but the user can override it per-run via the cell.
  */
 const CUSTOM_COVER_REFERENCE_IMAGE_URL =
   "https://cdn.gushwork.ai/cover-images/sylus.ai/426c551b-431a-4c78-ba98-2a9d212062ea.jpg";
 
-const generateCustomCoverImageStep: StepDefinition = makeGenerateImageStep({
-  name: "generate_image",
-  title: "Generate Cover Image",
-  fixedAspectRatio: "16:9",
-  fixedReferenceImageUrls: [CUSTOM_COVER_REFERENCE_IMAGE_URL],
-});
+const generateCustomCoverImageStep: StepDefinition = {
+  ...makeGenerateImageStep({
+    name: "generate_image",
+    title: "Generate Cover Image",
+    fixedAspectRatio: "16:9",
+  }),
+  // Re-declare inputs to insert the reference-image URL right after
+  // the existing image_input (logo) field. The base factory only
+  // defines final_prompt + image_input; we add a second URL slot.
+  inputs: [
+    {
+      name: "final_prompt",
+      label: "Final Prompt",
+      source: { kind: "step_output", stepName: "build_image_prompt" },
+      required: true,
+    },
+    {
+      name: "image_input",
+      label: "Logo URL",
+      source: { kind: "client_context", field: "company_logo_url" },
+      required: false,
+    },
+    {
+      name: "reference_image_url",
+      label: "Reference Image URL (layout scaffold)",
+      source: { kind: "literal", value: CUSTOM_COVER_REFERENCE_IMAGE_URL },
+      required: false,
+      imageInputMember: true,
+    },
+  ],
+};
 
 /** Service / category variant: sources the description from the
  *  Choose Image Description picker step output.
