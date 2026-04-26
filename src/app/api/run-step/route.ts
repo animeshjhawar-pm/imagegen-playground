@@ -13,7 +13,7 @@
 // ---------------------------------------------------------------------------
 
 import { NextRequest, NextResponse } from "next/server";
-import { PIPELINES, type StepDefinition } from "@/config/pipelines";
+import { PIPELINES, resolveFixedAspectRatio, type StepDefinition } from "@/config/pipelines";
 import { scrapeClientSite } from "@/lib/providers/firecrawl";
 import { callPortkey, callPortkeyStoredPrompt } from "@/lib/providers/portkey";
 import { generateImage } from "@/lib/providers/replicate";
@@ -190,6 +190,38 @@ async function runLiveStep(
         truncationWarning = warning;
       }
 
+      // Build Image Prompt on the merged cover+thumbnail pipeline needs
+      // to tell the LLM what aspect ratio(s) the single prompt it
+      // generates will be rendered at. The step itself has no
+      // aspect_ratio input, so we derive it from the downstream image-
+      // gen step definitions and inject it as `aspect_ratio` for the
+      // user template to interpolate.
+      if (stepName === "build_image_prompt") {
+        const pipeline = PIPELINES[key];
+        if (pipeline) {
+          const downstreamAspects = pipeline.steps
+            .filter((s) =>
+              s.name === "generate_image" ||
+              s.name === "generate_cover_image" ||
+              s.name === "generate_thumbnail_image"
+            )
+            .map((s) => {
+              const aspect = resolveFixedAspectRatio(s, flowType);
+              // Label cover/thumbnail so the LLM knows which render
+              // each aspect targets; fall back to a bare ratio string
+              // for the single-image pipelines.
+              if (!aspect) return null;
+              if (s.name === "generate_cover_image")     return `${aspect} (cover)`;
+              if (s.name === "generate_thumbnail_image") return `${aspect} (thumbnail)`;
+              return aspect;
+            })
+            .filter((x): x is string => !!x);
+          if (downstreamAspects.length > 0) {
+            effectiveInputs["aspect_ratio"] = downstreamAspects.join(" and ");
+          }
+        }
+      }
+
       // Derived vars (e.g. brand_lines from graphic_token JSON) are available
       // to both system + user prompt templates.
       const vars = prepareLLMVars(effectiveInputs);
@@ -246,7 +278,9 @@ async function runLiveStep(
       return ok(result.text, truncationWarning ?? undefined);
     }
 
-    case "generate_image": {
+    case "generate_image":
+    case "generate_cover_image":
+    case "generate_thumbnail_image": {
       const finalPrompt = inputs["final_prompt"]?.trim();
       if (!finalPrompt) {
         // Almost always means Step 4 (Generate Image Prompt / Cover /
@@ -265,8 +299,14 @@ async function runLiveStep(
       const cleanPrompt = promptMatch ? promptMatch[1].trim() : finalPrompt;
 
       const imageInputRaw = inputs["image_input"]?.trim();
-      const imageInput =
-        imageInputRaw && imageInputRaw.length > 0 ? [imageInputRaw] : undefined;
+      const userLogoUrls = imageInputRaw && imageInputRaw.length > 0 ? [imageInputRaw] : [];
+      // Step def's fixedReferenceImageUrls are extra reference images
+      // appended to image_input on every run (e.g. the custom:cover
+      // tester pipeline pins a fixed layout-reference image alongside
+      // the user's company logo).
+      const fixedRefs = stepDef.fixedReferenceImageUrls ?? [];
+      const imageInputArr = [...userLogoUrls, ...fixedRefs];
+      const imageInput = imageInputArr.length > 0 ? imageInputArr : undefined;
 
       // Model + model-specific toggles come from stepConfig (new-flow UI).
       // Old flow always uses the default model — no UI to override it there.
@@ -284,9 +324,15 @@ async function runLiveStep(
           ? (rawModel as ImgModel)
           : undefined;
 
+      // Step def's fixed aspect (e.g. cover=16:9, thumbnail=1:1 old /
+      // 3:2 new) wins over both any incoming per-run aspect and the
+      // pipeline default. Resolved per-flow so the merged pipeline can
+      // produce different thumbnail sizes across old and new.
+      const fixedAspect = resolveFixedAspectRatio(stepDef, flowType);
+      const effectiveAspect = fixedAspect ?? aspectRatio ?? "1:1";
       const result = await generateImage({
         prompt: cleanPrompt,
-        aspectRatio: aspectRatio ?? "1:1",
+        aspectRatio: effectiveAspect,
         imageInput,
         model,
         imageSearch:  typeof stepConfig?.imageSearch  === "boolean" ? stepConfig.imageSearch  : undefined,

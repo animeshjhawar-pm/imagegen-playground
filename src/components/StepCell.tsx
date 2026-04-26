@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePlayground } from "@/context/PlaygroundContext";
-import type { StepDefinition, StepDiff, PageType, ImageType } from "@/config/pipelines";
+import { resolveFixedAspectRatio, type StepDefinition, type StepDiff, type PageType, type ImageType } from "@/config/pipelines";
 import type { StepState, ClientState } from "@/state/playgroundReducer";
 import { StatusDot } from "./StatusDot";
 import { CollapsibleField } from "./CollapsibleField";
@@ -41,6 +41,19 @@ const PROVIDER_COLOR: Record<string, string> = {
   replicate: "text-cyan-400",
   none:      "text-neutral-600",
 };
+
+/** Every step name that calls Replicate to produce an image. Used by
+ *  the cell header (aspect pill, model pill hide), the model picker
+ *  render gate, and the aspect-ratio-input lookup in runStep. The
+ *  merged blog:cover_thumbnail pipeline uses `generate_cover_image`
+ *  and `generate_thumbnail_image`; everything else still uses
+ *  `generate_image`. */
+const IMAGE_GEN_STEP_NAMES = new Set([
+  "generate_image",
+  "generate_cover_image",
+  "generate_thumbnail_image",
+]);
+const isImageGenStep = (name: string) => IMAGE_GEN_STEP_NAMES.has(name);
 
 // ---------------------------------------------------------------------------
 // Props
@@ -242,8 +255,8 @@ export function StepCell({
         pageType, imageType, flowType, step,
         resolvedInputs: effectiveInputs,
         aspectRatio:
-          step.name === "generate_image"
-            ? (effectiveInputs["aspect_ratio"] || defaultAspectRatio)
+          isImageGenStep(step.name)
+            ? (resolveFixedAspectRatio(step, flowType) ?? effectiveInputs["aspect_ratio"] ?? defaultAspectRatio)
             : undefined,
         clientId,
         pipelineKey,
@@ -325,18 +338,18 @@ export function StepCell({
         }`}>
           <StatusDot status={(isSkipped || disabled) ? "idle" : stepState.status} />
           <span className="text-xs font-semibold text-neutral-200 truncate flex-1">{step.title}</span>
-          {step.name === "generate_image" && (
+          {isImageGenStep(step.name) && (
             <span className="text-[9px] font-mono text-neutral-500 px-1.5 py-0.5 bg-neutral-800 rounded">
-              {defaultAspectRatio}
+              {resolveFixedAspectRatio(step, flowType) ?? defaultAspectRatio}
             </span>
           )}
           {/* Generate Image in the new flow exposes a model picker, so
            *  a hard-coded model pill in the header would contradict
            *  whatever the user selected. Hide the pill for every new-
-           *  flow generate_image cell (all page types). Old-flow rows
-           *  still show the label since they always run the default
-           *  model — no picker there. */}
-          {!(step.name === "generate_image" && flowType === "new") && (
+           *  flow image-gen cell (all page types, all three step names).
+           *  Old-flow rows still show the label since they always run
+           *  the default model — no picker there. */}
+          {!(isImageGenStep(step.name) && flowType === "new") && (
             <span className={`text-[9px] font-mono ${PROVIDER_COLOR[step.provider] ?? "text-neutral-500"}`}>
               {step.model}
             </span>
@@ -520,8 +533,8 @@ export function StepCell({
               );
             })()}
 
-            {/* ── Image model picker (generate_image, new flow only) ──── */}
-            {step.name === "generate_image" && flowType === "new" && (
+            {/* ── Image model picker (image-gen steps, new flow only) ── */}
+            {isImageGenStep(step.name) && flowType === "new" && (
               <ImageModelPicker
                 config={stepState.stepConfig}
                 pageType={pageType}

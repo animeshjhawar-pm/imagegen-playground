@@ -7,7 +7,7 @@ import { TopControlBar } from "@/components/TopControlBar";
 import { PipelineTable } from "@/components/PipelineTable";
 import { EmptyState } from "@/components/EmptyState";
 import { ConfirmRunAllModal } from "@/components/ConfirmRunAllModal";
-import { PIPELINES, getDisabledStepsForFlow } from "@/config/pipelines";
+import { PIPELINES, getDisabledStepsForFlow, resolveFixedAspectRatio } from "@/config/pipelines";
 import { runStep } from "@/lib/runStep";
 import { resolveInputs } from "@/lib/resolveInputs";
 import { estimateCost } from "@/lib/costEstimates";
@@ -180,8 +180,10 @@ function PlaygroundInner() {
         step,
         resolvedInputs: effectiveInputs,
         aspectRatio:
-          step.name === "generate_image"
-            ? (effectiveInputs["aspect_ratio"] || defaultAspectRatio)
+          step.name === "generate_image" ||
+          step.name === "generate_cover_image" ||
+          step.name === "generate_thumbnail_image"
+            ? (resolveFixedAspectRatio(step, flowType) ?? effectiveInputs["aspect_ratio"] ?? defaultAspectRatio)
             : undefined,
         clientId: client.id,
         pipelineKey,

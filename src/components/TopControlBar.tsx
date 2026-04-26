@@ -16,6 +16,7 @@ const PAGE_TYPE_OPTIONS: { value: PageType; label: string }[] = [
   { value: "blog",     label: "Blog" },
   { value: "service",  label: "Service" },
   { value: "category", label: "Category" },
+  { value: "custom",   label: "Custom (tester)" },
 ];
 
 export type RunScope = "both" | "old" | "new";

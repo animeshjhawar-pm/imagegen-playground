@@ -33,10 +33,6 @@ import {
   BLOG_COVER_USER_TEMPLATE_OLD,
 } from "./old-flow/cover-prompt";
 import {
-  BLOG_THUMBNAIL_SYSTEM_PROMPT_OLD,
-  BLOG_THUMBNAIL_USER_TEMPLATE_OLD,
-} from "./old-flow/thumbnail-prompt";
-import {
   GENERATE_INFOGRAPHIC_SYSTEM_PROMPT_NEW,
   GENERATE_INFOGRAPHIC_USER_TEMPLATE_NEW,
 } from "./new-flow/generate-infographic-prompt";
@@ -44,23 +40,19 @@ import {
   BLOG_COVER_SYSTEM_PROMPT_NEW,
   BLOG_COVER_USER_TEMPLATE_NEW,
 } from "./new-flow/cover-prompt";
-import {
-  BLOG_THUMBNAIL_SYSTEM_PROMPT_NEW,
-  BLOG_THUMBNAIL_USER_TEMPLATE_NEW,
-} from "./new-flow/thumbnail-prompt";
 
-export type PageType = "blog" | "service" | "category";
+export type PageType = "blog" | "service" | "category" | "custom";
 
 export type ImageType =
-  | "thumbnail"
-  | "cover"
+  | "cover_thumbnail"
   | "internal"
   | "external"
   | "infographic"
   | "generic"
   | "title"
   | "h2"
-  | "industry";
+  | "industry"
+  | "cover";
 
 export type StepStatus = "idle" | "running" | "completed" | "failed";
 export type StepDiff = "same_as_old" | "modified" | "new" | "skipped";
@@ -176,6 +168,28 @@ export interface StepDefinition {
    * in `inputs`. Defaults to every input's name.
    */
   promptVariables?: string[];
+  /**
+   * For image-generation steps: when set, this aspect ratio is used
+   * verbatim regardless of the pipeline default or any user override.
+   * Lets the merged blog:cover_thumbnail pipeline run a 16:9 cover
+   * step and a 3:2 thumbnail step off the same shared prompt.
+   */
+  fixedAspectRatio?: string;
+  /**
+   * Per-flow overrides for `fixedAspectRatio`. Used by the thumbnail
+   * render step which targets 1:1 in the old flow and 3:2 in the new
+   * flow (same prompt, different output size). Falls back to
+   * `fixedAspectRatio` when the matching flow override is unset.
+   */
+  fixedAspectRatioOld?: string;
+  fixedAspectRatioNew?: string;
+  /**
+   * For image-generation steps: extra reference image URLs that are
+   * appended to the Replicate `image_input` array on every run, after
+   * the user-provided logo. Used by the custom:cover tester pipeline
+   * to always pin a layout reference image alongside the brand logo.
+   */
+  fixedReferenceImageUrls?: string[];
 }
 
 export interface ClientContextField {
@@ -209,6 +223,12 @@ export interface PipelineDefinition {
   defaultAspectRatioNew?: string;
   /** Short note shown above the pipeline table — flags any gaps vs stormbreaker. */
   alignmentNote?: string;
+  /**
+   * When true, the old-flow row is hidden entirely and Compare buttons
+   * are suppressed (there's nothing to compare against). Used by the
+   * custom:cover tester pipeline which only exercises the new flow.
+   */
+  omitOldFlow?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -216,14 +236,14 @@ export interface PipelineDefinition {
 // ---------------------------------------------------------------------------
 
 export const IMAGE_TYPES_BY_PAGE: Record<PageType, ImageType[]> = {
-  blog: ["thumbnail", "cover", "internal", "external", "infographic", "generic"],
+  blog: ["cover_thumbnail", "internal", "external", "infographic", "generic"],
   service: ["title", "h2"],
   category: ["industry"],
+  custom: ["cover"],
 };
 
 export const IMAGE_TYPE_LABELS: Record<ImageType, string> = {
-  thumbnail: "Thumbnail",
-  cover: "Cover",
+  cover_thumbnail: "Cover + Thumbnail",
   internal: "Internal (vector DB)",
   external: "External (SERP search)",
   infographic: "Infographic",
@@ -231,6 +251,7 @@ export const IMAGE_TYPE_LABELS: Record<ImageType, string> = {
   title: "Title Image",
   h2: "H2 Image",
   industry: "Industry Image",
+  cover: "Cover (tester)",
 };
 
 // ---------------------------------------------------------------------------
@@ -528,7 +549,26 @@ const generatePlaceholderDescriptionStep: StepDefinition = {
  *     hidden entirely; the pipeline's defaultAspectRatio ("1:1") is the
  *     only ratio used for those page types.
  */
-function makeGenerateImageStep(opts: { aspectOptions?: string[] }): StepDefinition {
+function makeGenerateImageStep(opts: {
+  aspectOptions?: string[];
+  /** Overrides the default step name "generate_image". Used by the
+   *  merged blog:cover_thumbnail pipeline to run two image-gen steps
+   *  side-by-side ("generate_cover_image" + "generate_thumbnail_image")
+   *  so each output lands in its own cell + gets its own Compare View. */
+  name?: string;
+  /** Overrides the default title "Generate Image". */
+  title?: string;
+  /** When set, this ratio is always used — the aspect_ratio input is
+   *  hidden and the backend hardcodes it regardless of the pipeline
+   *  default. */
+  fixedAspectRatio?: string;
+  /** Per-flow overrides for `fixedAspectRatio`. Thumbnail uses this:
+   *  old flow = 1:1, new flow = 3:2. */
+  fixedAspectRatioOld?: string;
+  fixedAspectRatioNew?: string;
+  /** Extra reference image URLs appended to image_input on every run. */
+  fixedReferenceImageUrls?: string[];
+}): StepDefinition {
   const inputs: StepInputDef[] = [
     {
       name: "final_prompt",
@@ -552,19 +592,30 @@ function makeGenerateImageStep(opts: { aspectOptions?: string[] }): StepDefiniti
       options: opts.aspectOptions,
     });
   }
+  const hasDropdown = !!opts.aspectOptions && opts.aspectOptions.length > 0;
+  const aspectSummary =
+    opts.fixedAspectRatioOld || opts.fixedAspectRatioNew
+      ? `old=${opts.fixedAspectRatioOld ?? opts.fixedAspectRatio ?? "—"}, new=${opts.fixedAspectRatioNew ?? opts.fixedAspectRatio ?? "—"}`
+      : opts.fixedAspectRatio ?? null;
+  const description = aspectSummary
+    ? `Sends the final prompt to Replicate. Logo (if provided) is passed as image_input for img2img. aspect_ratio hardcoded per flow (${aspectSummary}).`
+    : hasDropdown
+      ? "Sends the final prompt to Replicate. Logo (if provided) is passed as image_input for img2img. aspect_ratio defaults to the pipeline's configured value and can be overridden per-run."
+      : "Sends the final prompt to Replicate. Logo (if provided) is passed as image_input for img2img. aspect_ratio is fixed to the pipeline default (1:1) for service + category pipelines.";
   return {
-    name: "generate_image",
-    title: "Generate Image",
-    description:
-      opts.aspectOptions && opts.aspectOptions.length > 0
-        ? "Sends the final prompt to Replicate (google/nano-banana-pro). Logo (if provided) is passed as image_input for img2img. aspect_ratio defaults to the pipeline's configured value and can be overridden per-run."
-        : "Sends the final prompt to Replicate (google/nano-banana-pro). Logo (if provided) is passed as image_input for img2img. aspect_ratio is fixed to the pipeline default (1:1) for service + category pipelines.",
+    name: opts.name ?? "generate_image",
+    title: opts.title ?? "Generate Image",
+    description,
     model: "google/nano-banana-pro",
     provider: "replicate",
     diffOld: "same_as_old",
     diffNew: "same_as_old",
     inputs,
     outputType: "image_url",
+    fixedAspectRatio: opts.fixedAspectRatio,
+    fixedAspectRatioOld: opts.fixedAspectRatioOld,
+    fixedAspectRatioNew: opts.fixedAspectRatioNew,
+    fixedReferenceImageUrls: opts.fixedReferenceImageUrls,
   };
 }
 
@@ -574,6 +625,36 @@ const generateImageStep_blog: StepDefinition = makeGenerateImageStep({
 const generateImageStep_page: StepDefinition = makeGenerateImageStep({
   // No dropdown — service/category are locked to the pipeline default.
 });
+
+/** Merged blog cover+thumbnail pipeline: two image-gen steps run off
+ *  the same Build Image Prompt output, each hardcoded to its target
+ *  aspect ratio. Cover = 16:9, Thumbnail = 3:2. */
+const generateCoverImageStep: StepDefinition = makeGenerateImageStep({
+  name: "generate_cover_image",
+  title: "Generate Cover Image",
+  fixedAspectRatio: "16:9",
+});
+const generateThumbnailImageStep: StepDefinition = makeGenerateImageStep({
+  name: "generate_thumbnail_image",
+  title: "Generate Thumbnail Image",
+  // Per-flow override: old flow keeps the historical 1:1 thumbnail,
+  // new flow produces the wider 3:2. Cover stays 16:9 in both flows.
+  fixedAspectRatioOld: "1:1",
+  fixedAspectRatioNew: "3:2",
+});
+
+/** Resolves the effective fixed aspect ratio for an image-gen step in
+ *  the context of a specific flow. Returns `undefined` when the step
+ *  doesn't hardcode a ratio (i.e. it honours the pipeline default or
+ *  the user's dropdown choice). */
+export function resolveFixedAspectRatio(
+  step: StepDefinition,
+  flowType: "old" | "new",
+): string | undefined {
+  const flowSpecific =
+    flowType === "old" ? step.fixedAspectRatioOld : step.fixedAspectRatioNew;
+  return flowSpecific ?? step.fixedAspectRatio;
+}
 
 // ---------------------------------------------------------------------------
 // Step 4 variants — the only step that meaningfully differs per image type
@@ -791,15 +872,59 @@ const generateInfographicPromptStep_blog: StepDefinition = {
 };
 
 /**
- * blog:cover Step 4. Wholly distinct prompts from the generic blog
- * Generate Image Prompt in BOTH flows. Content lives in
- * src/config/old-flow/cover-prompt.ts and src/config/new-flow/cover-prompt.ts.
+ * Step 4 for the merged blog:cover_thumbnail pipeline. A single Build
+ * Image Prompt step drives BOTH the 16:9 cover and 3:2 thumbnail
+ * image-gen steps that follow. Prompt content comes from cover-prompt.ts
+ * (old-flow uses the old stormbreaker cover template; new-flow uses the
+ * iterated cover prompt in new-flow/cover-prompt.ts — the user asked to
+ * consolidate thumbnail onto the cover prompt).
  */
 const generateCoverImagePromptStep_blog: StepDefinition = {
   ...generateImagePromptStep_blog,
-  title: "Generate Cover Image Prompt",
+  title: "Generate Image Prompt",
   description:
-    "Dedicated blog-cover prompt — not derived from the generic Generate Image Prompt. Old and new flow each carry their own system + user template for the 16:9 cover format.",
+    "Shared cover/thumbnail prompt — one Claude call produces the prompt used for both the 16:9 cover render and the 3:2/1:1 thumbnail render. Old flow: stormbreaker cover template. New flow: the iterated cover prompt. company_info is intentionally omitted on this pipeline; cover/thumbnail ground on blog_title + business_context + graphic_token only.",
+  // Override inherited inputs: drop company_info (not consumed by the
+  // cover template in either flow) and add the optional subtitle +
+  // category_label user inputs that the new-flow template uses for the
+  // top-of-card pill + tagline. Both default to empty — the system
+  // prompt treats empty strings as "not provided".
+  inputs: [
+    {
+      name: "placeholder_description",
+      label: "Blog Title (from picker / custom text)",
+      source: { kind: "step_output", stepName: "generate_image_description" },
+      required: true,
+    },
+    {
+      name: "business_context",
+      label: "business_context",
+      source: { kind: "client_context", field: "business_context" },
+      required: false,
+      flows: ["new"],
+    },
+    {
+      name: "graphic_token",
+      label: "graphic_token",
+      source: { kind: "step_output", stepName: "extract_graphic_token" },
+      required: false,
+      flows: ["new"],
+    },
+    {
+      name: "subtitle",
+      label: "subtitle (optional)",
+      source: { kind: "user_input" },
+      required: false,
+      flows: ["new"],
+    },
+    {
+      name: "category_label",
+      label: "category_label (optional)",
+      source: { kind: "user_input" },
+      required: false,
+      flows: ["new"],
+    },
+  ],
   systemPromptOld: BLOG_COVER_SYSTEM_PROMPT_OLD,
   systemPromptNew: BLOG_COVER_SYSTEM_PROMPT_NEW,
   userPromptTemplateOld: BLOG_COVER_USER_TEMPLATE_OLD,
@@ -807,21 +932,65 @@ const generateCoverImagePromptStep_blog: StepDefinition = {
 };
 
 /**
- * blog:thumbnail Step 4. Wholly distinct prompts from the generic blog
- * Generate Image Prompt in BOTH flows. Content lives in
- * src/config/old-flow/thumbnail-prompt.ts and
- * src/config/new-flow/thumbnail-prompt.ts.
+ * Custom-tester Build Image Prompt step. New-flow only. Drops every
+ * input the cover/thumbnail variant carried except: blog_title (from
+ * picker), business_context (client context), graphic_token (read from
+ * client_context.graphic_token, NOT the extract step — the custom
+ * pipeline skips the scrape + extract steps entirely; the user pastes a
+ * graphic_token JSON into the context panel by hand).
  */
-const generateThumbnailImagePromptStep_blog: StepDefinition = {
-  ...generateImagePromptStep_blog,
-  title: "Generate Thumbnail Image Prompt",
+const generateCustomCoverPromptStep: StepDefinition = {
+  name: "build_image_prompt",
+  title: "Generate Image Prompt",
   description:
-    "Dedicated blog-thumbnail prompt — not derived from the generic Generate Image Prompt. Old flow targets 1:1, new flow 3:2; each has its own system + user template.",
-  systemPromptOld: BLOG_THUMBNAIL_SYSTEM_PROMPT_OLD,
-  systemPromptNew: BLOG_THUMBNAIL_SYSTEM_PROMPT_NEW,
-  userPromptTemplateOld: BLOG_THUMBNAIL_USER_TEMPLATE_OLD,
-  userPromptTemplateNew: BLOG_THUMBNAIL_USER_TEMPLATE_NEW,
+    "Custom tester variant — generates the cover prompt off the picked blog topic, business_context, and a manually-entered graphic_token. No scrape, no extract, no company_info. Output feeds the single 16:9 cover render that follows.",
+  model: "claude-sonnet-4-6",
+  provider: "portkey",
+  diffOld: "skipped",
+  diffNew: "new",
+  inputs: [
+    {
+      name: "placeholder_description",
+      label: "Blog Title (from picker / custom text)",
+      source: { kind: "step_output", stepName: "generate_image_description" },
+      required: true,
+    },
+    {
+      name: "business_context",
+      label: "business_context",
+      source: { kind: "client_context", field: "business_context" },
+      required: false,
+      flows: ["new"],
+    },
+    {
+      name: "graphic_token",
+      label: "graphic_token (manual JSON)",
+      source: { kind: "client_context", field: "graphic_token" },
+      required: false,
+      flows: ["new"],
+    },
+  ],
+  systemPromptNew: BLOG_COVER_SYSTEM_PROMPT_NEW,
+  userPromptTemplateNew: BLOG_COVER_USER_TEMPLATE_NEW,
+  outputType: "text",
 };
+
+/**
+ * Custom-tester Generate Image step. Always 16:9; always pins the
+ * fixed layout-reference image alongside whatever logo URL the client
+ * has set, so the model has a consistent visual scaffold to compose
+ * against. The reference URL is hardcoded (per the user's request) —
+ * to swap it, edit CUSTOM_COVER_REFERENCE_IMAGE_URL below.
+ */
+const CUSTOM_COVER_REFERENCE_IMAGE_URL =
+  "https://cdn.gushwork.ai/cover-images/sylus.ai/426c551b-431a-4c78-ba98-2a9d212062ea.jpg";
+
+const generateCustomCoverImageStep: StepDefinition = makeGenerateImageStep({
+  name: "generate_image",
+  title: "Generate Cover Image",
+  fixedAspectRatio: "16:9",
+  fixedReferenceImageUrls: [CUSTOM_COVER_REFERENCE_IMAGE_URL],
+});
 
 /** Service / category variant: sources the description from the
  *  Choose Image Description picker step output.
@@ -908,24 +1077,26 @@ export const PIPELINES: Record<string, PipelineDefinition> = {
   // as blog:infographic. The only differences are the fixed aspect
   // ratios: cover = 16:9 (both flows); thumbnail = 1:1 old / 3:2 new.
   // Step 5 is the no-dropdown variant so the ratio stays fixed.
-  "blog:cover": makePipeline({
-    step3: chooseBlogImageDescriptionStep,
-    step4: generateCoverImagePromptStep_blog,
-    step5: generateImageStep_page,
+  // Merged blog Cover + Thumbnail pipeline. Steps 1–4 are shared across
+  // the two outputs (scrape → extract → picker → one Build Image Prompt
+  // run). Step 5 and 6 each take the same build_image_prompt output and
+  // hit Replicate with a hardcoded aspect ratio: 16:9 for the cover, 3:2
+  // for the thumbnail. This produces two image cells per flow (old + new)
+  // and feeds two separate Compare Views (one per aspect ratio).
+  "blog:cover_thumbnail": {
+    steps: [
+      scrapeStep,
+      extractGraphicTokenStep,
+      chooseBlogImageDescriptionStep,
+      generateCoverImagePromptStep_blog,
+      generateCoverImageStep,
+      generateThumbnailImageStep,
+    ],
+    clientContextFields: SHARED_CLIENT_CONTEXT_FIELDS,
     defaultAspectRatio: "16:9",
     alignmentNote:
-      "Picker (Step 3) shared with every blog pipeline. Step 4 is the dedicated Generate Cover Image Prompt — separate system + user templates in old-flow/cover-prompt.ts and new-flow/cover-prompt.ts. Aspect ratio fixed at 16:9 in both flows.",
-  }),
-  "blog:thumbnail": makePipeline({
-    step3: chooseBlogImageDescriptionStep,
-    step4: generateThumbnailImagePromptStep_blog,
-    step5: generateImageStep_page,
-    defaultAspectRatio: "1:1", // fallback; overridden per flow below
-    defaultAspectRatioOld: "1:1",
-    defaultAspectRatioNew: "3:2",
-    alignmentNote:
-      "Picker (Step 3) shared with every blog pipeline. Step 4 is the dedicated Generate Thumbnail Image Prompt — separate system + user templates in old-flow/thumbnail-prompt.ts and new-flow/thumbnail-prompt.ts. Aspect ratio 1:1 old / 3:2 new.",
-  }),
+      "Cover + Thumbnail are merged: one shared picker + prompt (cover-prompt.ts in new-flow) drives two Replicate calls — 16:9 cover and 3:2 thumbnail. Each image gets its own cell per flow and its own Compare View.",
+  },
 
   // Blog internal/external/infographic/generic — unified flow.
   // Step 3 is a picker over per-client blogImageDescriptionOptions with
@@ -982,6 +1153,28 @@ export const PIPELINES: Record<string, PipelineDefinition> = {
     alignmentNote:
       "Same handler and upstream prompt as service:title (update_images.py). In stormbreaker the title vs h2 distinction only exists in each image object's `context` field within page_info.",
   }),
+
+  // Custom tester pipeline. New-flow only, 3 steps:
+  //   1) Choose blog topic (picker over new_flow_blog_topic_options)
+  //   2) Generate Image Prompt — runs Claude with placeholder_description
+  //      + business_context + graphic_token (graphic_token comes from a
+  //      MANUALLY entered client-context field, not from extract). No
+  //      scrape, no extract, no company_info.
+  //   3) Generate Cover Image — single 16:9 render. The image_input
+  //      array always includes the configured layout-reference image
+  //      ALONGSIDE the user's company logo.
+  "custom:cover": {
+    steps: [
+      chooseBlogImageDescriptionStep,
+      generateCustomCoverPromptStep,
+      generateCustomCoverImageStep,
+    ],
+    clientContextFields: SHARED_CLIENT_CONTEXT_FIELDS,
+    defaultAspectRatio: "16:9",
+    omitOldFlow: true,
+    alignmentNote:
+      "Custom tester pipeline — new flow only. 3 steps: pick topic → generate prompt (uses manually-entered graphic_token) → generate 16:9 cover image. The cover render always pins a fixed reference image alongside the logo.",
+  },
 
   "category:industry": makePipeline({
     step3: chooseCategoryDescriptionStep,

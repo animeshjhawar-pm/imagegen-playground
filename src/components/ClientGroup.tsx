@@ -89,18 +89,49 @@ export function ClientGroup({
   const { dispatch } = usePlayground();
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(client.name);
-  const [compareOpen, setCompareOpen] = useState(false);
+  // Which Compare dialog (if any) is open. The merged blog:cover_thumbnail
+  // pipeline produces TWO image outputs per flow (16:9 cover + 3:2
+  // thumbnail), each with its own Compare CTA; everything else uses the
+  // single `generate_image` step.
+  const [compareKind, setCompareKind] =
+    useState<null | "generate_image" | "generate_cover_image" | "generate_thumbnail_image">(null);
   const headerRowRef = useRef<HTMLTableRowElement>(null);
 
-  // Resolve the LATEST generate_image output for each flow. We always
-  // use newFlows[0] for the "New" side so the Compare CTA stays stable
-  // even when the user has added extra New lanes. The CTA is only shown
-  // when both sides have a non-empty output.
-  const newGenImageOutput =
-    client.newFlows[0]?.stepStates?.["generate_image"]?.output?.trim() ?? "";
-  const oldGenImageOutput =
-    client.oldFlow?.stepStates?.["generate_image"]?.output?.trim() ?? "";
-  const canCompare = !!newGenImageOutput && !!oldGenImageOutput;
+  // Helper — picks the newFlows[0] output for a given image-gen step
+  // name. We always use lane 0 for the "New" side so the CTA stays
+  // stable when the user has added extra New lanes.
+  const genOutput = (stepName: string, side: "old" | "new") =>
+    (side === "new"
+      ? client.newFlows[0]?.stepStates?.[stepName]?.output
+      : client.oldFlow?.stepStates?.[stepName]?.output
+    )?.trim() ?? "";
+
+  const isCoverThumb = pageType === "blog" && imageType === "cover_thumbnail";
+
+  const singleNewOut  = genOutput("generate_image", "new");
+  const singleOldOut  = genOutput("generate_image", "old");
+  const coverNewOut   = genOutput("generate_cover_image", "new");
+  const coverOldOut   = genOutput("generate_cover_image", "old");
+  const thumbNewOut   = genOutput("generate_thumbnail_image", "new");
+  const thumbOldOut   = genOutput("generate_thumbnail_image", "old");
+
+  // One CTA per comparison, gated on both sides having output. When
+  // the pipeline has no old flow at all (custom tester) there's
+  // nothing to compare, so all CTAs are suppressed.
+  const hasOldFlow = !pipeline.omitOldFlow;
+  const canCompareSingle    = hasOldFlow && !isCoverThumb && !!singleNewOut && !!singleOldOut;
+  const canCompareCover     = hasOldFlow && isCoverThumb  && !!coverNewOut  && !!coverOldOut;
+  const canCompareThumbnail = hasOldFlow && isCoverThumb  && !!thumbNewOut  && !!thumbOldOut;
+
+  // Map the currently-open dialog back to its pair.
+  const compareImages = (() => {
+    switch (compareKind) {
+      case "generate_image":           return { newUrl: singleNewOut, oldUrl: singleOldOut, label: "" };
+      case "generate_cover_image":     return { newUrl: coverNewOut,  oldUrl: coverOldOut,  label: " · Cover (16:9)" };
+      case "generate_thumbnail_image": return { newUrl: thumbNewOut,  oldUrl: thumbOldOut,  label: " · Thumbnail (3:2)" };
+      default: return null;
+    }
+  })();
 
   // Picker step output (shared across flows) — the human-readable
   // description the user selected as the seed for Build Image Prompt.
@@ -217,25 +248,31 @@ export function ClientGroup({
 
             <div className="flex-1" />
 
-            {/* Compare View CTA — surfaces only when BOTH old and new
-             *  flow's generate_image step have produced non-empty output
-             *  (i.e. we have two images to compare). Clicking opens a
-             *  full-viewport 50/50 dialog with zoom + pan per side. */}
-            {canCompare && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCompareOpen(true);
-                }}
+            {/* Compare View CTAs — each surfaces only when BOTH old and
+             *  new flow have produced non-empty output for that step.
+             *  Regular pipelines get a single button; the merged
+             *  blog:cover_thumbnail pipeline gets two (one per aspect
+             *  ratio) since it renders two images per flow. */}
+            {canCompareSingle && (
+              <CompareButton
+                label="Compare View"
                 title="Open the new vs. old generate_image output side-by-side"
-                className="text-xs px-2 py-1 rounded font-medium mr-2
-                  border border-violet-700/60 bg-violet-950/40 text-violet-200
-                  hover:bg-violet-900/60 hover:border-violet-500/80
-                  transition-colors inline-flex items-center gap-1.5"
-              >
-                <span aria-hidden>⧉</span>
-                Compare View
-              </button>
+                onClick={(e) => { e.stopPropagation(); setCompareKind("generate_image"); }}
+              />
+            )}
+            {canCompareCover && (
+              <CompareButton
+                label="Compare Cover (16:9)"
+                title="Old vs. new 16:9 cover image"
+                onClick={(e) => { e.stopPropagation(); setCompareKind("generate_cover_image"); }}
+              />
+            )}
+            {canCompareThumbnail && (
+              <CompareButton
+                label="Compare Thumbnail (3:2)"
+                title="Old vs. new 3:2 thumbnail image"
+                onClick={(e) => { e.stopPropagation(); setCompareKind("generate_thumbnail_image"); }}
+              />
             )}
 
             {/* Remove button */}
@@ -303,13 +340,16 @@ export function ClientGroup({
 
           {/* Old flow — always exactly one lane, rendered as the first row
            *  so shared (rowspan'd) cells like the Choose Image Description
-           *  picker attach to it. */}
-          <FlowRow flowType="old" client={client} pipeline={pipeline}
-            pageType={pageType} imageType={imageType}
-            isFirstFlowRow={true}
-            totalFlowRows={1 + laneCount}
-            onRunRow={onRunRow}
-            runningScope={runningScope} />
+           *  picker attach to it. Hidden entirely on pipelines flagged
+           *  `omitOldFlow` (custom tester pipeline). */}
+          {!pipeline.omitOldFlow && (
+            <FlowRow flowType="old" client={client} pipeline={pipeline}
+              pageType={pageType} imageType={imageType}
+              isFirstFlowRow={true}
+              totalFlowRows={1 + laneCount}
+              onRunRow={onRunRow}
+              runningScope={runningScope} />
+          )}
 
           {/* New flow lanes — one row per entry in client.newFlows.
            *  Added lanes (index > 0) carry a trash icon; the last lane
@@ -317,6 +357,11 @@ export function ClientGroup({
           {client.newFlows.map((_, idx) => {
             const isLast = idx === laneCount - 1;
             const canRemove = idx > 0;
+            // When the pipeline omits the old flow, the new flow's first
+            // lane becomes the row that "owns" the rowspan'd picker
+            // cells. Otherwise the old-flow row is always first.
+            const isAnchorRow = !!pipeline.omitOldFlow && idx === 0;
+            const totalRows   = pipeline.omitOldFlow ? laneCount : 1 + laneCount;
             return (
               <FlowRow
                 key={`new-${idx}`}
@@ -326,8 +371,8 @@ export function ClientGroup({
                 pipeline={pipeline}
                 pageType={pageType}
                 imageType={imageType}
-                isFirstFlowRow={false}
-                totalFlowRows={1 + laneCount}
+                isFirstFlowRow={isAnchorRow}
+                totalFlowRows={totalRows}
                 onRunRow={onRunRow}
                 runningScope={runningScope}
                 labelAdornment={
@@ -376,19 +421,49 @@ export function ClientGroup({
         </>
       )}
       {/* Compare dialog — portaled to <body> so it escapes the <tbody>
-       *  ancestor (non-<tr> children are invalid there). */}
-      {compareOpen && typeof document !== "undefined" && createPortal(
+       *  ancestor (non-<tr> children are invalid there). The single
+       *  dialog is reused for all compare variants; the active pair
+       *  is resolved via `compareImages` above. */}
+      {compareImages && typeof document !== "undefined" && createPortal(
         <CompareViewDialog
-          isOpen={compareOpen}
-          clientName={client.name}
-          newImageUrl={newGenImageOutput}
-          oldImageUrl={oldGenImageOutput}
+          isOpen={true}
+          clientName={`${client.name}${compareImages.label}`}
+          newImageUrl={compareImages.newUrl}
+          oldImageUrl={compareImages.oldUrl}
           inputDescription={inputDescription}
-          onClose={() => setCompareOpen(false)}
+          onClose={() => setCompareKind(null)}
         />,
         document.body,
       )}
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Small helpers
+// ---------------------------------------------------------------------------
+
+function CompareButton({
+  label,
+  title,
+  onClick,
+}: {
+  label: string;
+  title: string;
+  onClick: React.MouseEventHandler<HTMLButtonElement>;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className="text-xs px-2 py-1 rounded font-medium mr-2
+        border border-violet-700/60 bg-violet-950/40 text-violet-200
+        hover:bg-violet-900/60 hover:border-violet-500/80
+        transition-colors inline-flex items-center gap-1.5"
+    >
+      <span aria-hidden>⧉</span>
+      {label}
+    </button>
   );
 }
 
