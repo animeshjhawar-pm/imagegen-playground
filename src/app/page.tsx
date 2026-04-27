@@ -66,10 +66,16 @@ function patchClientWithLaneOutputs(
 
 function PlaygroundInner() {
   const { state, dispatch } = usePlayground();
-  // null = idle; "all" = full Run All in flight; otherwise the step-name
-  // being batched across all clients. Mutually exclusive so the UI can't
-  // fire two parallel run waves over the same steps.
+  // GLOBAL run scope — null = idle, "all" = full Run All, otherwise the
+  // step-name being run across every client (column run). Run All and
+  // column-runs are mutually exclusive with each other AND with any in-
+  // flight row run.
   const [runningScope, setRunningScope] = useState<null | "all" | string>(null);
+  // ROW runs may execute in parallel — each entry is a row scope key
+  // ("row:<clientId>:<flowType>:<flowIndex>") that currently has a
+  // pipeline-wide run in flight. Rows do NOT block other rows, but they
+  // DO block global runs (and vice-versa).
+  const [runningRows, setRunningRows] = useState<ReadonlySet<string>>(() => new Set());
   const [pendingConfirm, setPendingConfirm] = useState<{
     stepCount: number;
     estimatedCost: number;
@@ -79,7 +85,12 @@ function PlaygroundInner() {
 
   const { pageType, imageType, clients } = state;
   const hasSelection = pageType !== null && imageType !== null;
-  const isRunning = runningScope !== null;
+  // "Anything running" — used by buttons that need a fully idle state
+  // (Run All, column-run, single step inside a cell). Per-row buttons
+  // use a relaxed predicate that only blocks on global runs / their own
+  // in-flight row, so other rows can run alongside.
+  const isRunning = runningScope !== null || runningRows.size > 0;
+  const isGlobalRunning = runningScope !== null;
 
   // Live-state ref — refreshed on every commit so we can read the latest
   // clients array inside async loops even when the outer closure is stale.
@@ -342,7 +353,13 @@ function PlaygroundInner() {
     flowType: "old" | "new",
     flowIndex: number,
   ): Promise<void> {
-    if (!hasSelection || isRunning) return;
+    // Row runs ARE allowed to fire concurrently with other rows; they
+    // are only blocked when (a) a global wave is in flight, or (b) THIS
+    // exact row is already running.
+    if (!hasSelection || isGlobalRunning) return;
+    const rowKey = `row:${clientId}:${flowType}:${flowIndex}`;
+    if (runningRows.has(rowKey)) return;
+
     const pipeline = PIPELINES[`${pageType}:${imageType}`];
     if (!pipeline) return;
     const client = stateRef.current.clients.find((c) => c.id === clientId);
@@ -354,7 +371,11 @@ function PlaygroundInner() {
         ? pipeline.defaultAspectRatioOld
         : pipeline.defaultAspectRatioNew) ?? pipeline.defaultAspectRatio;
 
-    setRunningScope(`row:${clientId}:${flowType}:${flowIndex}`);
+    setRunningRows((prev) => {
+      const next = new Set(prev);
+      next.add(rowKey);
+      return next;
+    });
     try {
       const laneOutputs: Record<string, string> = {};
       for (const step of pipeline.steps) {
@@ -364,7 +385,11 @@ function PlaygroundInner() {
         if (outcome === "failed") break;
       }
     } finally {
-      setRunningScope(null);
+      setRunningRows((prev) => {
+        const next = new Set(prev);
+        next.delete(rowKey);
+        return next;
+      });
     }
   }
 
@@ -373,7 +398,11 @@ function PlaygroundInner() {
     flowType: "old" | "new",
     flowIndex: number,
   ): void {
-    if (!hasSelection || isRunning) return;
+    // Allow firing alongside other rows; only block on a global wave or
+    // an in-flight run for THIS exact row.
+    if (!hasSelection || isGlobalRunning) return;
+    const rowKey = `row:${clientId}:${flowType}:${flowIndex}`;
+    if (runningRows.has(rowKey)) return;
     const pipeline = PIPELINES[`${pageType}:${imageType}`];
     if (!pipeline) return;
     const client = stateRef.current.clients.find((c) => c.id === clientId);
@@ -532,6 +561,7 @@ function PlaygroundInner() {
             onRunStep={handleRunStep}
             onRunRow={handleRunRow}
             runningScope={runningScope}
+            runningRows={runningRows}
           />
         )}
       </main>

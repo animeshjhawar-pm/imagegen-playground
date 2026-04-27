@@ -25,17 +25,21 @@ interface FlowRowProps {
   totalFlowRows: number;
   /** Run every step for this single (client, flow, lane) left-to-right. */
   onRunRow: (clientId: string, flowType: "old" | "new", flowIndex: number) => void;
-  /** Global running scope; used to disable the Run-row button when any
-   *  other run is in flight, and to highlight the button when THIS row
-   *  is the one running. */
+  /** Global running scope: null = idle, "all" = full Run All, otherwise
+   *  the step-name being column-run. Disables the Run-row button while
+   *  a global wave is in flight. */
   runningScope: null | "all" | string;
+  /** Row-scope keys for in-flight per-row runs. Multiple may overlap —
+   *  this row stays runnable as long as it's not itself in the set and
+   *  no global wave is running. */
+  runningRows: ReadonlySet<string>;
 }
 
 export function FlowRow({
   flowType, flowIndex = 0, labelAdornment,
   client, pipeline, pageType, imageType,
   isFirstFlowRow, totalFlowRows,
-  onRunRow, runningScope,
+  onRunRow, runningScope, runningRows,
 }: FlowRowProps) {
   const flow =
     flowType === "old"
@@ -63,12 +67,13 @@ export function FlowRow({
       ? pipeline.defaultAspectRatioOld
       : pipeline.defaultAspectRatioNew) ?? pipeline.defaultAspectRatio;
 
-  // Disable Run-row while any other run is in flight; highlight when
-  // THIS row is the one currently running.
+  // Row runs may overlap with other rows — only block when (a) a
+  // global wave (Run All / column run) is in flight, or (b) THIS exact
+  // row is already running. Highlight while this row is mid-run.
   const thisRowScope = `row:${client.id}:${flowType}:${flowIndex}`;
-  const isThisRowRunning = runningScope === thisRowScope;
-  const isAnyRunning = runningScope !== null;
-  const canRunRow = !isAnyRunning || isThisRowRunning;
+  const isThisRowRunning = runningRows.has(thisRowScope);
+  const isGlobalRunning  = runningScope !== null;
+  const canRunRow        = !isGlobalRunning && !isThisRowRunning;
 
   return (
     <tr className="border-b border-neutral-800/60 last:border-0">
@@ -93,9 +98,9 @@ export function FlowRow({
             title={
               isThisRowRunning
                 ? "This row is running…"
-                : isAnyRunning
-                  ? "Another run is in progress"
-                  : `Run every step for this ${label} row, left to right`
+                : isGlobalRunning
+                  ? "A pipeline-wide run is in progress"
+                  : `Run every step for this ${label} row, left to right (multiple rows can run in parallel)`
             }
             className={`mt-0.5 px-1.5 py-0.5 text-[9px] rounded font-medium whitespace-nowrap
               transition-colors inline-flex items-center gap-1

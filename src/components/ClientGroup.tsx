@@ -75,8 +75,12 @@ interface ClientGroupProps {
   isLastAdded: boolean;
   /** Run the full pipeline left-to-right for one (client, flow, lane). */
   onRunRow: (clientId: string, flowType: "old" | "new", flowIndex: number) => void;
-  /** null | "all" | stepName | "row:…" — drives per-row button state. */
+  /** Global run scope — null = idle, "all" = full Run All, otherwise the
+   *  step-name being column-run. */
   runningScope: null | "all" | string;
+  /** Row-scope keys for in-flight per-row runs (multiple may run
+   *  concurrently). */
+  runningRows: ReadonlySet<string>;
 }
 
 // ---------------------------------------------------------------------------
@@ -84,7 +88,7 @@ interface ClientGroupProps {
 // ---------------------------------------------------------------------------
 export function ClientGroup({
   client, position, pipeline, pageType, imageType, colSpan, isLastAdded,
-  onRunRow, runningScope,
+  onRunRow, runningScope, runningRows,
 }: ClientGroupProps) {
   const { dispatch } = usePlayground();
   const [editingName, setEditingName] = useState(false);
@@ -348,7 +352,8 @@ export function ClientGroup({
               isFirstFlowRow={true}
               totalFlowRows={1 + laneCount}
               onRunRow={onRunRow}
-              runningScope={runningScope} />
+              runningScope={runningScope}
+              runningRows={runningRows} />
           )}
 
           {/* New flow lanes — one row per entry in client.newFlows.
@@ -375,6 +380,7 @@ export function ClientGroup({
                 totalFlowRows={totalRows}
                 onRunRow={onRunRow}
                 runningScope={runningScope}
+                runningRows={runningRows}
                 labelAdornment={
                   (canRemove || isLast) ? (
                     <div className="flex items-center gap-1">

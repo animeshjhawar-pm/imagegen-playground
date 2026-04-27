@@ -13,11 +13,16 @@ interface PipelineTableProps {
   onRunStep: (stepName: string, scope: StepRunScope) => void;
   /** Fire the full pipeline left-to-right for a single (client, flow, lane). */
   onRunRow: (clientId: string, flowType: "old" | "new", flowIndex: number) => void;
-  /** null | "all" | stepName | "row:…" — drives per-step button state. */
+  /** Global run scope — null = idle, "all" = full Run All, otherwise the
+   *  step-name being column-run. Used to gate column-run + Run All. */
   runningScope: null | "all" | string;
+  /** Row-scope keys ("row:<clientId>:<flowType>:<flowIndex>") for the
+   *  rows that currently have an in-flight pipeline-wide run. May be
+   *  multiple — row runs are allowed to fire in parallel. */
+  runningRows: ReadonlySet<string>;
 }
 
-export function PipelineTable({ onRunStep, onRunRow, runningScope }: PipelineTableProps) {
+export function PipelineTable({ onRunStep, onRunRow, runningScope, runningRows }: PipelineTableProps) {
   const { state } = usePlayground();
   const { pageType, imageType, clients, lastAddedClientId } = state;
 
@@ -38,7 +43,10 @@ export function PipelineTable({ onRunStep, onRunRow, runningScope }: PipelineTab
     );
   }
 
-  const isRunning = runningScope !== null;
+  // Column-run + Run All require everything to be idle (no global wave
+  // and no row runs); per-row runs may overlap with each other but they
+  // still block the column buttons here.
+  const isRunning = runningScope !== null || runningRows.size > 0;
   const canRun    = clients.length > 0 && !isRunning;
 
   // colSpan = Flow label col + N step cols + Final Output col
@@ -179,6 +187,7 @@ export function PipelineTable({ onRunStep, onRunRow, runningScope }: PipelineTab
                 isLastAdded={client.id === lastAddedClientId}
                 onRunRow={onRunRow}
                 runningScope={runningScope}
+                runningRows={runningRows}
               />
             ))
           )}
