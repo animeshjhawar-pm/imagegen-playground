@@ -44,6 +44,10 @@ import {
   CUSTOM_TESTER_SYSTEM_PROMPT,
   CUSTOM_TESTER_USER_TEMPLATE,
 } from "./new-flow/custom-tester-prompt";
+import {
+  AMP_UP_SYSTEM_PROMPT_NEW,
+  AMP_UP_USER_TEMPLATE_NEW,
+} from "./new-flow/amp-up-prompt";
 
 export type PageType = "blog" | "service" | "category" | "custom";
 
@@ -55,7 +59,8 @@ export type ImageType =
   | "generic"
   | "title"
   | "h2"
-  | "industry";
+  | "industry"
+  | "amp_up";
 
 export type StepStatus = "idle" | "running" | "completed" | "failed";
 export type StepDiff = "same_as_old" | "modified" | "new" | "skipped";
@@ -248,7 +253,7 @@ export interface PipelineDefinition {
 
 export const IMAGE_TYPES_BY_PAGE: Record<PageType, ImageType[]> = {
   blog: ["cover_thumbnail", "internal", "external", "infographic", "generic"],
-  service: ["title", "h2"],
+  service: ["title", "h2", "amp_up"],
   category: ["industry"],
   custom: ["cover_thumbnail"],
 };
@@ -262,6 +267,7 @@ export const IMAGE_TYPE_LABELS: Record<ImageType, string> = {
   title: "Title Image",
   h2: "H2 Image",
   industry: "Industry Image",
+  amp_up: "Amp Up (refine existing image)",
 };
 
 // ---------------------------------------------------------------------------
@@ -292,6 +298,7 @@ const SHARED_CLIENT_CONTEXT_FIELDS: ClientContextField[] = [
   { name: "new_flow_blog_internal_options",    label: "new_flow_blog_internal_options (JSON array — blog:internal picker cards)",       kind: "json", required: false, advanced: true },
   { name: "new_flow_blog_external_options",    label: "new_flow_blog_external_options (JSON array — blog:external picker cards)",       kind: "json", required: false, advanced: true },
   { name: "new_flow_blog_generic_options",     label: "new_flow_blog_generic_options (JSON array — blog:generic picker cards)",         kind: "json", required: false, advanced: true },
+  { name: "new_flow_amp_up_rows",              label: "new_flow_amp_up_rows (JSON array — service:amp_up picker rows; each = {label, page_title, existing_image_url, existing_description, expected_description, amped_image_url})", kind: "json", required: false, advanced: true },
   { name: "paa_data_json",            label: "paa_data (cluster.paa_data)",                    kind: "json",     required: false, advanced: true },
   { name: "service_catalog_json",     label: "service_catalog (resources where type='service')", kind: "json",   required: false, advanced: true },
   { name: "product_information_json", label: "product_information (resources where type='product')", kind: "json", required: false, advanced: true },
@@ -1136,6 +1143,146 @@ function makePipeline(opts: {
 }
 
 // ---------------------------------------------------------------------------
+// service:amp_up — refines an existing image to match a new requirement
+// ---------------------------------------------------------------------------
+//
+// Step 1 — Pick Amp-Up Row. Picker over new_flow_amp_up_rows; each option
+// is a JSON-stringified object carrying { label, page_title,
+// existing_image_url, existing_description, expected_description,
+// amped_image_url }. Picker output is the full JSON; downstream steps
+// pluck specific fields via source.field.
+//
+// Step 2 — Build Amp-Up Prompt. NEW FLOW ONLY (old flow skipped). Runs
+// Claude with existing_description + expected_description +
+// business_context + company_logo_url. Produces the final amp-up
+// prompt that Replicate consumes.
+//
+// Step 3 — Generate Image. Old flow renders the row's pre-existing
+// amped_image_url verbatim (display-only, no Replicate call). New flow
+// hits Replicate with the LLM prompt and image_input = [
+// existing_image_url, company_logo_url ].
+
+const pickAmpUpRowStep: StepDefinition = {
+  name: "pick_amp_up_row",
+  title: "Pick Amp-Up Row",
+  description:
+    "Picker over the client's amp_up rows (existing image + descriptions + pre-rendered amped URL). Selection drives both the old flow's display-only image and the new flow's Build Amp-Up Prompt run.",
+  model: "(picker — no LLM)",
+  provider: "none",
+  renderOnly: true,
+  picker: true,
+  diffOld: "same_as_old",
+  diffNew: "same_as_old",
+  inputs: [
+    {
+      name: "options_json",
+      label: "Available amp_up rows (JSON array)",
+      source: { kind: "client_context", field: "new_flow_amp_up_rows" },
+      required: false,
+    },
+  ],
+  systemPromptOld: "{{options_json}}",
+  systemPromptNew: "{{options_json}}",
+  outputType: "text",
+};
+
+const buildAmpUpPromptStep: StepDefinition = {
+  name: "build_image_prompt",
+  title: "Build Amp-Up Prompt",
+  description:
+    "New flow only — generates the amp-up prompt using existing_description + expected_description + business_context + company_logo_url. Old flow skips this step (no LLM call); the old image cell renders the row's pre-existing amped URL verbatim.",
+  model: "claude-sonnet-4-6",
+  provider: "portkey",
+  diffOld: "skipped",
+  diffNew: "new",
+  inputs: [
+    {
+      name: "existing_description",
+      label: "existing_description (from picker row)",
+      source: { kind: "step_output", stepName: "pick_amp_up_row", field: "existing_description" },
+      required: false,
+    },
+    {
+      name: "expected_description",
+      label: "expected_description (from picker row)",
+      source: { kind: "step_output", stepName: "pick_amp_up_row", field: "expected_description" },
+      required: true,
+    },
+    {
+      name: "business_context",
+      label: "business_context",
+      source: { kind: "client_context", field: "business_context" },
+      required: false,
+    },
+    {
+      name: "company_logo_url",
+      label: "company_logo_url",
+      source: { kind: "client_context", field: "company_logo_url" },
+      required: false,
+    },
+  ],
+  systemPromptNew: AMP_UP_SYSTEM_PROMPT_NEW,
+  userPromptTemplateNew: AMP_UP_USER_TEMPLATE_NEW,
+  outputType: "text",
+};
+
+// Single generate_image step that does different things per flow:
+//   - Old flow: renderOnly. systemPromptOld is the literal {{amped_image_url}}
+//     interpolation, so the cell's "output" is the row's pre-rendered amped
+//     image URL with no Replicate call.
+//   - New flow: systemPromptNew is left blank — the route's universal
+//     renderOnly handler falls through, the switch's generate_image case
+//     fires, and Replicate is called with the build_image_prompt output
+//     and image_input = [existing_image_url, company_logo_url].
+const ampUpGenerateImageStep: StepDefinition = {
+  ...makeGenerateImageStep({
+    name: "generate_image",
+    title: "Amp-Up Image",
+    fixedAspectRatio: "1:1",
+  }),
+  // renderOnly + non-empty old template → old flow short-circuits to
+  // render the URL string. New template is empty so new flow falls
+  // through to Replicate.
+  renderOnly: true,
+  diffOld: "same_as_old",
+  diffNew: "new",
+  systemPromptOld: "{{amped_image_url}}",
+  systemPromptNew: "",
+  inputs: [
+    // Old-flow renderOnly path reads this:
+    {
+      name: "amped_image_url",
+      label: "amped_image_url (from picker row, old flow)",
+      source: { kind: "step_output", stepName: "pick_amp_up_row", field: "amped_image_url" },
+      required: false,
+    },
+    // New-flow Replicate path reads these:
+    {
+      name: "final_prompt",
+      label: "Final Prompt (new flow)",
+      source: { kind: "step_output", stepName: "build_image_prompt" },
+      required: false,
+      flows: ["new"],
+    },
+    {
+      name: "image_input",
+      label: "Existing Image URL (from picker row, new flow)",
+      source: { kind: "step_output", stepName: "pick_amp_up_row", field: "existing_image_url" },
+      required: false,
+      flows: ["new"],
+    },
+    {
+      name: "company_logo_url",
+      label: "Logo URL (new flow)",
+      source: { kind: "client_context", field: "company_logo_url" },
+      required: false,
+      flows: ["new"],
+      imageInputMember: true,
+    },
+  ],
+};
+
+// ---------------------------------------------------------------------------
 // PIPELINES — keyed as `${pageType}:${imageType}`
 // ---------------------------------------------------------------------------
 
@@ -1245,6 +1392,22 @@ export const PIPELINES: Record<string, PipelineDefinition> = {
     omitOldFlow: true,
     alignmentNote:
       "Custom tester pipeline — new flow only. 4 steps: pick topic → generate prompt (own template) → 16:9 cover render with cover.png reference + 3:2 thumbnail render with thumbnail.png reference. Logo is included in image_input alongside the per-render layout scaffold.",
+  },
+
+  // service:amp_up — refines an existing image to match a new
+  // requirement. Three steps. Old-flow image cell is display-only
+  // (shows the row's pre-rendered amped URL); new-flow image cell
+  // runs Replicate with the LLM-generated amp-up prompt.
+  "service:amp_up": {
+    steps: [
+      pickAmpUpRowStep,
+      buildAmpUpPromptStep,
+      ampUpGenerateImageStep,
+    ],
+    clientContextFields: SHARED_CLIENT_CONTEXT_FIELDS,
+    defaultAspectRatio: "1:1",
+    alignmentNote:
+      "Service amp-up tester. Old flow shows the prod amped URL verbatim (no Replicate call); new flow runs the amp-up prompt (custom template in new-flow/amp-up-prompt.ts) plus business_context + logo, then renders fresh via Replicate at 1:1 with image_input=[existing_image_url, logo].",
   },
 
   "category:industry": makePipeline({

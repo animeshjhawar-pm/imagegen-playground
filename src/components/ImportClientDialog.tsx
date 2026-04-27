@@ -278,6 +278,24 @@ export function ImportClientDialog({
         // steps). Empty string is fine — user can run the extract
         // step on a non-custom pipeline to get one.
         graphic_token:                       sample.graphicTokenJson ?? "",
+        // Amp-up rows for service:amp_up. Stringified JSON array of
+        // objects ({ label, page_title, existing_image_url, … }) so
+        // each option carries everything the picker + downstream steps
+        // need. Empty array for clients that don't have amp-up data.
+        // The picker → downstream step source.field references are
+        // snake_case (existing_image_url, etc.), so flatten to that
+        // shape on the way out — keeps TS interface camelCase but
+        // matches the prompt-template / source convention.
+        new_flow_amp_up_rows: JSON.stringify(
+          (sample.ampUpRows ?? []).map((r) => ({
+            label:                r.label,
+            page_title:           r.pageTitle,
+            existing_image_url:   r.existingImageUrl,
+            existing_description: r.existingDescription,
+            expected_description: r.expectedDescription,
+            amped_image_url:      r.ampedImageUrl,
+          })),
+        ),
       };
       seeds.push({ name: sample.name, context });
     }

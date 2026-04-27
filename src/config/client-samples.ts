@@ -7,6 +7,30 @@
 // against realistic per-client inputs.
 // ===========================================================================
 
+/**
+ * A single row in the service:amp_up picker. Each row corresponds to a
+ * (service-page, image) pair from the production amp-up workflow:
+ *   - existingImageUrl: the upscaled/preprocessed URL Pinecone matched
+ *     for this slot (becomes Replicate image_input on a real run).
+ *   - existingDescription: alt-text / Pinecone description of the
+ *     matched image (the <existing_image>...</existing_image> body in
+ *     the prod amp-up prompt).
+ *   - expectedDescription: page_info-derived requirement text (the
+ *     <expected_image>...</expected_image> body).
+ *   - ampedImageUrl: the final amped/refined image URL produced by
+ *     the prod flow. Old-flow generate_image renders this verbatim
+ *     (display-only). New-flow generate_image runs Replicate fresh.
+ */
+export interface AmpUpRow {
+  /** Display label for the picker card. Convention: "<page_title>". */
+  label: string;
+  pageTitle: string;
+  existingImageUrl: string;
+  existingDescription: string;
+  expectedDescription: string;
+  ampedImageUrl: string;
+}
+
 export interface ClientSample {
   id: string;
   slug: string;
@@ -88,6 +112,12 @@ export interface ClientSample {
    * scrape/extract steps) can run end-to-end without manual paste.
    */
   graphicTokenJson?: string;
+  /**
+   * Per-client rows for the service:amp_up picker. Empty for clients
+   * that don't have prod amp-up data; the picker shows an empty state
+   * for those. See AmpUpRow above.
+   */
+  ampUpRows?: AmpUpRow[];
 }
 
 const CLIENT_ALLCARE_MEDICAL_TRANSPORT: ClientSample = {
@@ -13977,6 +14007,268 @@ const CLIENT_VAPORKOTE: ClientSample = {
 </output_json>`,
 };
 
+// ===========================================================================
+// AMP-UP TESTER CLIENTS
+// ---------------------------------------------------------------------------
+// Five stub clients carrying real prod amp-up rows (extracted from
+// amp_up_resolved.csv, 2026-04-28). Other client_info fields are left
+// empty — these presets are intended for testing the service:amp_up
+// pipeline, not for full end-to-end runs. Users can manually fill
+// business_context + company_logo_url after import if they want the
+// new-flow Build Amp-Up Prompt step to receive non-empty grounding.
+// ===========================================================================
+
+const EMPTY_BLOG_IMAGE_OPTIONS = {
+  infographic: [] as string[],
+  internal:    [] as string[],
+  external:    [] as string[],
+  generic:     [] as string[],
+};
+
+function ampUpStub(opts: {
+  id: string;
+  slug: string;
+  name: string;
+  url: string;
+  rows: AmpUpRow[];
+}): ClientSample {
+  return {
+    id:                       opts.id,
+    slug:                     opts.slug,
+    name:                     opts.name,
+    url:                      opts.url,
+    primaryLogoUrl:           "",
+    sampleServiceTopic:       "",
+    sampleCategoryTopic:      "",
+    sampleBlogTopic:          "",
+    designTokensJson:         "",
+    companyInfoJson:          "",
+    additionalInfoJson:       "",
+    logoUrlsJson:             "",
+    serviceCatalogJson:       "",
+    productInformationJson:   "",
+    paaDataJson:              "",
+    serviceImageDescriptions: [],
+    categoryImageDescriptions:[],
+    blogImageDescriptionOptions: EMPTY_BLOG_IMAGE_OPTIONS,
+    blogTopicOptions:         [],
+    ampUpRows:                opts.rows,
+  };
+}
+
+const CLIENT_SPEC_GAS: ClientSample = ampUpStub({
+  id:   "c56bcf16-262c-41e4-8a34-4f14f7d4c579",
+  slug: "spec-gas",
+  name: "Spec Gas",
+  url:  "https://specgasinc.com/",
+  rows: [
+    {
+      label:                "Specialty Gas Cylinders for Defense & Satellite Testing",
+      pageTitle:            "Specialty Gas Cylinders for Defense & Satellite Testing",
+      existingImageUrl:     "https://file-host.link/website/specgasinc-tiygg8/assets/preprocessed-images/1776025697191156_63ce09963fd448c18d7834b7f4e829c0.jpeg",
+      existingDescription:  "Engineers using specialty gas cylinders for precision testing",
+      expectedDescription:  "Engineers connecting specialty gas cylinders to analytical instruments in a controlled test facility with regulators, tubing, and monitoring equipment",
+      ampedImageUrl:        "https://file-host.link/website/specgasinc-tiygg8/assets/refined-images/1777229163305040_5d5a3cda90394dc6b6d2e889c5377ff7/1080.webp",
+    },
+    {
+      label:                "Certified Reference Gas Mixtures for Aerospace Quality Control",
+      pageTitle:            "Certified Reference Gas Mixtures for Aerospace Quality Control",
+      existingImageUrl:     "https://file-host.link/website/specgasinc-tiygg8/assets/preprocessed-images/1776025697689981_829b2088ecf54807abc3211082db2f6e.jpeg",
+      existingDescription:  "Certified reference gas cylinders for aerospace quality control",
+      expectedDescription:  "High-purity reference gas cylinders in a clean aerospace quality lab with technicians reviewing calibration data and analytical instruments",
+      ampedImageUrl:        "https://file-host.link/website/specgasinc-tiygg8/assets/refined-images/1776664645446756_3deb848aa34a4ec39f67651bc6684c7d/1080.webp",
+    },
+    {
+      label:                "Custom Multi-Component Gas Mixtures for Physics & Chemistry Research",
+      pageTitle:            "Custom Multi-Component Gas Mixtures for Physics & Chemistry Research",
+      existingImageUrl:     "https://file-host.link/website/specgasinc-tiygg8/assets/preprocessed-images/1776025697406934_3e8e1ba8e6fc47eaa15b6d94a7473c5f.jpeg",
+      existingDescription:  "Custom research gas mixture cylinders in a laboratory setting",
+      expectedDescription:  "Specialty gas cylinders and regulators in a research laboratory, prepared for custom multi-component gas blending and analytical testing",
+      ampedImageUrl:        "https://file-host.link/website/specgasinc-tiygg8/assets/refined-images/1777229148504888_65855172fcaf44a3b6ff2bda34686b20/1080.webp",
+    },
+    {
+      label:                "Custom Laser Gas Mixtures for Industrial & Scientific Lasers",
+      pageTitle:            "Custom Laser Gas Mixtures for Industrial & Scientific Lasers",
+      existingImageUrl:     "https://file-host.link/website/specgasinc-tiygg8/assets/preprocessed-images/1776025697177278_3b53e4028b5340eb85e44a70deaf366f.jpeg",
+      existingDescription:  "Technician preparing specialty laser gas cylinders",
+      expectedDescription:  "Specialty gas technician handling high-purity cylinders and preparing custom laser gas mixtures in a controlled production environment",
+      ampedImageUrl:        "https://file-host.link/website/specgasinc-tiygg8/assets/refined-images/1777229147567905_731e2cb7304e401784af813d68f006e6/1080.webp",
+    },
+    {
+      label:                "Excimer Laser Gas Blends for ArF, KrF & XeCl",
+      pageTitle:            "Excimer Laser Gas Blends for ArF, KrF & XeCl",
+      existingImageUrl:     "https://file-host.link/website/specgasinc-tiygg8/assets/preprocessed-images/1776025697689981_829b2088ecf54807abc3211082db2f6e.jpeg",
+      existingDescription:  "Custom excimer laser gas cylinders for industrial applications",
+      expectedDescription:  "High-purity specialty gas cylinders for excimer laser systems in a clean industrial setting, prepared for semiconductor, display, or medical laser use",
+      ampedImageUrl:        "https://file-host.link/website/specgasinc-tiygg8/assets/refined-images/1777229159919496_e4630c83a2684618878b8ad1ae98d307/1080.webp",
+    },
+  ],
+});
+
+const CLIENT_HPR: ClientSample = ampUpStub({
+  id:   "3d5f2706-b1ed-498e-9a9c-82d5600b5cbc",
+  slug: "hydrostatic-pump-repair",
+  name: "Hydrostatic Pump Repair",
+  url:  "https://hydrostaticpumprepair.com/",
+  rows: [
+    {
+      label:                "Heavy Equipment Repair in Bel Air, MD",
+      pageTitle:            "Heavy Equipment Repair in Bel Air, MD",
+      existingImageUrl:     "https://file-host.link/website/hydrostaticpumprepair-fthmsm/assets/preprocessed-images/1774556454982841_7bb824d828604ca8bbd4b6c6a2937c8d.jpeg",
+      existingDescription:  "Hydraulic pump being tested on precision diagnostic equipment",
+      expectedDescription:  "Hydrostatic pump mounted on professional testing bench with pressure gauges and calibration equipment in modern repair facility",
+      ampedImageUrl:        "https://file-host.link/website/hydrostaticpumprepair-fthmsm/assets/refined-images/1775480756075088_772763f2d55144a4a9d649b7c1d11911/1080.webp",
+    },
+    {
+      label:                "Hydraulic & Mobile Solutions — Engineering Excellence",
+      pageTitle:            "Hydraulic & Mobile Solutions — Engineering Excellence",
+      existingImageUrl:     "https://file-host.link/website/hydrostaticpumprepair-fthmsm/assets/preprocessed-images/1774556448585095_591bf5c063284b59ae3e0dffc97599ed.jpeg",
+      existingDescription:  "Professional technician repairing hydraulic pump in modern service facility",
+      expectedDescription:  "Skilled technician in safety gear rebuilding industrial hydraulic pump on workbench with precision tools and diagnostic equipment",
+      ampedImageUrl:        "https://file-host.link/website/hydrostaticpumprepair-fthmsm/assets/refined-images/1775480692353886_dd8fcd82e5d442d2870f7ed54565fbaf/1080.webp",
+    },
+    {
+      label:                "Pump Motor Service & Repair — Professional Installation",
+      pageTitle:            "Pump Motor Service & Repair — Professional Installation",
+      existingImageUrl:     "https://file-host.link/website/specgasinc-tiygg8/assets/preprocessed-images/1776025697406934_3e8e1ba8e6fc47eaa15b6d94a7473c5f.jpeg",
+      existingDescription:  "Professional technician installing a hydrostatic pump motor on heavy equipment",
+      expectedDescription:  "Skilled technician in work uniform installing a large hydrostatic pump motor onto excavator or construction equipment in a professional repair facility",
+      ampedImageUrl:        "https://file-host.link/website/hydrostaticpumprepair-fthmsm/assets/generated-images/1775480015795431_bce1d3ac092e4d12bb8892c113fb369c/1080.webp",
+    },
+    {
+      label:                "Volvo EC210 Excavator Service & Repair Manual",
+      pageTitle:            "Volvo EC210 Excavator Service & Repair Manual",
+      existingImageUrl:     "https://file-host.link/website/hydrostaticpumprepair-fthmsm/assets/preprocessed-images/1774556446884240_a78d4d7da0e648f19a798727742d71c0.jpeg",
+      existingDescription:  "Volvo EC210 excavator hydraulic system repair manual open to technical diagrams",
+      expectedDescription:  "Technical service manual for Volvo EC210 excavator showing hydraulic system schematics, component diagrams, and repair procedures",
+      ampedImageUrl:        "https://file-host.link/website/hydrostaticpumprepair-fthmsm/assets/refined-images/1777309313514000_37a546e06d124f11afcc6cda2c801a27/1080.webp",
+    },
+    {
+      label:                "Remanufactured OEM Parts — Online Store",
+      pageTitle:            "Remanufactured OEM Parts — Online Store",
+      existingImageUrl:     "https://file-host.link/website/hydrostaticpumprepair-fthmsm/assets/preprocessed-images/1774556443875930_14c8ef9c8aba4e0d8afb122e6fae78cb.jpeg",
+      existingDescription:  "Premium remanufactured OEM hydrostatic parts displayed in organized online catalog",
+      expectedDescription:  "Clean, well-lit product showcase featuring various remanufactured hydrostatic pump components, seal kits, and OEM parts organized on shelves",
+      ampedImageUrl:        "https://file-host.link/website/hydrostaticpumprepair-fthmsm/assets/refined-images/1775298950052992_f16685db111b4f328ef44667fe0f74a7/1080.webp",
+    },
+  ],
+});
+
+const CLIENT_TYSON_MARTIN: ClientSample = ampUpStub({
+  id:   "239a4a24-9931-4ead-817d-e9f3f6e0248e",
+  slug: "tyson-martin",
+  name: "Tyson Martin",
+  url:  "https://tysonmartin.com/",
+  rows: [
+    {
+      label:                "Fractional CISO Services in Nashville, TN",
+      pageTitle:            "Fractional CISO Services in Nashville, TN",
+      existingImageUrl:     "",
+      existingDescription:  "Fractional CISO advising a Nashville leadership team",
+      expectedDescription:  "Senior cybersecurity advisor presenting risk priorities to executives in a modern Nashville boardroom with dashboards, laptops, and planning materials",
+      ampedImageUrl:        "https://file-host.link/website/tysonmartin-zzqimp/assets/generated-images/1777282895696327_693a9de81c704de68e19843a3fb0ff37/1080.webp",
+    },
+    {
+      label:                "C-Suite Advisory Services for Executive Leadership",
+      pageTitle:            "C-Suite Advisory Services for Executive Leadership",
+      existingImageUrl:     "https://file-host.link/website/tysonmartin-zzqimp/assets/preprocessed-images/1775125787806486_35da5178a870424c931efdb14eb042ed.jpeg",
+      existingDescription:  "Executive cybersecurity advisor reviewing a risk dashboard with a CEO and general counsel",
+      expectedDescription:  "A cybersecurity advisor in a professional setting reviewing a clean risk management dashboard on a large screen with a CEO and general counsel seated at a conference table",
+      ampedImageUrl:        "https://file-host.link/website/tysonmartin-zzqimp/assets/refined-images/1776115890674612_297b9560beb04147a3f791f7ec865cca/1080.webp",
+    },
+  ],
+});
+
+const CLIENT_CNC: ClientSample = ampUpStub({
+  id:   "c38ea25a-5596-47a1-9606-e3b5f73bdafb",
+  slug: "cnc-programming-solutions",
+  name: "CNC Programming Solutions",
+  url:  "https://cncprogrammingsolutions.com/",
+  rows: [
+    {
+      label:                "Aluminum Anodizing Services in Fresno, CA",
+      pageTitle:            "Aluminum Anodizing Services in Fresno, CA",
+      existingImageUrl:     "https://file-host.link/website/cncprogrammingsolutions-w27okn/assets/preprocessed-images/1775834923150516_9826017e9f9a4c8896aa17b4b215de24.png",
+      existingDescription:  "Anodized aluminum parts ready for finishing",
+      expectedDescription:  "Close-up of anodized aluminum components on a finishing rack in an industrial shop, showing clean metallic surfaces and uniform protective coating",
+      ampedImageUrl:        "https://file-host.link/website/cncprogrammingsolutions-w27okn/assets/refined-images/1777283643660154_590bf4f2d6914f938689d230fb3ac89f/1080.webp",
+    },
+    {
+      label:                "CNC Machining & Welding Services",
+      pageTitle:            "CNC Machining & Welding Services",
+      existingImageUrl:     "https://file-host.link/website/cncprogrammingsolutions-w27okn/assets/preprocessed-images/1775834923088993_e618dc69d1714a92b2df52b9c7c3222b.jpeg",
+      existingDescription:  "CNC machining and metal fabrication equipment",
+      expectedDescription:  "Modern CNC machine shop with milling centers, metal components, tooling, and technicians inspecting precision fabricated parts",
+      ampedImageUrl:        "https://file-host.link/website/cncprogrammingsolutions-w27okn/assets/refined-images/1777282973355758_9d954e94299642929082ecb14469be53/1080.webp",
+    },
+    {
+      label:                "Aluminum Coil Anodizing Services",
+      pageTitle:            "Aluminum Coil Anodizing Services",
+      existingImageUrl:     "https://file-host.link/website/cncprogrammingsolutions-w27okn/assets/preprocessed-images/1775834923150516_9826017e9f9a4c8896aa17b4b215de24.png",
+      existingDescription:  "Finished anodized aluminum coil surface",
+      expectedDescription:  "Close-up of anodized aluminum coil with uniform metallic finish, smooth surface texture, and industrial lighting in a manufacturing environment",
+      ampedImageUrl:        "https://file-host.link/website/cncprogrammingsolutions-w27okn/assets/refined-images/1777282847119521_4cdd502a73e34944ba84ae6370446282/1080.webp",
+    },
+    {
+      label:                "Laser Cut Deburring & Finishing Services",
+      pageTitle:            "Laser Cut Deburring & Finishing Services",
+      existingImageUrl:     "https://file-host.link/website/cncprogrammingsolutions-w27okn/assets/preprocessed-images/1775834923145333_39dddc10e9d44ca496a645f97146841e.png",
+      existingDescription:  "Technician inspecting deburred metal parts",
+      expectedDescription:  "Technician inspecting laser cut metal parts after deburring and finishing, checking smooth edges and uniform surface quality in a machining facility",
+      ampedImageUrl:        "https://file-host.link/website/cncprogrammingsolutions-w27okn/assets/refined-images/1777282102346998_1e9be414e7774aafb4df5ad48ec0caf0/1080.webp",
+    },
+  ],
+});
+
+const CLIENT_CODEWAVE: ClientSample = ampUpStub({
+  id:   "502b1508-e962-4191-ad6f-33f8dfbbd477",
+  slug: "codewave",
+  name: "Codewave",
+  url:  "https://codewave.com/",
+  rows: [
+    {
+      label:                "AI Billing Agent Solutions for Multi-Currency Invoicing",
+      pageTitle:            "AI Billing Agent Solutions for Multi-Currency Invoicing",
+      existingImageUrl:     "https://file-host.link/website/codewave-pin35m/assets/preprocessed-images/1775209015553511_2133de8c3e09465abf2ec86dbf80b233.webp",
+      existingDescription:  "AI billing workflow implementation process",
+      expectedDescription:  "Consultants mapping AI billing workflow with invoice automation steps, system integrations, approval routing, and financial operations dashboards",
+      ampedImageUrl:        "https://file-host.link/website/codewave-pin35m/assets/refined-images/1777303931065000_705f38e04026469cbbe430173687cf43/1080.webp",
+    },
+    {
+      label:                "AI Agents for Debt Collection Services",
+      pageTitle:            "AI Agents for Debt Collection Services",
+      existingImageUrl:     "https://file-host.link/website/codewave-pin35m/assets/preprocessed-images/1775209006146232_8925b9a29aba4b9c98d28d9b9176cc84.jpeg",
+      existingDescription:  "AI-powered collections workflow interface",
+      expectedDescription:  "Business team reviewing AI-powered debt collection workflow with automated outreach, account scoring, payment follow-ups, and integrated analytics tools",
+      ampedImageUrl:        "https://file-host.link/website/codewave-pin35m/assets/refined-images/1777303778647137_30c802b42e06442294d7e6d28085da26/1080.webp",
+    },
+    {
+      label:                "AI Consulting Solutions for Telecommunications Industry",
+      pageTitle:            "AI Consulting Solutions for Telecommunications Industry",
+      existingImageUrl:     "https://file-host.link/website/codewave-pin35m/assets/preprocessed-images/1775209006146232_8925b9a29aba4b9c98d28d9b9176cc84.jpeg",
+      existingDescription:  "AI consulting for telecom operations",
+      expectedDescription:  "Telecommunications operations center with analysts reviewing network dashboards, AI insights, automation workflows, and connected infrastructure screens",
+      ampedImageUrl:        "https://file-host.link/website/codewave-pin35m/assets/refined-images/1777303032393695_4c7a204f7d81490d9ad622e531b83fe2/1080.webp",
+    },
+    {
+      label:                "AI Infrastructure Automation Consulting Services",
+      pageTitle:            "AI Infrastructure Automation Consulting Services",
+      existingImageUrl:     "https://file-host.link/website/codewave-pin35m/assets/preprocessed-images/1775209004123729_8d7bef2af10f4211a31ecc0dc4d73589.webp",
+      existingDescription:  "AI infrastructure automation consulting team at work",
+      expectedDescription:  "Consultants reviewing AI infrastructure dashboards, workflow maps, and cloud automation architecture in a modern enterprise strategy setting",
+      ampedImageUrl:        "https://file-host.link/website/codewave-pin35m/assets/refined-images/1777302022916526_00323c79ac0b4801871bcfb7b19e4fa1/1080.webp",
+    },
+    {
+      label:                "AI Tools for Business Integration",
+      pageTitle:            "AI Tools for Business Integration",
+      existingImageUrl:     "https://file-host.link/website/codewave-pin35m/assets/preprocessed-images/1775209011871533_908aebe8992a4b0089ab1775d93df709.png",
+      existingDescription:  "Business team reviewing AI integration dashboard",
+      expectedDescription:  "Modern business team collaborating around dashboards and connected software tools while planning AI integration across workflows and operations",
+      ampedImageUrl:        "https://file-host.link/website/codewave-pin35m/assets/refined-images/1777300242700880_466201e18095477d9597db77968766ef/1080.webp",
+    },
+  ],
+});
+
 export const CLIENT_SAMPLES: ClientSample[] = [
   CLIENT_ALLCARE_MEDICAL_TRANSPORT,
   CLIENT_EVOK_POLYMERS,
@@ -13993,6 +14285,12 @@ export const CLIENT_SAMPLES: ClientSample[] = [
   CLIENT_UNLEASHX,
   CLIENT_AHSHYDRAULICS,
   CLIENT_VAPORKOTE,
+  // amp-up tester clients (real prod amp-up rows, other fields stubbed)
+  CLIENT_SPEC_GAS,
+  CLIENT_HPR,
+  CLIENT_TYSON_MARTIN,
+  CLIENT_CNC,
+  CLIENT_CODEWAVE,
 ];
 
 export function getClientSampleBySlug(slug: string): ClientSample | undefined {

@@ -125,17 +125,50 @@ export function StepCell({
   // Parse the options_json input into a string[] for the picker UI. When
   // the step has no output yet, auto-select options[0] so downstream
   // steps see a usable value without the user having to click.
+  //
+  // Each option may be either:
+  //   - a plain string (e.g. blog topic / image description), OR
+  //   - a JSON-stringified object with a `label` field plus arbitrary
+  //     other fields. The picker shows the label; the picker output is
+  //     the full JSON string. Downstream steps can then resolve specific
+  //     fields via `source: { kind: "step_output", stepName, field }`.
   const pickerOptions: string[] | null = useMemo(() => {
     if (!step.picker) return null;
     const raw = sourceResolved["options_json"] ?? "";
     if (!raw) return [];
     try {
       const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed.filter((s) => typeof s === "string") : [];
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .map((entry) => {
+          if (typeof entry === "string") return entry;
+          if (entry && typeof entry === "object") {
+            // Object option — re-stringify it so the picker output is
+            // self-contained JSON that downstream steps can field-pluck.
+            try { return JSON.stringify(entry); } catch { return ""; }
+          }
+          return "";
+        })
+        .filter((s) => s.length > 0);
     } catch {
       return [];
     }
   }, [step.picker, sourceResolved]);
+
+  /** Display preview for a picker option. Plain strings render as-is.
+   *  JSON-object options render their `label` field; falls back to a
+   *  truncated raw-JSON view if no label is present. */
+  function pickerLabelFor(opt: string): string {
+    if (!opt) return "";
+    if (opt[0] !== "{" && opt[0] !== "[") return opt;
+    try {
+      const parsed = JSON.parse(opt) as { label?: unknown };
+      if (parsed && typeof parsed.label === "string" && parsed.label.length > 0) {
+        return parsed.label;
+      }
+    } catch { /* fall through */ }
+    return opt.length > 200 ? opt.slice(0, 200) + "…" : opt;
+  }
 
   useEffect(() => {
     if (!step.picker || !pickerOptions || pickerOptions.length === 0) return;
@@ -432,7 +465,7 @@ export function StepCell({
                           overflow: "hidden",
                         }}
                       >
-                        {opt}
+                        {pickerLabelFor(opt)}
                       </span>
                     </button>
                   );

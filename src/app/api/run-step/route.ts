@@ -163,6 +163,25 @@ async function runLiveStep(
     return ok(result.text);
   }
 
+  // Universal renderOnly handler — runs BEFORE the step-name switch so
+  // any step flagged renderOnly (regardless of name) interpolates its
+  // per-flow systemPrompt template and returns. This lets a single
+  // generate_image step display a pre-rendered URL on the old flow
+  // (renderOnly with systemPromptOld set) while the new flow falls
+  // through to the regular Replicate path (systemPromptNew left blank,
+  // route falls through below).
+  if (stepDef.renderOnly) {
+    const systemTemplate =
+      (flowType === "new" ? stepDef.systemPromptNew : stepDef.systemPromptOld) ?? "";
+    if (systemTemplate || systemPromptOverride) {
+      const vars = prepareLLMVars(inputs);
+      const rendered = systemPromptOverride ?? interpolate(systemTemplate, vars);
+      if (rendered) return ok(rendered);
+    }
+    // Fall through when this flow has no renderOnly template — the
+    // switch below still gets a chance (e.g. amp_up new-flow Replicate).
+  }
+
   switch (stepName) {
     case "scrape_client_site": {
       const url = inputs["client_homepage_url"]?.trim();
