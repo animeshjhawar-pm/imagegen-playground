@@ -14310,6 +14310,7 @@ const CLIENT_CODEWAVE: ClientSample = ampUpStub({
   slug: "codewave",
   name: "Codewave",
   url:  "https://codewave.com/",
+  primaryLogoUrl: "https://file-host.link/website/codewave-pin35m/assets/uploaded-assets/1777278950008000_15e400d6dd9d4c89b659e2f6a6f16d14.webp",
   additionalInfoJson: `{
   "business_profile": {
     "inventory_nature": "AI consulting engagements + AI agent / automation product implementations. No physical inventory; offerings are project-based services and licensable agents that integrate with customer systems.",
