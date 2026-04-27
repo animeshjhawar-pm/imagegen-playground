@@ -111,9 +111,17 @@ export function ClientGroup({
     )?.trim() ?? "";
 
   const isCoverThumb = pageType === "blog" && imageType === "cover_thumbnail";
+  // Service amp-up uses different step names per flow: old-flow
+  // refined image lives at show_refined_image; new-flow generated
+  // image lives at the regular generate_image step.
+  const isAmpUp = pageType === "service" && imageType === "amp_up";
 
+  // For non-amp_up pipelines old + new both come from generate_image.
+  // For amp_up, old comes from show_refined_image and new from generate_image.
   const singleNewOut  = genOutput("generate_image", "new");
-  const singleOldOut  = genOutput("generate_image", "old");
+  const singleOldOut  = isAmpUp
+    ? genOutput("show_refined_image", "old")
+    : genOutput("generate_image", "old");
   const coverNewOut   = genOutput("generate_cover_image", "new");
   const coverOldOut   = genOutput("generate_cover_image", "old");
   const thumbNewOut   = genOutput("generate_thumbnail_image", "new");
@@ -130,7 +138,7 @@ export function ClientGroup({
   // Map the currently-open dialog back to its pair.
   const compareImages = (() => {
     switch (compareKind) {
-      case "generate_image":           return { newUrl: singleNewOut, oldUrl: singleOldOut, label: "" };
+      case "generate_image":           return { newUrl: singleNewOut, oldUrl: singleOldOut, label: isAmpUp ? " · Amp-Up Refine vs Generate" : "" };
       case "generate_cover_image":     return { newUrl: coverNewOut,  oldUrl: coverOldOut,  label: " · Cover (16:9)" };
       case "generate_thumbnail_image": return { newUrl: thumbNewOut,  oldUrl: thumbOldOut,  label: " · Thumbnail (3:2)" };
       default: return null;
