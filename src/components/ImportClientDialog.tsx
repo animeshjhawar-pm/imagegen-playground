@@ -273,6 +273,11 @@ export function ImportClientDialog({
         new_flow_blog_internal_options:      JSON.stringify(sample.blogImageDescriptionOptions.internal),
         new_flow_blog_external_options:      JSON.stringify(sample.blogImageDescriptionOptions.external),
         new_flow_blog_generic_options:       JSON.stringify(sample.blogImageDescriptionOptions.generic),
+        // Pre-extracted graphic token (custom:cover tester pipeline
+        // depends on this field since it skips the scrape + extract
+        // steps). Empty string is fine — user can run the extract
+        // step on a non-custom pipeline to get one.
+        graphic_token:                       sample.graphicTokenJson ?? "",
       };
       seeds.push({ name: sample.name, context });
     }

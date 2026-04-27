@@ -78,6 +78,16 @@ export interface ClientSample {
    * topic if none of the options fit.
    */
   blogTopicOptions: string[];
+  /**
+   * Pre-extracted graphic_token JSON for this client. Captured once
+   * by running scrape_client_site → extract_graphic_token via the
+   * playground itself (see /tmp/extract-graphic-tokens.mjs in the
+   * repo's session notes). Empty string when the extraction hasn't
+   * been done. Pre-fills the `graphic_token` client-context field on
+   * preset import so the custom:cover tester pipeline (which has no
+   * scrape/extract steps) can run end-to-end without manual paste.
+   */
+  graphicTokenJson?: string;
 }
 
 const CLIENT_ALLCARE_MEDICAL_TRANSPORT: ClientSample = {
@@ -397,6 +407,304 @@ const CLIENT_ALLCARE_MEDICAL_TRANSPORT: ClientSample = {
     `Senior NEMT Services: Growing Demand Post-Pandemic`,
     `What Is Stretcher Transport and How Does It Work?`,
   ],
+  graphicTokenJson: `<output_json>
+{
+  "brand": {
+    "name": "AllCare Medical Transport",
+    "website": "https://allcaremedicaltransport.com/",
+    "asset_types": ["infographic", "blog_cover", "social_media_asset", "service_announcement", "informational_graphic"],
+    "personality_keywords": ["professional-healthcare", "accessible-warm", "trustworthy-reassuring", "service-oriented", "straightforward-clear"],
+    "visual_summary": "AllCare Medical Transport uses a professional healthcare palette anchored by deep teal (#07578E) paired with golden amber (#FFB400) accents. Typography combines classical serif elegance (Antic Didone headings at 60px, Times New Roman body at 16px) with sharp geometric button styling (0px border-radius, pronounced shadows). The overall feel is trustworthy medical service provider with warm, accessible touches."
+  },
+
+  "extraction_note": "Complete extraction from both sources. HTML markdown contains minimal styling (mostly structural content and image URLs). Branding JSON provides comprehensive component styling, particularly buttonPrimary and buttonSecondary with exact backgrounds, text colors, border-radius values, and shadow definitions. Typography values (Antic Didone, Times New Roman, 60px h1/h2, 16px body) sourced from JSON fonts and typography fields. Color palette validated across both sources — #07578E (primary/secondary blue-teal), #FFB400 (golden amber accent), #FFFFFF (background), #7C8896 (body text gray), #38BBC0 (secondary button teal). All hex values and component properties trace to JSON components and colors objects. No fabrication required; both sources aligned on core brand values.",
+
+  "colours": {
+    "palette": [
+      {
+        "role": "primary",
+        "name": "Deep Teal",
+        "hex": "#07578E",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary brand color for headers, primary CTA buttons, key service section backgrounds, and professional medical trust anchors"
+      },
+      {
+        "role": "accent",
+        "name": "Golden Amber",
+        "hex": "#FFB400",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Accent color for button text, call-to-action highlights, important labels, and warm accessibility touches — use sparingly as high-contrast text on teal backgrounds"
+      },
+      {
+        "role": "secondary",
+        "name": "Light Teal",
+        "hex": "#38BBC0",
+        "rgba": null,
+        "source": "json_components_button_secondary",
+        "usage": "Secondary CTA background color, alternative service highlight sections, softer call-to-action elements"
+      },
+      {
+        "role": "background_light",
+        "name": "Pure White",
+        "hex": "#FFFFFF",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary canvas background for clean, open healthcare feel — dominates layout with generous whitespace"
+      },
+      {
+        "role": "body_text",
+        "name": "Neutral Gray",
+        "hex": "#7C8896",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Body copy and paragraph text — soft enough for readability without harsh contrast, professional medical documentation tone"
+      }
+    ],
+    "proportion_rule": "70% white (#FFFFFF) canvas with generous breathing room, 20% deep teal (#07578E) for section anchors and CTAs, 8% neutral gray (#7C8896) for body text, 2% golden amber (#FFB400) for high-impact accents and CTA text"
+  },
+
+  "gradients": [],
+
+  "typography": {
+    "fonts": [
+      {
+        "role": "heading",
+        "family": "Antic Didone",
+        "source": "json_fonts",
+        "google_font_fallback": "Antic Didone",
+        "style_notes": "Display serif with high contrast strokes, classical elegance, used at 60px for h1/h2 titles — conveys established medical professionalism"
+      },
+      {
+        "role": "body",
+        "family": "Times New Roman",
+        "source": "json_fonts",
+        "google_font_fallback": "Merriweather",
+        "style_notes": "Traditional serif body text at 16px, readable and familiar for medical/healthcare documentation feel"
+      },
+      {
+        "role": "body",
+        "family": "Noto Serif TC",
+        "source": "json_fonts",
+        "google_font_fallback": "Noto Serif TC",
+        "style_notes": "Secondary serif option, likely fallback for multilingual support"
+      }
+    ],
+    "hierarchy": {
+      "cover_title": {
+        "font_role": "heading",
+        "weight": "400",
+        "size_range_px": "54–72",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "section_header": {
+        "font_role": "heading",
+        "weight": "400",
+        "size_range_px": "36–48",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "stat_callout": {
+        "font_role": "heading",
+        "weight": "700",
+        "size_range_px": "48–60",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "body_label": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "16–18",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "caption_source": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "13–15",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      }
+    }
+  },
+
+  "layout": {
+    "content_density": "moderate",
+    "whitespace_ratio": "high (generous whitespace around service descriptions and images, clean medical facility aesthetic)",
+    "standard_flow": "hero headline → service categories (Local/Long Distance) → service types grid (Ambulatory/Wheelchair/Stretcher) → availability statement → CTA reservation button"
+  },
+
+  "design_patterns": {
+    "shape_language": {
+      "corner_radius_px": "0",
+      "dominant_shapes": ["sharp-rectangle", "zero-radius-buttons", "angular-geometric"],
+      "overall_feel": "sharp-geometric with crisp medical precision — no rounded corners, professional institutional aesthetic"
+    },
+    "backgrounds": {
+      "light_variant": "Pure white #FFFFFF with generous padding, clean hospital/clinic aesthetic",
+      "dark_variant": "Deep teal #07578E for CTA buttons and accent sections — used sparingly for high-contrast calls-to-action",
+      "accent_variant": "Light teal #38BBC0 for secondary CTAs, softer than primary but still vibrant"
+    },
+    "texture_and_pattern": {
+      "used": false,
+      "type": "none",
+      "intensity": "none",
+      "css_implementation": null
+    },
+    "shadows": {
+      "style": "medium-elevated with precise offset — conveys clickable solidity",
+      "css_value": "rgba(0, 0, 0, 0.25) 3.5px 3.5px 2.1px 0px for primary buttons; rgba(0, 0, 0, 0.17) 4px 4px 2.4px 0px for secondary buttons"
+    },
+    "borders_and_rules": {
+      "used": false,
+      "css_value": "none",
+      "application": "Separation achieved through whitespace and shadow rather than borders"
+    },
+    "decorative_elements": ["Service type icons (ambulatory figure, wheelchair, stretcher) as visual category markers", "Photographic imagery of medical facilities and transport vehicles for trust-building", "Sharp rectangular photo frames with no border-radius to match button geometry"]
+  },
+
+  "cta_and_buttons": {
+    "primary": {
+      "background": "#07578E",
+      "text_color": "#FFB400",
+      "border_radius_px": "0",
+      "padding": "not_found_in_source",
+      "font_weight": "not_found_in_source",
+      "font_size_px": "not_found_in_source",
+      "text_transform": "not_found_in_source",
+      "border": "none",
+      "shadow": "rgba(0, 0, 0, 0.25) 3.5px 3.5px 2.1px 0px",
+      "source": "json_components_button_primary"
+    },
+    "secondary": {
+      "background": "#38BBC0",
+      "text_color": "#FFB400",
+      "border_radius_px": "0",
+      "border": "none",
+      "shadow": "rgba(0, 0, 0, 0.17) 4px 4px 2.4px 0px",
+      "source": "json_components_button_secondary",
+      "notes": "Lighter teal variant with slightly softer shadow, same golden text for consistency"
+    },
+    "usage_in_assets": "Translate button styling into infographic section badges and CTA labels: sharp rectangular frames with 0px border-radius, deep teal #07578E or light teal #38BBC0 fills, golden amber #FFB400 text, medium drop shadows for clickable elevation feel. Use for 'Learn More', 'Book Now', service type labels."
+  },
+
+  "iconography": {
+    "style": "filled/solid with simple silhouette forms",
+    "stroke_weight": "N/A",
+    "implementation": "image sprites or icon illustrations embedded in service type graphics (ambulatory walking figure, wheelchair symbol, stretcher icon)",
+    "closest_public_library": "custom medical transport icons — closest match would be Healthcare or Medical icon sets with solid fill style",
+    "colour_usage": "Icons appear in service graphics with neutral or accent color fills — likely white on teal or teal on white for maximum clarity",
+    "size_convention_px": "not_found_in_source — icons scale with service section images"
+  },
+
+  "illustration_style": {
+    "present": true,
+    "type": "flat-vector icon graphics for service types (ambulatory/wheelchair/stretcher)",
+    "colour_treatment": "uses brand palette — teal and amber color scheme applied to service icons",
+    "line_quality": "clean-geometric with medical clarity — no decorative flourishes, functional icon design",
+    "notes": "Illustration primarily serves functional categorization role rather than decorative — clear medical symbol communication"
+  },
+
+  "photography_and_imagery": {
+    "present": true,
+    "style": "environmental medical facilities and transport vehicles — real-world healthcare setting photography",
+    "treatment": "natural/unfiltered with bright daylight exposure — conveys transparency and professionalism",
+    "overlay_pattern": "none",
+    "subject_framing": "wide-environmental for facility exteriors, centered-product for service type icon graphics",
+    "human_presence": "no-humans in provided imagery — focus on facilities and service symbols",
+    "css_filters": "none"
+  },
+
+  "data_visualisation": {
+    "observed_in_source": false,
+    "chart_aesthetic": "If charts needed, use sharp rectangular axes with 0px border-radius to match button geometry, clean medical documentation style — teal gridlines at low opacity",
+    "colour_sequence": ["#07578E", "#38BBC0", "#FFB400", "#7C8896"],
+    "stat_callout_format": "Large Antic Didone numerals (48–60px, weight 700) in deep teal #07578E, with small Times New Roman label underneath (13–15px) in neutral gray #7C8896 — stack vertically with minimal spacing",
+    "progress_indicators": "Sharp rectangular progress bars with 0px border-radius, deep teal #07578E fill, light gray #E5E7EB background track, no rounded ends",
+    "label_placement": "Labels centered below data points or left-aligned beside bars — Times New Roman 14–16px in neutral gray",
+    "gridline_style": "1px solid rgba(7, 87, 142, 0.15) — subtle teal-tinted gridlines"
+  },
+
+  "brand_marks": {
+    "logo_type": "combination",
+    "logo_url": "https://allcaremedicaltransport.com/wp-content/uploads/darker.png",
+    "logo_placement_convention": "top-left on web pages, likely centered or top-left on covers and infographics",
+    "recurring_motifs": ["Sharp rectangular frames with 0px border-radius across all UI elements", "Medical transport service icons (ambulatory/wheelchair/stretcher) as category markers", "Deep teal and golden amber color pairing as signature brand combination"],
+    "favicon_description": "Purple-tinted logo variant at 32x32px — cropped brand mark"
+  },
+
+  "brand_guardrails": [
+    {
+      "avoid": "Rounded corners or pill-shaped buttons — all UI elements must use 0px border-radius",
+      "instead": "Use sharp rectangular frames with precise drop shadows (rgba(0, 0, 0, 0.25) 3.5px 3.5px 2.1px) to create elevation and clickable affordance"
+    },
+    {
+      "avoid": "Using golden amber #FFB400 as background or large-area fill — this is a high-contrast accent color",
+      "instead": "Reserve #FFB400 strictly for button text on teal backgrounds, small accent labels, and critical call-out text — never exceed 5% canvas coverage"
+    },
+    {
+      "avoid": "Mixing serif and sans-serif typefaces — brand identity is fully serif-based",
+      "instead": "Use Antic Didone for all headlines and display text, Times New Roman for all body copy and labels — maintain classical medical documentation aesthetic"
+    },
+    {
+      "avoid": "Decorative illustrations or playful graphic styles — brand conveys medical professionalism",
+      "instead": "Use photographic imagery of real facilities, clean icon graphics for service categories, and functional data visualization with minimal embellishment"
+    },
+    {
+      "avoid": "High-saturation backgrounds or busy patterns — visual clarity is paramount for accessibility",
+      "instead": "Maintain generous white #FFFFFF canvas space (70%+ of layout), use deep teal #07578E sparingly for anchoring sections, ensure body text remains in neutral gray #7C8896 for comfortable reading"
+    }
+  ],
+
+  "asset_templates": [
+    {
+      "asset_type": "Blog Cover 16:9",
+      "dimensions": "1200×675px",
+      "structure": "Top third: white #FFFFFF background with Antic Didone headline (60–72px) in deep teal #07578E, left-aligned with 80px left margin. Bottom two-thirds: environmental medical facility photo or service icon illustration filling width. Bottom-right corner: sharp rectangular badge (0px border-radius) with deep teal #07578E background and golden amber #FFB400 category label in Times New Roman 16px.",
+      "background": "Pure white #FFFFFF in text zone, photographic or light teal #38BBC0 gradient (top to transparent) in visual zone",
+      "typography_usage": "Antic Didone weight 400 at 60–72px for headline, Times New Roman weight 400 at 16px for subhead or category label",
+      "accent_elements": "Sharp rectangular badge with drop shadow (rgba(0, 0, 0, 0.25) 3.5px 3.5px 2.1px), optional service icon in deep teal",
+      "colour_usage": "70% white canvas, 20% deep teal #07578E for headline and badge, 8% neutral gray #7C8896 for subhead, 2% golden amber #FFB400 for badge text"
+    },
+    {
+      "asset_type": "Infographic Vertical",
+      "dimensions": "800×2000px",
+      "structure": "Header: Antic Didone title (48–60px) in deep teal #07578E on white. Three to four sharp rectangular content sections separated by 60px whitespace. Each section: heading in Antic Didone (36px), body text in Times New Roman (16px) in neutral gray #7C8896, service icon or stat callout. Footer: sharp rectangular CTA button (deep teal background, golden amber text) with shadow.",
+      "background": "White #FFFFFF canvas throughout with generous vertical padding",
+      "typography_usage": "Antic Didone for title (48–60px) and section headers (36px), Times New Roman for body labels (16px) and captions (13–15px)",
+      "accent_elements": "Service type icons in deep teal or light teal, sharp rectangular section dividers, stat callouts with large Antic Didone numerals",
+      "colour_usage": "White dominant, deep teal #07578E for headers and accents, light teal #38BBC0 for alternating section highlights, golden amber #FFB400 for CTA text only"
+    },
+    {
+      "asset_type": "Social Square 1:1",
+      "dimensions": "1080×1080px",
+      "structure": "Centered composition. Top quarter: Antic Didone headline (54–60px) in deep teal #07578E on white. Middle half: service icon or facility photo. Bottom quarter: sharp rectangular CTA badge (deep teal background, golden amber text, drop shadow) centered horizontally.",
+      "background": "Pure white #FFFFFF with optional light teal #38BBC0 gradient accent behind photo zone",
+      "typography_usage": "Antic Didone weight 400 at 54–60px for headline, Times New Roman at 14–16px for supporting label inside badge",
+      "accent_elements": "Centered service icon (ambulatory/wheelchair/stretcher), sharp rectangular badge with medium shadow, optional logo in top-left corner",
+      "colour_usage": "White canvas, deep teal for headline and badge, golden amber for badge text, neutral gray for caption if present"
+    }
+  ],
+
+  "generation_suffixes": {
+    "core": "Professional medical transport brand aesthetic with clean white #FFFFFF canvas, deep teal #07578E primary elements, and golden amber #FFB400 accent text. Sharp rectangular geometry with 0px border-radius on all UI elements and precise drop shadows (rgba(0, 0, 0, 0.25) 3.5px 3.5px 2.1px) for elevated clickable feel. Generous whitespace with 70%+ white canvas coverage. Classical serif typography using Antic Didone for display headlines and Times New Roman for body text — conveys established medical professionalism and accessible healthcare service. Photographic imagery of clean medical facilities and environmental healthcare settings. No decorative flourishes or playful elements — functional clarity and trustworthy presentation paramount.",
+
+    "infographic": "Vertical infographic layout with sharp rectangular content sections separated by 60px white space. Antic Didone section headers (36–48px) in deep teal #07578E, Times New Roman body labels (16px) in neutral gray #7C8896. Service type icons (ambulatory/wheelchair/stretcher) as visual category markers. Large stat callouts with Antic Didone numerals (48–60px weight 700) in deep teal, small label underneath in Times New Roman. Sharp rectangular divider rules in light teal #38BBC0 at 2px height. Footer CTA button with deep teal background, golden amber text, 0px border-radius, medium drop shadow. Maintain 80px horizontal margins and generous vertical breathing room between sections.",
+
+    "cover_image": "Blog cover with top-third text zone on pure white #FFFFFF background. Antic Didone headline (60–72px weight 400) in deep teal #07578E, left-aligned with 80px margin. Bottom two-thirds filled with environmental medical facility photo or service icon illustration. Sharp rectangular category badge in bottom-right corner with deep teal background, golden amber #FFB400 text, 0px border-radius, drop shadow. Optional light teal #38BBC0 gradient overlay (top to transparent) on photo zone. Clean professional healthcare aesthetic with high legibility.",
+
+    "social_square": "Centered 1:1 composition with generous white margins. Antic Didone headline (54–60px) in deep teal #07578E occupying top quarter. Service icon or facility photo in middle zone with optional light teal accent gradient. Sharp rectangular CTA badge centered in bottom quarter with deep teal background, golden amber text, precise drop shadow. Optional logo watermark in top-left at 15% opacity. Maintain sharp geometric language and classical serif typography for professional medical trust.",
+
+    "midjourney_modifier": "--style raw --ar 16:9 crisp geometric shapes, professional medical facility aesthetic, high-contrast serif typography, clean photographic style",
+
+    "dalle_modifier": "Professional healthcare service brand design with sharp rectangular UI elements, classical serif headlines, and clean white canvas. Environmental medical facility photography with natural lighting. Deep teal and golden amber color accents on white background.",
+
+    "ideogram_modifier": "Sharp geometric medical brand. Antic Didone serif headlines in deep teal #07578E on white. Golden amber #FFB400 accent text. 0px border-radius rectangles. Clean professional healthcare aesthetic."
+  }
+}
+</output_json>`,
 };
 
 const CLIENT_EVOK_POLYMERS: ClientSample = {
@@ -827,6 +1135,304 @@ const CLIENT_EVOK_POLYMERS: ClientSample = {
     `ABS vs Polypropylene vs Nylon: Ultimate Material Comparison for Injection Molding`,
     `Is PEEK as Strong as Steel? Strength Properties and When to Use It`,
   ],
+  graphicTokenJson: `<output_json>
+{
+  "brand": {
+    "name": "Evok Polymers Inc.",
+    "website": "https://evokpoly.com/",
+    "asset_types": ["infographic", "blog_cover", "social_media_post", "presentation_slide", "data_visualization"],
+    "personality_keywords": ["industrial-precision", "technical-professional", "trust-driven", "process-focused", "manufacturing-heritage", "engineering-clarity"],
+    "visual_summary": "Evok Polymers presents a dark industrial aesthetic anchored by #014FA8 primary blue against #474747 charcoal backgrounds. Work Sans typography throughout conveys engineering precision with clean sans-serif clarity. The visual system prioritizes trust and technical capability over decorative flourish — minimal texture, sharp corners, and straightforward layouts reflect injection molding manufacturing expertise."
+  },
+
+  "extraction_note": "HTML source is extremely minimal (WordPress with heavy external CSS/JS). Branding JSON provided majority of extractable values. Fonts confirmed via JSON (Work Sans). Colours cross-validated: #014FA8 primary blue, #474747 background/text, #5F616F secondary grey, #333645 accent charcoal all appear in JSON with medium-to-high confidence. No gradients, SVG inline styles, or embedded <style> blocks found in HTML. Button/CTA styling absent from both sources — using 'not_found_in_source'. ColorScheme marked 'dark' in JSON; validated against #474747 background presence. Logo URL and favicon extracted from JSON images object. Photography treatment inferred from hero image references (Amery-part product shots). No inline typography hierarchy — sizes from JSON typography.fontSizes used but flagged as potentially sampled from non-hierarchical elements.",
+
+  "colours": {
+    "palette": [
+      {
+        "role": "primary",
+        "name": "Industrial Blue",
+        "hex": "#014FA8",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary brand anchor — use for major headings, CTA accents, data series emphasis, key stat callouts, and brand signature elements"
+      },
+      {
+        "role": "background_dark",
+        "name": "Charcoal Base",
+        "hex": "#474747",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Dominant background for covers and hero sections — provides industrial manufacturing feel and high contrast foundation for white text and blue accents"
+      },
+      {
+        "role": "secondary",
+        "name": "Steel Grey",
+        "hex": "#5F616F",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Secondary text, muted labels, input field text, captions, and supporting copy — use for hierarchy beneath primary headings"
+      },
+      {
+        "role": "accent",
+        "name": "Graphite Accent",
+        "hex": "#333645",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Tertiary accent for links, subtle borders, section dividers, and card backgrounds — darker than steel grey, lighter than charcoal base"
+      },
+      {
+        "role": "surface",
+        "name": "White Surface",
+        "hex": "#FFFFFF",
+        "rgba": null,
+        "source": "json_components_input",
+        "usage": "Input backgrounds, light surface overlays, inverted section backgrounds, and high-contrast text panels against dark base"
+      }
+    ],
+    "proportion_rule": "60% charcoal base (#474747) as dominant background, 25% white surfaces (#FFFFFF) for content panels and contrast zones, 10% industrial blue (#014FA8) for headings and CTAs, 5% steel grey (#5F616F) and graphite (#333645) for supporting elements"
+  },
+
+  "gradients": [],
+
+  "typography": {
+    "fonts": [
+      {
+        "role": "heading",
+        "family": "Work Sans",
+        "source": "json_fonts",
+        "google_font_fallback": "Work Sans",
+        "style_notes": "Clean geometric sans-serif — used universally across all hierarchy levels per JSON fontStacks (heading, body, paragraph all reference Work Sans). Likely loaded via Google Fonts (standard WordPress pattern). No observed letter-spacing or text-transform in source."
+      },
+      {
+        "role": "body",
+        "family": "Work Sans",
+        "source": "json_fonts",
+        "google_font_fallback": "Work Sans",
+        "style_notes": "Same family as heading — creates unified typographic voice appropriate for technical/industrial content. Body text likely regular weight (400)."
+      },
+      {
+        "role": "ui",
+        "family": "Arial",
+        "source": "json_fonts",
+        "google_font_fallback": "system-ui",
+        "style_notes": "Fallback system font — may appear in forms or plugin-generated UI elements. Not primary brand typeface."
+      }
+    ],
+    "hierarchy": {
+      "cover_title": {
+        "font_role": "heading",
+        "weight": "700",
+        "size_range_px": "44–60",
+        "letter_spacing": "normal",
+        "text_transform": "uppercase"
+      },
+      "section_header": {
+        "font_role": "heading",
+        "weight": "600",
+        "size_range_px": "28–36",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "stat_callout": {
+        "font_role": "heading",
+        "weight": "700",
+        "size_range_px": "48–64",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "body_label": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "16–18",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "caption_source": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "13–15",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      }
+    }
+  },
+
+  "layout": {
+    "content_density": "moderate",
+    "whitespace_ratio": "medium (30-35%)",
+    "standard_flow": "hero image carousel → section headline → three-column process steps (Planning/Strategy/Results) → CTA form"
+  },
+
+  "design_patterns": {
+    "shape_language": {
+      "corner_radius_px": "4",
+      "dominant_shapes": ["rectangle", "sharp-edged-cards", "minimal-rounding"],
+      "overall_feel": "sharp-geometric"
+    },
+    "backgrounds": {
+      "light_variant": "Solid #FFFFFF for form inputs and isolated content panels",
+      "dark_variant": "Solid #474747 charcoal — dominant across hero sections and page backgrounds",
+      "accent_variant": "Solid #333645 graphite for subtle card backgrounds or section dividers"
+    },
+    "texture_and_pattern": {
+      "used": false,
+      "type": "none",
+      "intensity": "none",
+      "css_implementation": null
+    },
+    "shadows": {
+      "style": "none/flat",
+      "css_value": "none"
+    },
+    "borders_and_rules": {
+      "used": true,
+      "css_value": "not_found_in_source",
+      "application": "Likely 1px solid borders on form inputs and subtle section dividers — exact CSS not present in source"
+    },
+    "decorative_elements": ["Hero carousel with overlaid uppercase headlines and 'REQUEST A QUOTE' CTAs — repeating pattern suggesting design system built on bold product photography with text overlays"]
+  },
+
+  "cta_and_buttons": {
+    "primary": {
+      "background": "not_found_in_source",
+      "text_color": "not_found_in_source",
+      "border_radius_px": "4",
+      "padding": "not_found_in_source",
+      "font_weight": "not_found_in_source",
+      "font_size_px": "not_found_in_source",
+      "text_transform": "uppercase",
+      "border": "not_found_in_source",
+      "shadow": "none",
+      "source": "html_inline"
+    },
+    "secondary": {
+      "background": "not_found_in_source",
+      "text_color": "not_found_in_source",
+      "border_radius_px": "4",
+      "border": "not_found_in_source",
+      "shadow": "none",
+      "source": "html_inline",
+      "notes": "No button component styling extracted from either source — borderRadius inferred from spacing.borderRadius in JSON"
+    },
+    "usage_in_assets": "Apply uppercase Work Sans bold weight for button text and CTA labels. Use #014FA8 industrial blue as likely CTA background with white text for maximum contrast against #474747 dark backgrounds. Minimal border-radius (4px) maintains industrial aesthetic."
+  },
+
+  "iconography": {
+    "style": "none",
+    "stroke_weight": "N/A",
+    "implementation": "none",
+    "closest_public_library": "none",
+    "colour_usage": "No iconography observed in source — brand relies on photography and typography",
+    "size_convention_px": "N/A"
+  },
+
+  "illustration_style": {
+    "present": false,
+    "type": "none",
+    "colour_treatment": "none",
+    "line_quality": "none",
+    "notes": "No illustrations present — visual language dominated by product photography and minimal typographic treatments"
+  },
+
+  "photography_and_imagery": {
+    "present": true,
+    "style": "product-on-white",
+    "treatment": "natural/unfiltered",
+    "overlay_pattern": "Dark gradient overlay (exact CSS not in source) with white uppercase headlines and CTA buttons overlaid on hero carousel product images",
+    "subject_framing": "centered-product",
+    "human_presence": "no-humans",
+    "css_filters": "none"
+  },
+
+  "data_visualisation": {
+    "observed_in_source": false,
+    "chart_aesthetic": "Clean geometric bars and lines with minimal gridlines — industrial precision aesthetic. Use #474747 backgrounds with white gridlines at low opacity. Sharp corners, no decorative elements.",
+    "colour_sequence": ["#014FA8", "#5F616F", "#333645", "#FFFFFF"],
+    "stat_callout_format": "Large bold number (48-64px Work Sans weight 700, #014FA8 industrial blue) above smaller label text (16-18px Work Sans weight 400, #5F616F steel grey). Minimal decoration — let numbers speak.",
+    "progress_indicators": "Horizontal bars with sharp corners (4px radius), #014FA8 fill, #333645 background track, white percentage labels overlaid",
+    "label_placement": "Below data points for bar charts, inline with axis for line charts — prioritize readability over decoration",
+    "gridline_style": "1px solid rgba(255,255,255,0.1)"
+  },
+
+  "brand_marks": {
+    "logo_type": "wordmark",
+    "logo_url": "https://evokpoly.com/wp-content/uploads/2021/10/Evok-Polymers-Logo.svg",
+    "logo_placement_convention": "Top-left in header — likely white or light treatment on dark backgrounds per industrial aesthetic",
+    "recurring_motifs": ["Product photography with text overlays", "Uppercase headline treatments", "Sharp geometric containers"],
+    "favicon_description": "White EVOK branding on transparent background, 64x64px, maintaining visibility on dark browser UI"
+  },
+
+  "brand_guardrails": [
+    {
+      "avoid": "Gradients, soft shadows, decorative textures, or organic shapes",
+      "instead": "Use flat solid colours from palette (#014FA8, #474747, #5F616F, #333645, #FFFFFF) with sharp 4px corner radius and no shadows — reflects precision manufacturing"
+    },
+    {
+      "avoid": "Bright saturated accent colours beyond #014FA8 industrial blue",
+      "instead": "Restrict accent usage to #014FA8 for CTAs and key headings — maintain industrial restraint with grey-dominant palette"
+    },
+    {
+      "avoid": "Decorative serif fonts, script fonts, or display typefaces",
+      "instead": "Use Work Sans exclusively across all hierarchy levels — geometric sans-serif clarity supports technical credibility"
+    },
+    {
+      "avoid": "Human-focused lifestyle photography or abstract imagery",
+      "instead": "Feature centered product shots (injection molded parts, manufacturing equipment) with natural lighting — no filters, no staged lifestyle scenarios"
+    },
+    {
+      "avoid": "Playful or consumer-friendly visual language (rounded buttons, bright colours, friendly illustrations)",
+      "instead": "Maintain industrial B2B tone — sharp edges, muted palette, technical precision, trust-based messaging"
+    }
+  ],
+
+  "asset_templates": [
+    {
+      "asset_type": "Blog Cover 16:9",
+      "dimensions": "1200×675px",
+      "structure": "Full-bleed #474747 charcoal background. Upper 60% reserved for centered product photography with 30% opacity dark gradient overlay. Lower 40% contains headline (Work Sans 700, 48-56px, white, uppercase) left-aligned with 60px left margin. Logo placement: bottom-right corner, 40px margins, white treatment.",
+      "background": "Solid #474747 charcoal base with optional product photography at 70% opacity behind text zone",
+      "typography_usage": "Headline: Work Sans 700, 48-56px, white (#FFFFFF), uppercase, left-aligned. Subheading (if needed): Work Sans 400, 18px, #5F616F steel grey, sentence case.",
+      "accent_elements": "Horizontal #014FA8 industrial blue accent bar (4px height) positioned 20px above headline as visual anchor",
+      "colour_usage": "#474747 background dominates canvas, white headline, #014FA8 accent bar, #5F616F for supporting text"
+    },
+    {
+      "asset_type": "Infographic Vertical",
+      "dimensions": "800×2000px",
+      "structure": "Header zone (200px): #474747 background with white title + logo. Content zones (300px each): Alternating #FFFFFF and #333645 backgrounds. Each zone contains stat callout (top) + 3-line description (below). Footer zone (200px): #014FA8 background with white CTA text.",
+      "background": "Alternating section backgrounds — #474747 header, white/graphite content zones, #014FA8 footer",
+      "typography_usage": "Title: Work Sans 700, 44px, white. Stat callouts: Work Sans 700, 56px, #014FA8. Descriptions: Work Sans 400, 17px, #5F616F (on white) or white (on graphite). CTA: Work Sans 700, 20px, white, uppercase.",
+      "accent_elements": "Thin 1px #5F616F divider rules between content zones. 4px #014FA8 vertical accent bar along left edge of each stat callout.",
+      "colour_usage": "#474747 and #014FA8 as bookend zones, white and #333645 for content sections, #014FA8 for stat emphasis"
+    },
+    {
+      "asset_type": "Social Square 1:1",
+      "dimensions": "1080×1080px",
+      "structure": "Centered composition. Top 25%: #014FA8 bar with white headline (Work Sans 700, 40px, uppercase, centered). Middle 50%: #474747 background with centered stat or key message (Work Sans 700, 72px, white). Bottom 25%: white bar with #5F616F supporting text + centered logo.",
+      "background": "Tri-zone horizontal split: #014FA8 top, #474747 middle, white bottom",
+      "typography_usage": "Headline: Work Sans 700, 40px, white, uppercase, centered. Stat: Work Sans 700, 72px, white, centered. Supporting: Work Sans 400, 16px, #5F616F, centered.",
+      "accent_elements": "Logo centered in bottom zone at 80px width. Optional: 4px white horizontal rule separating middle and bottom zones.",
+      "colour_usage": "#014FA8 for headline anchor, #474747 for stat emphasis zone, white for footer contrast, #5F616F for muted supporting copy"
+    }
+  ],
+
+  "generation_suffixes": {
+    "core": "Industrial B2B manufacturing aesthetic with sharp geometric precision. Dominant #474747 charcoal backgrounds provide high-contrast foundation for white Work Sans typography and #014FA8 industrial blue accents. Flat design language — no gradients, no soft shadows, 4px corner radius maximum. Technical credibility through restraint: muted grey palette (#5F616F steel grey, #333645 graphite) supports precision messaging. Product-focused photography with natural lighting, centered framing, no humans. Uppercase headlines convey engineering authority. Trust-based visual system optimized for injection molding and technical manufacturing audience.",
+
+    "infographic": "Multi-section vertical layout with alternating #FFFFFF and #333645 graphite backgrounds for content zones, bookended by #474747 charcoal header and #014FA8 industrial blue footer. Each section features bold stat callout (Work Sans 700, 56-64px, #014FA8) with 4px vertical accent bar, followed by 3-line description (Work Sans 400, 17px, #5F616F on white or white on graphite). Thin 1px #5F616F horizontal rules separate zones. Sharp 4px corner radius on any card elements. Logo in top-right of header zone, white treatment. Data visualizations use #014FA8 bars on #333645 backgrounds with white gridlines at 10% opacity.",
+
+    "cover_image": "Single bold headline (Work Sans 700, 48-60px, white, uppercase, left-aligned) positioned in lower 40% of canvas over full-bleed #474747 charcoal background. Optional: centered product photography in upper 60% with 30% dark gradient overlay to ensure text legibility. 4px height #014FA8 industrial blue horizontal accent bar positioned 20px above headline as visual anchor. Logo bottom-right corner, 40px margins, white treatment. Flat lighting, no shadows, geometric precision. High contrast between white text and dark base ensures readability at thumbnail sizes.",
+
+    "social_square": "Adapt for 1:1 square format using horizontal tri-zone split. Top 25%: #014FA8 bar with centered white headline (Work Sans 700, 36-40px, uppercase). Middle 50%: #474747 background with centered stat or key message (Work Sans 700, 64-80px, white) — this zone dominates visual hierarchy. Bottom 25%: white bar with centered logo (80px width) and optional #5F616F supporting text (Work Sans 400, 15-16px). Sharp 4px corner radius if using card overlay. Maintain high contrast and industrial restraint — no decorative elements, no soft shapes.",
+
+    "midjourney_modifier": "sharp geometric industrial design, flat B2B manufacturing aesthetic, high contrast minimal shadows, technical precision, --style raw --ar 16:9 --v 6",
+
+    "dalle_modifier": "Industrial B2B product photography scene with centered injection molded parts on neutral background, sharp focus, studio lighting, clean geometric composition with #474747 charcoal and #014FA8 blue color accents, professional technical documentation style, no humans, high contrast flat design",
+
+    "ideogram_modifier": "Industrial manufacturing flat design, #474747 charcoal background, white Work Sans bold uppercase headline, #014FA8 blue accent bar, sharp geometric precision, minimal B2B aesthetic, high contrast technical style"
+  }
+}
+</output_json>`,
 };
 
 const CLIENT_MOREX_RIBBON: ClientSample = {
@@ -2305,6 +2911,304 @@ const CLIENT_MOREX_RIBBON: ClientSample = {
     `Top 10 Burlap Ribbon Manufacturers in the US`,
     `Top 10 Glitter Ribbon Manufacturers in the US`,
   ],
+  graphicTokenJson: `<output_json>
+{
+  "brand": {
+    "name": "Morex Ribbon",
+    "website": "https://morexribbon.com/",
+    "asset_types": ["infographic", "blog cover", "social media asset", "catalog cover", "promotional banner"],
+    "personality_keywords": ["craft-focused", "product-catalog", "wholesale-trade", "traditional-navigation", "category-dense", "utility-first"],
+    "visual_summary": "Morex Ribbon uses a classic wholesale catalog aesthetic with minimal decoration. The brand signature is hot pink #EC008C as the primary accent, paired with teal #006666 for links and text, on a clean white #FFFFFF background. Typography is functional sans-serif (Geneva/Verdana/Arial stack) at small 13.3333px body size. Layout is content-dense with extensive category navigation and zero border radius on all elements, creating a sharp, utility-driven feel optimised for browsing large product inventories."
+  },
+  "extraction_note": "Complete extraction from both sources. HTML provided limited inline styling (mostly structural markup). Firecrawl branding JSON was the primary source for colour palette, typography, and component details. No gradients, shadows, or decorative patterns observed in either source. All border-radius values are 0px (sharp corners). Font sizes are uniformly 13.3333px across all hierarchy levels per JSON typography.fontSizes — this is unusually flat but matches the utilitarian catalog design. Button styling not found in either source. The #EC008C hot pink primary is the dominant brand colour but appears sparingly in the minimalist layout.",
+  "colours": {
+    "palette": [
+      {
+        "role": "primary",
+        "name": "Hot Pink",
+        "hex": "#EC008C",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary brand accent — use for CTA highlights, key product badges, and promotional callouts. Sparingly applied to maintain impact against white backgrounds."
+      },
+      {
+        "role": "accent",
+        "name": "Teal",
+        "hex": "#006666",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Link colour and body text in JSON — use for secondary headings, section labels, navigation elements, and data visualization accents."
+      },
+      {
+        "role": "background_light",
+        "name": "Pure White",
+        "hex": "#FFFFFF",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary canvas background — use as base for all asset types to maintain clean catalog feel."
+      },
+      {
+        "role": "secondary",
+        "name": "Soft Pink",
+        "hex": "#FFDFEF",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Subtle background tint or highlight zone — use for callout boxes, featured sections, or to create visual hierarchy without strong contrast."
+      },
+      {
+        "role": "form_border",
+        "name": "Light Gray",
+        "hex": "#EFEFEF",
+        "rgba": null,
+        "source": "json_components_input",
+        "usage": "Input borders and subtle divider rules — use for section separators, chart gridlines, and table borders."
+      },
+      {
+        "role": "body_text",
+        "name": "Black",
+        "hex": "#000000",
+        "rgba": null,
+        "source": "json_components_input",
+        "usage": "Primary body text when high contrast is required — use for product descriptions, captions, and small-size labels."
+      }
+    ],
+    "proportion_rule": "70% white (#FFFFFF) as canvas base, 20% teal (#006666) for text and navigation elements, 8% hot pink (#EC008C) for strategic accents and CTAs, 2% soft pink (#FFDFEF) for subtle highlights"
+  },
+  "gradients": [],
+  "typography": {
+    "fonts": [
+      {
+        "role": "heading",
+        "family": "Geneva",
+        "source": "json_fonts",
+        "google_font_fallback": "Montserrat",
+        "style_notes": "Used for all heading levels per JSON. No letter-spacing, text-transform, or special styling observed. Font size is 13.3333px across h1 and h2 per JSON — unusually small and flat hierarchy."
+      },
+      {
+        "role": "body",
+        "family": "Verdana",
+        "source": "json_fonts",
+        "google_font_fallback": "Roboto",
+        "style_notes": "Primary body text font with fallback stack to Tahoma, Geneva, sans-serif. Font size is 13.3333px per JSON. No special letter-spacing or line-height values observed."
+      },
+      {
+        "role": "ui",
+        "family": "Arial",
+        "source": "json_fonts",
+        "google_font_fallback": "Open Sans",
+        "style_notes": "System fallback in heading and body stacks. Likely used for navigation and UI elements where Geneva/Verdana are unavailable."
+      }
+    ],
+    "hierarchy": {
+      "cover_title": {
+        "font_role": "heading",
+        "weight": "700",
+        "size_range_px": "48–64",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "section_header": {
+        "font_role": "heading",
+        "weight": "600",
+        "size_range_px": "24–32",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "stat_callout": {
+        "font_role": "heading",
+        "weight": "700",
+        "size_range_px": "36–48",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "body_label": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "14–18",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "caption_source": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "11–13",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      }
+    }
+  },
+  "layout": {
+    "content_density": "dense — extensive category navigation, long product lists, minimal breathing room between sections",
+    "whitespace_ratio": "low — content fills 80%+ of canvas, catalog-style layout with tight vertical stacking",
+    "standard_flow": "logo → horizontal navigation → category sidebar (left) → main content area (product grid or text) → footer links"
+  },
+  "design_patterns": {
+    "shape_language": {
+      "corner_radius_px": "0",
+      "dominant_shapes": ["sharp-rectangle", "straight-edged-containers", "no-rounded-elements"],
+      "overall_feel": "sharp-geometric — zero border radius on all components per JSON spacing.borderRadius and components.input.borderRadius, creating a traditional boxy catalog aesthetic"
+    },
+    "backgrounds": {
+      "light_variant": "Solid white #FFFFFF as primary canvas — no texture, no gradient, flat catalog feel",
+      "dark_variant": "not_found_in_source",
+      "accent_variant": "Soft pink #FFDFEF as subtle highlight for featured sections or callout boxes — low contrast, used sparingly"
+    },
+    "texture_and_pattern": {
+      "used": false,
+      "type": "none",
+      "intensity": "none",
+      "css_implementation": null
+    },
+    "shadows": {
+      "style": "none/flat",
+      "css_value": "none"
+    },
+    "borders_and_rules": {
+      "used": true,
+      "css_value": "1px solid #EFEFEF",
+      "application": "Input field borders per JSON components.input.borderColor — likely used for section dividers and table/grid separators to create structure in the dense layout"
+    },
+    "decorative_elements": ["none — design is strictly utilitarian with no decorative flourishes, patterns, or embellishments"]
+  },
+  "cta_and_buttons": {
+    "primary": {
+      "background": "not_found_in_source",
+      "text_color": "not_found_in_source",
+      "border_radius_px": "0",
+      "padding": "not_found_in_source",
+      "font_weight": "not_found_in_source",
+      "font_size_px": "not_found_in_source",
+      "text_transform": "not_found_in_source",
+      "border": "not_found_in_source",
+      "shadow": "none",
+      "source": "partial — only border_radius_px and shadow inferred from overall design system (0px radius, no shadows anywhere)"
+    },
+    "secondary": {
+      "background": "not_found_in_source",
+      "text_color": "not_found_in_source",
+      "border_radius_px": "0",
+      "border": "not_found_in_source",
+      "shadow": "none",
+      "source": "partial — only border_radius_px and shadow inferred from overall design system",
+      "notes": "No button-specific styling found in either source. Likely uses inline link styling with teal #006666 text colour per JSON colors.link."
+    },
+    "usage_in_assets": "Apply sharp-edged rectangular badges/labels with 0px border-radius. Use hot pink #EC008C background with white text for primary CTAs. Use teal #006666 text on white or soft pink #FFDFEF background for secondary labels. Avoid shadows entirely. Keep typography at smaller sizes (14-16px) to match catalog aesthetic."
+  },
+  "iconography": {
+    "style": "not_found_in_source",
+    "stroke_weight": "not_found_in_source",
+    "implementation": "not_found_in_source — no icons observed in HTML or referenced in JSON",
+    "closest_public_library": "none — if icons are needed for assets, use simple geometric shapes or minimal line icons at 1.5px stroke weight to match the utilitarian aesthetic",
+    "colour_usage": "If icons are used, apply teal #006666 for neutral/navigation icons, hot pink #EC008C for accent/CTA icons",
+    "size_convention_px": "not_found_in_source"
+  },
+  "illustration_style": {
+    "present": false,
+    "type": "none",
+    "colour_treatment": "none",
+    "line_quality": "none",
+    "notes": "No illustration style observed. Brand relies on product photography (ribbon spools, bows) and text-based catalog navigation."
+  },
+  "photography_and_imagery": {
+    "present": true,
+    "style": "product-on-white — catalog-style ribbon spool photography with clean backgrounds",
+    "treatment": "natural/unfiltered — no overlays, no CSS filters, straightforward product presentation",
+    "overlay_pattern": "none",
+    "subject_framing": "centered-product — ribbon spools, bow kits, and curling ribbon shown in tight crop on white or neutral backgrounds",
+    "human_presence": "no-humans",
+    "css_filters": "none"
+  },
+  "data_visualisation": {
+    "observed_in_source": false,
+    "chart_aesthetic": "If charts are needed, use sharp-edged rectangular bars and gridlines with 1px solid #EFEFEF borders. No rounded corners. Flat, no shadows. Clinical and precise to match catalog aesthetic.",
+    "colour_sequence": ["#EC008C", "#006666", "#FFDFEF", "#EFEFEF"],
+    "stat_callout_format": "Large bold Geneva heading at 36-48px in hot pink #EC008C or teal #006666, with small Verdana label underneath at 11-13px in black #000000. Sharp rectangular background container at 0px border-radius.",
+    "progress_indicators": "Horizontal bars with sharp edges (0px radius), hot pink #EC008C fill on white or light gray #EFEFEF background. No gradients or shadows. Percentage label in Verdana 13-14px.",
+    "label_placement": "Axis labels in Verdana 11-13px black #000000, positioned outside chart area. Data labels inside bars or points in white if on hot pink, black if on white.",
+    "gridline_style": "1px solid #EFEFEF"
+  },
+  "brand_marks": {
+    "logo_type": "wordmark — 'Morex Ribbon' text logo with no accompanying icon or mark",
+    "logo_url": "https://morexribbon.com/img/morex-logo-90.jpg",
+    "logo_placement_convention": "Top-left corner on all pages and assets. Small lockup (90px height per filename) suitable for header placement.",
+    "recurring_motifs": ["none — no geometric or decorative motifs used as brand signatures. Design is purely utilitarian with product photography as the only visual interest."],
+    "favicon_description": "not_found_in_source — no favicon URL in JSON images object"
+  },
+  "brand_guardrails": [
+    {
+      "avoid": "Rounded corners or soft edges on any UI elements",
+      "instead": "Use 0px border-radius on all containers, buttons, badges, and image frames to maintain the sharp catalog aesthetic"
+    },
+    {
+      "avoid": "Gradients, shadows, or layered depth effects",
+      "instead": "Keep all backgrounds flat and solid — white #FFFFFF primary, soft pink #FFDFEF for subtle highlights. No drop shadows, no elevation."
+    },
+    {
+      "avoid": "Decorative flourishes, patterns, textures, or ornamental elements",
+      "instead": "Maintain strict utility focus — let product photography and clear typography carry the visual interest"
+    },
+    {
+      "avoid": "Over-using hot pink #EC008C — it loses impact if applied too broadly",
+      "instead": "Reserve hot pink for strategic accents only: primary CTAs, key stat callouts, promotional badges. Use teal #006666 for most text and navigation elements."
+    },
+    {
+      "avoid": "Large or bold typography that feels editorial or magazine-like",
+      "instead": "Keep type sizes modest (13-18px body, 24-32px headings in assets) and use simple Geneva/Verdana sans-serif stack to match the trade catalog tone"
+    },
+    {
+      "avoid": "High-contrast dark backgrounds or dramatic lighting",
+      "instead": "Stick to white #FFFFFF or soft pink #FFDFEF backgrounds. The brand is light-scheme only per JSON and HTML evidence."
+    }
+  ],
+  "asset_templates": [
+    {
+      "asset_type": "Blog Cover 16:9",
+      "dimensions": "1200×675px",
+      "structure": "Full-bleed white #FFFFFF background. Top 1/3: bold Geneva heading 48-56px in hot pink #EC008C, left-aligned with 60px left margin. Center 1/3: product photograph (ribbon spool or bow) centered, natural lighting, clean crop. Bottom 1/3: small Verdana caption 14px in teal #006666, left-aligned. Morex logo lockup in top-left corner at 90px width.",
+      "background": "Solid white #FFFFFF — no gradient, no texture",
+      "typography_usage": "Heading: Geneva 700 weight 48-56px hot pink #EC008C. Caption: Verdana 400 weight 14px teal #006666.",
+      "accent_elements": "Thin 1px solid #EFEFEF horizontal rule separating heading from image if needed. No decorative shapes or patterns.",
+      "colour_usage": "White background, hot pink heading, teal caption text, product photo provides colour variation"
+    },
+    {
+      "asset_type": "Infographic Vertical",
+      "dimensions": "800×2000px",
+      "structure": "Sharp-edged rectangular sections stacked vertically. Each section: white background with 1px #EFEFEF border. Top section: title in Geneva 32px hot pink #EC008C. Middle sections: alternating white and soft pink #FFDFEF backgrounds with data stats (Geneva 36-48px numbers in teal #006666) and labels (Verdana 13-14px black #000000). Bottom section: CTA with hot pink background.",
+      "background": "Alternating white #FFFFFF and soft pink #FFDFEF section backgrounds, all flat solid fills",
+      "typography_usage": "Title: Geneva 700 32px hot pink. Stats: Geneva 700 36-48px teal. Labels: Verdana 400 13-14px black. CTA: Verdana 600 16px white on hot pink.",
+      "accent_elements": "1px #EFEFEF divider rules between sections. Sharp-edged data bars in hot pink #EC008C on white background. No icons or decorative shapes.",
+      "colour_usage": "Hot pink for title and data bars, teal for stat numbers, black for body labels, white and soft pink alternating section backgrounds"
+    },
+    {
+      "asset_type": "Social Square 1:1",
+      "dimensions": "1080×1080px",
+      "structure": "Centered composition. Top 200px: Geneva heading 40px hot pink #EC008C on white. Center 600px: product photo or ribbon texture close-up, natural lighting. Bottom 280px: Verdana caption 16px teal #006666 on soft pink #FFDFEF background. Logo in top-right corner.",
+      "background": "White #FFFFFF top 2/3, soft pink #FFDFEF bottom 1/3",
+      "typography_usage": "Heading: Geneva 700 40px hot pink. Caption: Verdana 400 16px teal.",
+      "accent_elements": "1px #EFEFEF horizontal rule separating photo from caption section. No decorative elements.",
+      "colour_usage": "Hot pink heading, teal caption, white and soft pink backgrounds, product photo provides visual interest"
+    },
+    {
+      "asset_type": "Promotional Banner",
+      "dimensions": "1200×300px",
+      "structure": "Horizontal split: left 60% white background with Geneva heading 32px hot pink #EC008C and Verdana subhead 16px teal #006666. Right 40%: product photo on soft pink #FFDFEF background. 1px #EFEFEF vertical divider.",
+      "background": "White #FFFFFF left side, soft pink #FFDFEF right side",
+      "typography_usage": "Heading: Geneva 700 32px hot pink. Subhead: Verdana 400 16px teal.",
+      "accent_elements": "1px #EFEFEF vertical divider. Sharp-edged CTA button (Geneva 600 16px white on hot pink #EC008C, 0px border-radius) in bottom-left of text zone.",
+      "colour_usage": "Hot pink heading and CTA, teal subhead, white and soft pink split background"
+    }
+  ],
+  "generation_suffixes": {
+    "core": "Morex Ribbon brand aesthetic: clean wholesale catalog style, sharp-edged rectangular layout with 0px border-radius on all elements, flat design with no shadows or gradients. Use hot pink #EC008C sparingly for strategic accents and CTAs, teal #006666 for body text and navigation, white #FFFFFF as primary canvas background. Typography: Geneva or Montserrat for headings (modest sizes 32-48px), Verdana or Roboto for body text (13-18px). Content-dense layout with minimal whitespace, 1px solid #EFEFEF divider rules between sections. Product photography on clean white backgrounds, natural lighting, centered framing. No decorative flourishes, no textures, no rounded corners — strictly utilitarian trade catalog feel. Soft pink #FFDFEF as subtle highlight background only.",
+    "infographic": "Vertical stacked sections with sharp rectangular containers, 1px #EFEFEF borders separating each block. Alternating white #FFFFFF and soft pink #FFDFEF section backgrounds for visual rhythm. Stat callouts: large Geneva numbers 36-48px in teal #006666, small Verdana labels 13-14px in black #000000 below. Data bars: horizontal sharp-edged rectangles in hot pink #EC008C on white background, no rounded ends. Section headers in Geneva 24-32px hot pink. All elements flat with zero border-radius, no shadows. Gridlines for charts: 1px solid #EFEFEF. Maintain tight vertical spacing between sections to match catalog density. Use 1px divider rules generously to create structure.",
+    "cover_image": "Bold Geneva heading 48-64px in hot pink #EC008C, positioned in top-left with generous left margin (60-80px). Clean white #FFFFFF background filling entire canvas. Optional product photo (ribbon spool, bow, curling ribbon) centered in middle third, natural lighting on white backdrop. Small Verdana caption 14-16px in teal #006666 in lower third. Morex logo lockup at 90px width in top-left corner. No decorative elements — let typography and product photography carry the composition. Thin 1px #EFEFEF horizontal rule may separate heading from image if needed. All elements sharp-edged, no shadows.",
+    "social_square": "Centered layout for 1:1 format. Top zone: Geneva heading 36-40px hot pink #EC008C on white #FFFFFF. Center zone: product photo or ribbon texture close-up, 500-600px square, natural lighting. Bottom zone: soft pink #FFDFEF background with Verdana caption 16-18px teal #006666. 1px #EFEFEF horizontal rule separating photo from caption. Logo in top-right corner at 80px width. All containers sharp rectangular with 0px border-radius. No decorative shapes or patterns. Flat design, no shadows.",
+    "midjourney_modifier": "--style raw --ar 16:9 clean product photography, sharp geometric layout, flat catalog aesthetic, no rounded corners, no shadows, minimal decorative elements, white background dominant",
+    "dalle_modifier": "Corporate wholesale catalog style with sharp-edged rectangular composition. Clean white background, hot pink and teal accent colours used sparingly. Product-focused with natural lighting. Flat design, no depth effects, no rounded corners. Utility-first layout with tight spacing and minimal ornamentation.",
+    "ideogram_modifier": "Catalog-style sharp rectangular layout, Geneva headings in hot pink #EC008C, white background, flat design, no shadows, 0px border-radius, utility-focused, teal accents"
+  }
+}
+</output_json>`,
 };
 
 const CLIENT_PERFECT_IMPRINTS: ClientSample = {
@@ -3747,6 +4651,318 @@ const CLIENT_PERFECT_IMPRINTS: ClientSample = {
     `Screen Printing on Promotional Products: Complete Guide`,
     `Best Eco-Friendly Corporate Gifts for Client Appreciation`,
   ],
+  graphicTokenJson: `<output_json>
+{
+  "brand": {
+    "name": "Perfect Imprints",
+    "website": "https://www.perfectimprints.com",
+    "asset_types": [
+      "Blog Cover 16:9",
+      "Social Square 1:1",
+      "Infographic Vertical",
+      "Email Header",
+      "Product Category Banner"
+    ],
+    "personality_keywords": [
+      "professional",
+      "accessible",
+      "catalog-driven",
+      "product-focused",
+      "straightforward",
+      "retail-functional"
+    ],
+    "visual_summary": "Perfect Imprints uses a clean, catalog-style layout with a dominant red accent (#E21F1E) for CTAs and headings, paired with neutral backgrounds (#FFFFFF) and moderate gray tones (#959EA9, #606A72). The system font stack (Helvetica Neue, Arial, Roboto) supports a no-frills, efficient user experience optimized for product browsing and quick conversions."
+  },
+  "extraction_note": "Complete extraction from both sources. HTML provided minimal inline styling (typical of plugin-built e-commerce sites), so branding_json filled critical gaps for button styling, input fields, and typography. All hex values cross-validated against JSON source. Green primary (#008000) appears in JSON but has weak HTML evidence and was demoted to decorative role; red accent (#E21F1E) is the true brand signature, appearing on primary buttons and text. No gradient or texture evidence found in HTML. Font families resolved from JSON due to system font stack usage.",
+  "colours": {
+    "palette": [
+      {
+        "role": "accent",
+        "name": "Brand Red",
+        "hex": "#E21F1E",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary brand accent — use on CTAs, headings, links, and key UI elements to drive attention and action"
+      },
+      {
+        "role": "background_light",
+        "name": "Pure White",
+        "hex": "#FFFFFF",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Universal background for content sections, cards, and button secondary backgrounds"
+      },
+      {
+        "role": "muted_text",
+        "name": "Cool Gray",
+        "hex": "#959EA9",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Secondary text, labels, and muted UI elements"
+      },
+      {
+        "role": "form_border",
+        "name": "Slate Gray",
+        "hex": "#606A72",
+        "rgba": null,
+        "source": "json_components_input",
+        "usage": "Input field borders and subtle dividers"
+      },
+      {
+        "role": "decorative",
+        "name": "Forest Green",
+        "hex": "#008000",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "JSON labels this as primary, but HTML evidence is weak — use sparingly for decorative accents or success states if at all"
+      },
+      {
+        "role": "body_text",
+        "name": "True Black",
+        "hex": "#000000",
+        "rgba": null,
+        "source": "json_components_input",
+        "usage": "Primary body text and labels — high contrast on white background"
+      }
+    ],
+    "proportion_rule": "70% white background (#FFFFFF), 20% red accent (#E21F1E) on CTAs/headings/links, 10% gray tones (#959EA9, #606A72) for text and borders"
+  },
+  "gradients": [],
+  "typography": {
+    "fonts": [
+      {
+        "role": "heading",
+        "family": "Helvetica Neue",
+        "source": "json_fonts",
+        "google_font_fallback": "Inter",
+        "style_notes": "System font — no custom loading. Used for h1 (40px), h2 (32px). Clean, readable, corporate standard."
+      },
+      {
+        "role": "body",
+        "family": "Arial",
+        "source": "json_fonts",
+        "google_font_fallback": "Roboto",
+        "style_notes": "System font fallback in stack. Body text at 16px. No letter-spacing or text-transform observed."
+      },
+      {
+        "role": "body",
+        "family": "Roboto",
+        "source": "json_fonts",
+        "google_font_fallback": "Open Sans",
+        "style_notes": "System font fallback in stack. Used interchangeably with Arial for body content."
+      }
+    ],
+    "hierarchy": {
+      "cover_title": {
+        "font_role": "heading",
+        "weight": "700",
+        "size_range_px": "40–48",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "section_header": {
+        "font_role": "heading",
+        "weight": "700",
+        "size_range_px": "32–36",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "stat_callout": {
+        "font_role": "heading",
+        "weight": "700",
+        "size_range_px": "36–44",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "body_label": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "16–18",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "caption_source": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "12–14",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      }
+    }
+  },
+  "layout": {
+    "content_density": "dense",
+    "whitespace_ratio": "low",
+    "standard_flow": "hero product grid → category tiles → featured collections → promotional banners → blog feed → footer"
+  },
+  "design_patterns": {
+    "shape_language": {
+      "corner_radius_px": "4–16 (inputs 4px, primary buttons 16px, secondary buttons 6px)",
+      "dominant_shapes": [
+        "rounded-rectangle",
+        "pill-button (primary CTA)",
+        "subtle-rounded cards"
+      ],
+      "overall_feel": "mixed — soft-rounded CTAs, slightly-rounded inputs"
+    },
+    "backgrounds": {
+      "light_variant": "solid #FFFFFF — universal default",
+      "dark_variant": "not present in source",
+      "accent_variant": "not present in source"
+    },
+    "texture_and_pattern": {
+      "used": false,
+      "type": "none",
+      "intensity": "none",
+      "css_implementation": null
+    },
+    "shadows": {
+      "style": "none/flat",
+      "css_value": "none"
+    },
+    "borders_and_rules": {
+      "used": true,
+      "css_value": "1px solid #606A72 (inputs)",
+      "application": "Input field borders — no section dividers or rules observed"
+    },
+    "decorative_elements": []
+  },
+  "cta_and_buttons": {
+    "primary": {
+      "background": "#E21F1E",
+      "text_color": "#FFFFFF",
+      "border_radius_px": "16",
+      "padding": "not_found_in_source",
+      "font_weight": "not_found_in_source",
+      "font_size_px": "not_found_in_source",
+      "text_transform": "none",
+      "border": "1px solid #E21F1E",
+      "shadow": "none",
+      "source": "json_components_button_primary"
+    },
+    "secondary": {
+      "background": "#FFFFFF",
+      "text_color": "#E2201F",
+      "border_radius_px": "6",
+      "border": "1px solid #E2201F",
+      "shadow": "none",
+      "source": "json_components_button_secondary",
+      "notes": "Inverse styling — white background with red text and border for secondary actions"
+    },
+    "usage_in_assets": "Primary CTA styling (red pill-button) translates to bold call-to-action badges and tags in infographics. Secondary button styling (white with red border) becomes outline-style labels or category markers."
+  },
+  "iconography": {
+    "style": "not_found_in_source",
+    "stroke_weight": "not_found_in_source",
+    "implementation": "not_found_in_source",
+    "closest_public_library": "not_found_in_source",
+    "colour_usage": "not_found_in_source",
+    "size_convention_px": "not_found_in_source"
+  },
+  "illustration_style": {
+    "present": false,
+    "type": "none",
+    "colour_treatment": "none",
+    "line_quality": "none",
+    "notes": "Product photography only — no illustrations observed"
+  },
+  "photography_and_imagery": {
+    "present": true,
+    "style": "product-on-white",
+    "treatment": "natural/unfiltered",
+    "overlay_pattern": "none",
+    "subject_framing": "centered-product",
+    "human_presence": "no-humans",
+    "css_filters": "none"
+  },
+  "data_visualisation": {
+    "observed_in_source": false,
+    "chart_aesthetic": "Derived from brand patterns: clean axis lines in #606A72, white background, red accent for key data points or callouts",
+    "colour_sequence": [
+      "#E21F1E",
+      "#959EA9",
+      "#606A72",
+      "#008000"
+    ],
+    "stat_callout_format": "Large bold number (36–44px, Helvetica Neue 700, #E21F1E) above smaller label (16px, Arial 400, #000000)",
+    "progress_indicators": "Red fill (#E21F1E) on light gray track (#959EA9 at 30% opacity) — simple linear bars",
+    "label_placement": "Below data point or along axis, 12–14px Arial 400, #606A72",
+    "gridline_style": "1px solid #959EA9 at 50% opacity"
+  },
+  "brand_marks": {
+    "logo_type": "combination",
+    "logo_url": "https://store-media.mpowerpromo.com/65e7a9eb2db27b3637eb81b2/assets/pi-store-logo-1767731034669.jpg",
+    "logo_placement_convention": "Top-left on web layout — for assets, place in top-left or bottom-right corner at modest scale",
+    "recurring_motifs": [],
+    "favicon_description": "Favicon present at https://store-media.mpowerpromo.com/65e7a9eb2db27b3637eb81b2/assets/favicon-1734715588746.ico — likely contains brand initials or simplified mark"
+  },
+  "brand_guardrails": [
+    {
+      "avoid": "Using green (#008000) as the primary brand colour or dominant accent",
+      "instead": "Red (#E21F1E) is the actual brand signature — use it for all primary CTAs, headings, and key UI elements"
+    },
+    {
+      "avoid": "Heavy shadows, gradients, or decorative textures",
+      "instead": "Maintain flat, clean styling with no shadows (shadow: none) and solid colour blocks"
+    },
+    {
+      "avoid": "Ornate or display typefaces",
+      "instead": "Stick to system font stack (Helvetica Neue for headings, Arial/Roboto for body) for maximum readability and performance"
+    },
+    {
+      "avoid": "Low-contrast text on light backgrounds (e.g. #959EA9 body text on white)",
+      "instead": "Use #000000 for primary body text; reserve gray tones for secondary labels only"
+    }
+  ],
+  "asset_templates": [
+    {
+      "asset_type": "Blog Cover 16:9",
+      "dimensions": "1200×675px",
+      "structure": "Full-bleed white background, hero product image or branded graphic centered or offset-right, title text left-aligned in top third, small logo bottom-right corner",
+      "background": "solid #FFFFFF",
+      "typography_usage": "Title: Helvetica Neue 700, 40–48px, #E21F1E. Subhead: Arial 400, 18px, #000000",
+      "accent_elements": "Red horizontal rule (2px solid #E21F1E) above or below title, optional product image shadow (subtle drop shadow if needed for depth)",
+      "colour_usage": "White background (#FFFFFF), red title and rule (#E21F1E), black body text (#000000), optional gray accent (#959EA9) for metadata"
+    },
+    {
+      "asset_type": "Infographic Vertical",
+      "dimensions": "800×2000px (scrollable)",
+      "structure": "White canvas, header section (brand + title), 3–5 data sections separated by thin gray rules, stat callouts with red numbers, small product images as visual anchors",
+      "background": "solid #FFFFFF",
+      "typography_usage": "Section headers: Helvetica Neue 700, 32px, #E21F1E. Stat numbers: Helvetica Neue 700, 40px, #E21F1E. Body: Arial 400, 16px, #000000. Labels: Arial 400, 14px, #606A72",
+      "accent_elements": "1px solid #959EA9 section dividers, red stat callout boxes (red number + black label), product thumbnail images at 150×150px with 4px border-radius",
+      "colour_usage": "White background, red for all numbers and headers (#E21F1E), black for body text, gray for dividers and labels"
+    },
+    {
+      "asset_type": "Social Square 1:1",
+      "dimensions": "1080×1080px",
+      "structure": "Centered product image or bold text lockup, white background, red CTA badge bottom-center, small logo top-left or bottom-right",
+      "background": "solid #FFFFFF",
+      "typography_usage": "Main message: Helvetica Neue 700, 36–44px, #E21F1E. CTA text: Arial 700, 18px, #FFFFFF on red pill-button badge",
+      "accent_elements": "Red pill-button badge (16px border-radius, #E21F1E background, white text) containing CTA, product image at 60% canvas width centered",
+      "colour_usage": "White background, red text and CTA badge, black secondary text if needed"
+    },
+    {
+      "asset_type": "Email Header",
+      "dimensions": "600×200px",
+      "structure": "Logo left, headline centered or right-aligned, thin red horizontal rule at bottom edge",
+      "background": "solid #FFFFFF",
+      "typography_usage": "Headline: Helvetica Neue 700, 28–32px, #E21F1E. Subhead: Arial 400, 16px, #000000",
+      "accent_elements": "2px solid #E21F1E horizontal rule at bottom, logo at ~80px height",
+      "colour_usage": "White background, red headline and rule, black subhead"
+    }
+  ],
+  "generation_suffixes": {
+    "core": "Catalog-style promotional product layout. Clean white background (#FFFFFF). Bold red accent (#E21F1E) for CTAs, headings, and key UI elements — this is the brand signature colour, not green. Flat styling with no shadows or gradients. System font aesthetic (Helvetica Neue for headings, Arial for body) — crisp, readable, no-frills corporate standard. Modest spacing and functional density optimized for product browsing. Gray tones (#959EA9, #606A72) for borders, secondary text, and subtle UI structure. Rounded pill-buttons (16px border-radius) for primary actions, subtle rounding (4–6px) elsewhere. Professional, accessible, straightforward retail tone.",
+    "infographic": "Vertical multi-section data layout on pure white (#FFFFFF). Red stat callouts (#E21F1E) — large bold numbers (40px, Helvetica Neue 700) above smaller black labels. 1px solid #959EA9 horizontal rules between sections at 50% opacity. Body text 16px Arial 400 in black (#000000) for maximum readability. Section headers 32px Helvetica Neue 700 in red. Product thumbnail images (150×150px, 4px border-radius) as visual anchors. Clean axis lines and gridlines in #959EA9 if charts appear. Spacing rhythm: 40px between sections, 24px internal padding. No shadows, no gradients — pure catalog clarity.",
+    "cover_image": "Bold headline typography (40–48px Helvetica Neue 700, red #E21F1E) on clean white background. Title positioned in top third, left-aligned or centered based on composition. 2px solid red horizontal rule above or below title for visual weight. Small logo bottom-right corner at modest scale (80–100px height). Product image or branded graphic centered or offset-right at 50–60% canvas width. Optional subhead in 18px Arial 400 black below title. Flat, airy, professional — no texture, no shadow.",
+    "social_square": "Centered bold lockup optimized for 1:1 format. White background (#FFFFFF), red headline or product name (36–44px Helvetica Neue 700, #E21F1E). Red pill-button CTA badge (16px border-radius, #E21F1E background, white text 18px Arial 700) positioned bottom-center. Product image at 60% canvas width, centered vertically. Small logo top-left or bottom-right (60–80px height). High contrast, mobile-friendly, instantly scannable.",
+    "midjourney_modifier": "--style raw --ar 16:9 flat product photography catalog aesthetic clean white background professional e-commerce lighting",
+    "dalle_modifier": "Professional catalog product shot on pure white seamless background. Clean, well-lit, corporate e-commerce aesthetic. Red branding accents. No shadows, no texture, flat styling. Helvetica typography. Straightforward retail presentation.",
+    "ideogram_modifier": "Bold red (#E21F1E) headline on white. Helvetica Neue 700. Flat catalog style. CTA pill-button 16px radius. Clean product-focused layout."
+  }
+}
+</output_json>`,
 };
 
 const CLIENT_POWELL_SYSTEMS_INC: ClientSample = {
@@ -4697,6 +5913,330 @@ const CLIENT_POWELL_SYSTEMS_INC: ClientSample = {
     `Corrugated Steel Containers Sustainability: A Smarter Long-Term Choice`,
     `Why Are Corrugated Steel Sheets Ideal for Industrial Containers?`,
   ],
+  graphicTokenJson: `<output_json>
+{
+  "brand": {
+    "name": "Powell Systems",
+    "website": "www.powellsystems.com",
+    "asset_types": [
+      "Product catalog covers",
+      "Industrial infographics",
+      "Technical specification sheets",
+      "Trade show banners",
+      "Social media product highlights"
+    ],
+    "personality_keywords": [
+      "industrial-reliable",
+      "professional-technical",
+      "heritage-proven",
+      "engineering-precision",
+      "trust-established",
+      "no-nonsense-functional"
+    ],
+    "visual_summary": "Powell Systems presents a traditional industrial B2B aesthetic rooted in engineering heritage and manufacturing credibility. The visual language emphasises product photography over abstraction, with a restrained colour palette anchored by #0180FF blue for trust and #FF7700 orange for industrial visibility. Typography is utilitarian and legible, using Proxima Nova for headings and Lato/Helvetica Neue for body content, reflecting 100 years of material handling expertise through clean, functional design patterns."
+  },
+  "extraction_note": "Complete extraction with high confidence. HTML source contained minimal inline styling — most design implemented via Squarespace CSS modules not visible in cleaned HTML. Branding JSON provided reliable colour palette (all colours validated via logo and product imagery references), typography stack, and component structure. Primary blue #0180FF and secondary orange #FF7700 validated against logo file reference. Font families Proxima Nova and Lato confirmed via JSON fontFamilies. No obfuscated classes requiring special handling. Color scheme verified as light via white #FFFFFF background. No gradients found in source. Button components absent from both sources — marked as not_found_in_source. Layout density assessed as moderate based on product grid structure and generous section spacing observed in markdown.",
+  "colours": {
+    "palette": [
+      {
+        "role": "primary",
+        "name": "Industrial Blue",
+        "hex": "#0180FF",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary brand colour — use for section headers, CTA emphasis, technical callout backgrounds, and trust indicators in infographics"
+      },
+      {
+        "role": "secondary",
+        "name": "Safety Orange",
+        "hex": "#FF7700",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Secondary accent — use sparingly for urgent callouts, warning indicators, price highlights, and high-visibility data points"
+      },
+      {
+        "role": "accent",
+        "name": "Steel Gray",
+        "hex": "#5B6576",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Neutral accent for body text, subheadings, borders, divider rules, and muted labels — reflects industrial steel material"
+      },
+      {
+        "role": "background_light",
+        "name": "Clean White",
+        "hex": "#FFFFFF",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary background for all asset types — maximises product photography legibility and technical specification clarity"
+      },
+      {
+        "role": "body_text",
+        "name": "Steel Gray Text",
+        "hex": "#5B6576",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "All body copy, captions, technical descriptions, and secondary information — provides softer contrast than pure black for extended reading"
+      }
+    ],
+    "proportion_rule": "75% white (#FFFFFF) as dominant clean canvas, 15% steel gray (#5B6576) for text and structure, 8% industrial blue (#0180FF) for headers and CTAs, 2% safety orange (#FF7700) for urgent accents only"
+  },
+  "gradients": [],
+  "typography": {
+    "fonts": [
+      {
+        "role": "heading",
+        "family": "Proxima Nova",
+        "source": "json_fonts",
+        "google_font_fallback": "Montserrat",
+        "style_notes": "Clean geometric sans-serif — used for all section headers, product names, and stat callouts"
+      },
+      {
+        "role": "body",
+        "family": "Lato",
+        "source": "json_fonts",
+        "google_font_fallback": "Lato",
+        "style_notes": "Humanist sans-serif with excellent readability at small sizes — primary body text font"
+      },
+      {
+        "role": "body",
+        "family": "Helvetica Neue",
+        "source": "json_fonts",
+        "google_font_fallback": "Roboto",
+        "style_notes": "System fallback for body content — part of the font stack for cross-platform consistency"
+      },
+      {
+        "role": "body",
+        "family": "Open Sans",
+        "source": "json_fonts",
+        "google_font_fallback": "Open Sans",
+        "style_notes": "Paragraph text fallback — provides consistent x-height and legibility"
+      }
+    ],
+    "hierarchy": {
+      "cover_title": {
+        "font_role": "heading",
+        "weight": "600",
+        "size_range_px": "48–64",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "section_header": {
+        "font_role": "heading",
+        "weight": "600",
+        "size_range_px": "30–36",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "stat_callout": {
+        "font_role": "heading",
+        "weight": "700",
+        "size_range_px": "42–54",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "body_label": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "16–20",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "caption_source": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "14–16",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      }
+    }
+  },
+  "layout": {
+    "content_density": "moderate",
+    "whitespace_ratio": "medium (30-35% canvas breathing room — product-focused with generous section separation)",
+    "standard_flow": "hero banner → product grid (2-3 columns) → trust statement → custom solution CTA → company history footer"
+  },
+  "design_patterns": {
+    "shape_language": {
+      "corner_radius_px": "8",
+      "dominant_shapes": [
+        "slightly-rounded-rectangle",
+        "product-card-with-rounded-corners",
+        "rectangular-containers-reflecting-physical-products"
+      ],
+      "overall_feel": "slightly-rounded — industrial but approachable, reflecting modern manufacturing aesthetic"
+    },
+    "backgrounds": {
+      "light_variant": "Pure white #FFFFFF — dominant across all sections for maximum product photo clarity",
+      "dark_variant": "not_found_in_source",
+      "accent_variant": "White with subtle #0180FF tint at 5% opacity for section highlights or feature callouts"
+    },
+    "texture_and_pattern": {
+      "used": false,
+      "type": "none",
+      "intensity": "none",
+      "css_implementation": null
+    },
+    "shadows": {
+      "style": "soft-subtle",
+      "css_value": "not_found_in_source"
+    },
+    "borders_and_rules": {
+      "used": true,
+      "css_value": "1px solid #5B6576",
+      "application": "Product card outlines, section dividers, table borders in specification sheets"
+    },
+    "decorative_elements": [
+      "Five-star rating icons (★★★★★) above product titles — trust indicators",
+      "Product category labels in small caps above headings",
+      "Horizontal divider rules in steel gray #5B6576 between major sections",
+      "Clean rectangular product photography with consistent white or neutral backgrounds"
+    ]
+  },
+  "cta_and_buttons": {
+    "primary": {
+      "background": "not_found_in_source",
+      "text_color": "not_found_in_source",
+      "border_radius_px": "8",
+      "padding": "not_found_in_source",
+      "font_weight": "not_found_in_source",
+      "font_size_px": "not_found_in_source",
+      "text_transform": "none",
+      "border": "not_found_in_source",
+      "shadow": "not_found_in_source",
+      "source": "json_components"
+    },
+    "secondary": {
+      "background": "not_found_in_source",
+      "text_color": "not_found_in_source",
+      "border_radius_px": "8",
+      "border": "not_found_in_source",
+      "shadow": "not_found_in_source",
+      "source": "json_components",
+      "notes": "Button styling not explicitly defined in either source — only border-radius extracted from spacing system"
+    },
+    "usage_in_assets": "Apply #0180FF blue background with white text for primary CTAs. Use 8px border-radius for consistency. Text links styled in #5B6576 steel gray with underline on hover. CTAs should use Proxima Nova at weight 600 for authority and clarity."
+  },
+  "iconography": {
+    "style": "minimal — five-star rating glyphs only, no comprehensive icon system observed",
+    "stroke_weight": "N/A",
+    "implementation": "Unicode star characters (★) — no SVG icons or icon font detected in source",
+    "closest_public_library": "none — recommend Lucide or Phosphor Icons outline style for technical/industrial applications",
+    "colour_usage": "Stars rendered in inherited text color (#5B6576 steel gray)",
+    "size_convention_px": "Inline with text — approximately 16-18px based on body font size"
+  },
+  "illustration_style": {
+    "present": false,
+    "type": "none",
+    "colour_treatment": "none",
+    "line_quality": "none",
+    "notes": "Brand relies entirely on product photography — no illustrations, diagrams, or vector graphics observed. Industrial B2B approach prioritises real-world product imagery over stylised illustration."
+  },
+  "photography_and_imagery": {
+    "present": true,
+    "style": "product-on-white — industrial equipment and steel containers photographed on clean neutral backgrounds",
+    "treatment": "natural-unfiltered — no colour grading, overlays, or artistic filters applied",
+    "overlay_pattern": "none",
+    "subject_framing": "centered-product — items shot straight-on or at slight angle to show dimensionality and construction detail",
+    "human_presence": "no-humans — focus is entirely on manufactured products and machinery",
+    "css_filters": "none"
+  },
+  "data_visualisation": {
+    "observed_in_source": false,
+    "chart_aesthetic": "Technical and precise — recommend clean grid structure with minimal ornamentation. Axes in #5B6576 steel gray, gridlines at 1px dashed #5B6576 at 30% opacity.",
+    "colour_sequence": [
+      "#0180FF",
+      "#FF7700",
+      "#5B6576"
+    ],
+    "stat_callout_format": "Large Proxima Nova numerals at 700 weight, 48-54px, in #0180FF blue. Label beneath in Lato 16px regular, #5B6576 gray. Optional unit suffix in smaller 14px gray.",
+    "progress_indicators": "Horizontal bars with 8px border-radius, #0180FF fill on white background, #5B6576 border at 1px. Percentage label overlaid in white or positioned to the right.",
+    "label_placement": "Below data points for clarity — avoid overlapping elements",
+    "gridline_style": "1px dashed #5B6576 at 30% opacity — subtle structure without dominating chart content"
+  },
+  "brand_marks": {
+    "logo_type": "combination",
+    "logo_url": "http://images.squarespace-cdn.com/content/v1/5df3bea2a9f7b746fbb4238d/1576799001023-ACJQU5ICMMK1T0DQIK1O/PSI-Logo.jpg",
+    "logo_placement_convention": "Top-left on covers and technical documents, centered on square social assets, small footer placement on infographics",
+    "recurring_motifs": [
+      "Five-star rating pattern as trust signature",
+      "Horizontal steel gray divider rules",
+      "Clean rectangular product card frames with 8px corner radius",
+      "Century-mark heritage callout: '100 years of material handling solutions'"
+    ],
+    "favicon_description": "Simple PSI lettermark or Powell Systems icon at 32x32px — exact design not visible in markdown but referenced at https://images.squarespace-cdn.com/content/v1/5df3bea2a9f7b746fbb4238d/1576294426687-GBHLJF2YFNFGDU545947/favicon.ico"
+  },
+  "brand_guardrails": [
+    {
+      "avoid": "Gradient backgrounds, neon colours, playful illustrations, or consumer-facing lifestyle photography",
+      "instead": "Use solid #FFFFFF white backgrounds, the extracted industrial palette (#0180FF, #FF7700, #5B6576), and product-focused photography on neutral backgrounds"
+    },
+    {
+      "avoid": "Script fonts, decorative typefaces, or excessive typographic variety",
+      "instead": "Use only Proxima Nova for headings and Lato/Helvetica Neue for body — maintain industrial legibility and professional authority"
+    },
+    {
+      "avoid": "Overlapping text on busy photography, low-contrast colour pairings, or excessive ornamentation",
+      "instead": "Ensure all text appears on clean white or subtly tinted backgrounds with sufficient contrast. Use #5B6576 steel gray for body copy, #0180FF for headers."
+    },
+    {
+      "avoid": "Soft pastel colours, rounded blob shapes, or consumer tech aesthetics",
+      "instead": "Maintain the sharp, functional industrial aesthetic with 8px corner radius maximum, steel gray structural elements, and engineering-grade precision in layout"
+    },
+    {
+      "avoid": "Using safety orange #FF7700 as a dominant colour or in large areas",
+      "instead": "Reserve orange strictly for urgent callouts, warning indicators, or small accent elements — never more than 2-5% of canvas area"
+    }
+  ],
+  "asset_templates": [
+    {
+      "asset_type": "Product Catalog Cover 8.5×11",
+      "dimensions": "2550×3300px (300 DPI print)",
+      "structure": "Top 20% white header with logo left-aligned. Hero product photo centered, occupying 50% of canvas. Bottom 30% contains title in Proxima Nova 600 weight 54px, subtitle in Lato 20px, and category label above title in 14px uppercase Lato. Footer stripe in #0180FF blue at 8% canvas height with white reversed text.",
+      "background": "Clean white #FFFFFF across entire canvas — product photo should have neutral background or subtle #0180FF tint at 3% opacity behind subject",
+      "typography_usage": "Proxima Nova 600 weight 54px for main title in #0180FF, Lato 20px regular in #5B6576 for subtitle and descriptive text, Lato 14px uppercase in #5B6576 for category label",
+      "accent_elements": "Five-star rating below product image, horizontal 1px #5B6576 divider rule above title block, Powell Systems logo at 120px width top-left",
+      "colour_usage": "#FFFFFF dominates (75%), #5B6576 for text and structural elements (18%), #0180FF for title and footer stripe (7%)"
+    },
+    {
+      "asset_type": "Technical Infographic Vertical",
+      "dimensions": "1200×1800px",
+      "structure": "Header band 15% canvas height with title and logo. Body divided into 3-4 horizontal sections separated by 1px #5B6576 rules. Each section contains stat callout (left 40% width) and explanatory text (right 60% width). Footer 10% with source citation.",
+      "background": "White #FFFFFF primary canvas. Alternating subtle #0180FF tint at 3% opacity on every other section for visual rhythm.",
+      "typography_usage": "Proxima Nova 700 weight 48px for stat numerals in #0180FF. Lato 16px regular in #5B6576 for labels and body text. Section headers in Proxima Nova 600 weight 30px in #5B6576.",
+      "accent_elements": "Horizontal divider rules in #5B6576 between sections, small #FF7700 triangle or bar accent next to critical stats, century-mark heritage note '100 years proven' in footer in 14px Lato italic",
+      "colour_usage": "#FFFFFF background 75%, #5B6576 text and rules 18%, #0180FF stat highlights 5%, #FF7700 urgent accents 2%"
+    },
+    {
+      "asset_type": "Social Media Product Highlight 1080×1080",
+      "dimensions": "1080×1080px",
+      "structure": "Centered product photo occupies 60% of canvas. Top 15% white header with logo centered. Bottom 25% contains product name, category label, and star rating. Background is solid white.",
+      "background": "Solid white #FFFFFF — product should be on clean background or subtle drop shadow only",
+      "typography_usage": "Proxima Nova 600 weight 36px for product name in #0180FF centered. Lato 18px in #5B6576 for category label above name. Star rating (★★★★★) in #5B6576 below name at 20px.",
+      "accent_elements": "Powell Systems logo centered at top at 100px width, optional subtle 1px #5B6576 border around entire canvas for Instagram feed cohesion",
+      "colour_usage": "#FFFFFF dominant 80%, #5B6576 text and structure 15%, #0180FF product name 5%"
+    },
+    {
+      "asset_type": "Trade Show Banner 3×8 feet",
+      "dimensions": "3600×9600px (300 DPI print)",
+      "structure": "Vertical format. Top 12% white header with logo. Hero product photo at 35% canvas height. Mid-section contains three stacked benefit callouts (each 15% height) with stat + short text. Bottom 15% CTA section with contact info on #0180FF blue background.",
+      "background": "White #FFFFFF for top 85% of banner. Bottom 15% solid #0180FF blue stripe with white reversed text.",
+      "typography_usage": "Proxima Nova 700 weight 72px for stat numerals in #0180FF. Proxima Nova 600 weight 42px for benefit headlines in #5B6576. Lato 24px for supporting text in #5B6576. White Proxima Nova 600 weight 36px for CTA text on blue footer.",
+      "accent_elements": "Horizontal 2px #5B6576 rules between benefit sections, '100 years of material handling solutions' tagline in Lato 20px italic in #5B6576, phone number and website in white on blue footer",
+      "colour_usage": "#FFFFFF dominant 75%, #5B6576 text and structure 10%, #0180FF footer and stat highlights 15%"
+    }
+  ],
+  "generation_suffixes": {
+    "core": "Industrial B2B design aesthetic. Clean white #FFFFFF background dominates 75% of canvas. Typography in Proxima Nova for all headings (600-700 weight) and Lato for body text in steel gray #5B6576. Primary brand colour #0180FF industrial blue used sparingly for headers, CTAs, and trust indicators — never more than 10% of composition. Safety orange #FF7700 reserved strictly for urgent callouts under 3% coverage. Subtle 8px corner radius on rectangular frames. Product photography style: centered subject on neutral background, natural lighting, no filters. Generous whitespace with moderate content density. Horizontal 1px #5B6576 divider rules separate major sections. Professional engineering tone — no playful elements. Five-star rating pattern and '100 years proven' heritage mark reinforce credibility.",
+    "infographic": "Vertical technical infographic layout with alternating white #FFFFFF and subtle #0180FF tinted (3% opacity) horizontal sections separated by 1px solid #5B6576 divider rules. Large stat callouts in Proxima Nova 700 weight 48-54px numerals coloured #0180FF blue, with Lato 16px labels in #5B6576 gray beneath. Data sequence uses #0180FF primary, #FF7700 secondary (urgent only), #5B6576 tertiary. Grid structure: stat left 40%, explanatory text right 60%. Bar charts with 8px rounded ends, #0180FF fill, 1px #5B6576 border. Spacing rhythm: 60px between sections, 24px internal padding. Source citation footer in Lato 14px #5B6576.",
+    "cover_image": "Bold single-image hero layout. Product photography centered, occupying 50-60% of canvas on clean white #FFFFFF background. Title in Proxima Nova 600 weight 54-64px, colour #0180FF industrial blue, positioned in lower third with 48px breathing room from photo edge. Subtitle in Lato 20px #5B6576 steel gray below title with 16px gap. Category label in Lato 14px uppercase #5B6576 above title. Powell Systems logo top-left at 120px width. Optional footer stripe at 8% canvas height in solid #0180FF with white reversed text for edition number or date. No gradients, no overlays — maximum clarity.",
+    "social_square": "1:1 format adaptation: centered product on white #FFFFFF background. Logo centered top at 100px width. Product occupies middle 60% with subtle drop shadow only (no background tint). Product name in Proxima Nova 600 weight 36px #0180FF centered below photo. Category label in Lato 18px #5B6576 above name. Five-star rating (★★★★★) in #5B6576 below name. Optional 1px #5B6576 border around entire frame for feed cohesion. Minimise text — let product image dominate. Instagram-friendly: no critical info in outer 10% to avoid circular profile crop.",
+    "midjourney_modifier": "--style raw --ar 16:9 clean product photography, industrial B2B catalog aesthetic, centered subject on white seamless background, studio lighting flat and even, no gradients, minimal shadows, engineering precision, technical clarity, --q 2 --s 50",
+    "dalle_modifier": "Professional industrial product photography for B2B catalog. Subject centered on pure white seamless background with soft even studio lighting. Clean technical aesthetic with no artistic effects, gradients, or colour grading. Shoot product straight-on or at 15-degree angle to show dimensionality. Sharp focus throughout. Style: precision engineering documentation, manufacturing catalog, ISO-standard technical photography.",
+    "ideogram_modifier": "Clean industrial B2B layout. White background. Proxima Nova bold headings in #0180FF blue. Lato body text in #5B6576 gray. Product photography centered. 8px rounded corners. Professional technical aesthetic. No gradients."
+  }
+}
+</output_json>`,
 };
 
 const CLIENT_ROSSINI_EQUIPMENT_CORP: ClientSample = {
@@ -5924,6 +7464,383 @@ const CLIENT_ROSSINI_EQUIPMENT_CORP: ClientSample = {
     `What to Know About the Hidden Costs of Access Roads`,
     `What Does Septic Tank Removal Cost? Complete Pricing Guide`,
   ],
+  graphicTokenJson: `<output_json>
+{
+  "brand": {
+    "name": "Rossini Equipment Corp",
+    "website": "https://rossiniequipmentcorp.com",
+    "asset_types": [
+      "blog covers",
+      "service infographics",
+      "equipment showcase graphics",
+      "social media posts",
+      "email headers",
+      "quote request CTAs"
+    ],
+    "personality_keywords": [
+      "industrial-dependable",
+      "high-contrast-bold",
+      "utilitarian-functional",
+      "local-trusted",
+      "heritage-grounded",
+      "worksite-ready"
+    ],
+    "visual_summary": "Rossini Equipment Corp uses a high-visibility yellow (#FFCC00) as its primary brand signature against neutral grays (#F2F2F2, #6C757D) and black (#000000) text, creating a bold industrial aesthetic rooted in construction and heavy equipment rental. The typography system relies on web-safe sans-serif families (Helvetica, Arial, Verdana) with large heading sizes (41.6px h1, 32px h2) for immediate impact and readability in field conditions."
+  },
+  "extraction_note": "Complete extraction from both sources with minor supplementation. HTML source was markdown-converted with no embedded styles or inline CSS — all visual values extracted from branding_json. Primary CTA yellow (#FFCC00) verified as brand signature through button styling and accent role. ColorScheme confirmed as 'light' via background #F2F2F2. Font families are web-safe system stacks with no Google Fonts link found. No gradients, SVG elements, or custom CSS properties present in markdown source. All hex values, button styling, and typography metrics sourced from json_components and json_colors. Font sizes and spacing values trusted from branding_json typography object as HTML contained no conflicting evidence.",
+  "colours": {
+    "palette": [
+      {
+        "role": "primary",
+        "name": "Construction Yellow",
+        "hex": "#FFCC00",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary brand signature — use on CTAs, section accents, equipment badges, quote buttons, and brand marks. High-visibility yellow anchors all branded assets."
+      },
+      {
+        "role": "accent",
+        "name": "Equipment Yellow",
+        "hex": "#FFCC00",
+        "rgba": null,
+        "source": "json_components_button_primary",
+        "usage": "Identical to primary — reinforces yellow as the dominant brand colour across buttons and callouts."
+      },
+      {
+        "role": "secondary",
+        "name": "Service Blue",
+        "hex": "#007BFF",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Secondary accent for service callouts, informational badges, and link states. Use sparingly to complement yellow without competing."
+      },
+      {
+        "role": "cta_fill",
+        "name": "Button Yellow",
+        "hex": "#FFCC00",
+        "rgba": null,
+        "source": "json_components_button_primary",
+        "usage": "Fill colour for primary CTAs — 'Get A Free Quote', 'Call Us Now', rental inquiry buttons."
+      },
+      {
+        "role": "cta_text",
+        "name": "Button Text Black",
+        "hex": "#000000",
+        "rgba": null,
+        "source": "json_components_button_primary",
+        "usage": "Text colour on yellow CTA buttons for maximum contrast and readability."
+      },
+      {
+        "role": "border",
+        "name": "Button Border Gold",
+        "hex": "#C29B00",
+        "rgba": null,
+        "source": "json_components_button_primary",
+        "usage": "Subtle darker yellow border on primary buttons — adds definition without heavy contrast."
+      },
+      {
+        "role": "background_light",
+        "name": "Neutral Gray",
+        "hex": "#F2F2F2",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary background for sections, cards, and canvas — light neutral that keeps yellow vibrant."
+      },
+      {
+        "role": "surface",
+        "name": "Secondary Surface",
+        "hex": "#F0F4F8",
+        "rgba": null,
+        "source": "json_components_button_secondary",
+        "usage": "Secondary button background and alternate surface treatment — cool gray with slight blue tint."
+      },
+      {
+        "role": "body_text",
+        "name": "Text Black",
+        "hex": "#000000",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary body text and headings — strong black for construction-grade legibility."
+      },
+      {
+        "role": "muted_text",
+        "name": "Muted Gray",
+        "hex": "#6C757D",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Captions, subheadings, supporting text, and link color — subdued gray for hierarchy."
+      },
+      {
+        "role": "heading_text",
+        "name": "Pure White",
+        "hex": "#FEFEFE",
+        "rgba": null,
+        "source": "json_components_button_secondary",
+        "usage": "Text on dark overlays or secondary button text — near-white for contrast."
+      }
+    ],
+    "proportion_rule": "60% neutral backgrounds (#F2F2F2, #F0F4F8, #FFFFFF), 30% black text (#000000, #6C757D), 10% yellow accent (#FFCC00) on CTAs, badges, and brand marks"
+  },
+  "gradients": [],
+  "typography": {
+    "fonts": [
+      {
+        "role": "heading",
+        "family": "Helvetica",
+        "source": "json_fonts",
+        "google_font_fallback": "Roboto",
+        "style_notes": "Large display sizes (41.6px h1, 32px h2) for immediate worksite visibility. No letter-spacing or text-transform specified."
+      },
+      {
+        "role": "body",
+        "family": "Arial",
+        "source": "json_fonts",
+        "google_font_fallback": "Open Sans",
+        "style_notes": "Fallback body font at 19.2px — web-safe sans-serif for cross-platform consistency."
+      },
+      {
+        "role": "body",
+        "family": "Verdana",
+        "source": "json_fonts",
+        "google_font_fallback": "PT Sans",
+        "style_notes": "Secondary fallback in font stack — slightly wider proportions than Arial."
+      },
+      {
+        "role": "ui",
+        "family": "Font Awesome 5 Free",
+        "source": "json_fonts",
+        "google_font_fallback": "Material Symbols Outlined",
+        "style_notes": "Icon font for UI elements — likely phone icons, arrows, service symbols."
+      }
+    ],
+    "hierarchy": {
+      "cover_title": {
+        "font_role": "heading",
+        "weight": "700",
+        "size_range_px": "42–56",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "section_header": {
+        "font_role": "heading",
+        "weight": "700",
+        "size_range_px": "32–38",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "stat_callout": {
+        "font_role": "heading",
+        "weight": "700",
+        "size_range_px": "48–64",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "body_label": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "18–20",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "caption_source": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "14–16",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      }
+    }
+  },
+  "layout": {
+    "content_density": "moderate",
+    "whitespace_ratio": "medium (30-35% whitespace — balanced service presentation with ample breathing room around equipment images and service sections)",
+    "standard_flow": "hero with CTA → value proposition section → service grid (4-up) → equipment category showcase (3-up) → founder quote testimonial → final CTA"
+  },
+  "design_patterns": {
+    "shape_language": {
+      "corner_radius_px": "3 (buttons) | 4 (base unit)",
+      "dominant_shapes": [
+        "slightly-rounded rectangles",
+        "sharp-edged cards",
+        "minimal border radius buttons"
+      ],
+      "overall_feel": "slightly-rounded with industrial preference for near-sharp corners — functional over decorative"
+    },
+    "backgrounds": {
+      "light_variant": "Solid #F2F2F2 neutral gray as primary canvas",
+      "dark_variant": "not_found_in_source",
+      "accent_variant": "Yellow #FFCC00 used as button fill and section accents, not as full-section background"
+    },
+    "texture_and_pattern": {
+      "used": false,
+      "type": "none",
+      "intensity": "none",
+      "css_implementation": null
+    },
+    "shadows": {
+      "style": "soft-subtle",
+      "css_value": "rgba(0, 0, 0, 0.2) 5px 5px 20px 0px"
+    },
+    "borders_and_rules": {
+      "used": true,
+      "css_value": "1px solid #C29B00 (button borders)",
+      "application": "Button borders use darker yellow (#C29B00) to define CTA edges without harsh contrast"
+    },
+    "decorative_elements": [
+      "Phone number and email in header with clickable tel: and mailto: links",
+      "Video player embed for equipment showcase",
+      "Font Awesome icons for service categories and UI elements",
+      "Founder photo with testimonial quote for trust-building"
+    ]
+  },
+  "cta_and_buttons": {
+    "primary": {
+      "background": "#FFCC00",
+      "text_color": "#000000",
+      "border_radius_px": "3",
+      "padding": "not_found_in_source",
+      "font_weight": "not_found_in_source",
+      "font_size_px": "not_found_in_source",
+      "text_transform": "none",
+      "border": "1px solid #C29B00",
+      "shadow": "rgba(0, 0, 0, 0.2) 5px 5px 20px 0px",
+      "source": "json_components_button_primary"
+    },
+    "secondary": {
+      "background": "#F0F4F8",
+      "text_color": "#FEFEFE",
+      "border_radius_px": "0",
+      "border": "none",
+      "shadow": "none",
+      "source": "json_components_button_secondary",
+      "notes": "Sharp corners (0px radius) with cool gray background — used for secondary 'Get A Free Quote' variants"
+    },
+    "usage_in_assets": "Primary yellow buttons become bold CTA badges on infographics. Use #FFCC00 fill with #000000 text for 'Request Quote', 'View Equipment', 'Contact Us' labels. Secondary gray buttons translate to muted informational tags or alternate CTAs."
+  },
+  "iconography": {
+    "style": "filled/solid",
+    "stroke_weight": "N/A",
+    "implementation": "icon font (Font Awesome 5 Free)",
+    "closest_public_library": "FontAwesome 6 Free",
+    "colour_usage": "Icons likely use #000000 black or #6C757D muted gray to match text hierarchy — yellow reserved for CTAs only",
+    "size_convention_px": "16–20px inline with text, 24–32px standalone for service categories"
+  },
+  "illustration_style": {
+    "present": false,
+    "type": "photographic — heavy equipment and worksite imagery only",
+    "colour_treatment": "none",
+    "line_quality": "none",
+    "notes": "Brand relies on real equipment photography rather than illustration. All visuals are photographic: excavators, track loaders, job sites, founder photo."
+  },
+  "photography_and_imagery": {
+    "present": true,
+    "style": "product-on-site — heavy equipment in field conditions, worksite environmental shots",
+    "treatment": "natural/unfiltered — realistic equipment photography with no heavy colour grading",
+    "overlay_pattern": "none",
+    "subject_framing": "wide-environmental for equipment in use, centered-product for inventory showcase",
+    "human_presence": "minimal — founder headshot only, focus on equipment",
+    "css_filters": "none"
+  },
+  "data_visualisation": {
+    "observed_in_source": false,
+    "chart_aesthetic": "Industrial-functional with bold yellow (#FFCC00) accents on key data points. Black (#000000) axis labels and gridlines in muted gray (#6C757D). No decorative flourishes — clarity over style.",
+    "colour_sequence": [
+      "#FFCC00",
+      "#007BFF",
+      "#6C757D",
+      "#000000"
+    ],
+    "stat_callout_format": "Large bold number (48–64px Helvetica weight 700) in black (#000000) with small label below (18–20px) in muted gray (#6C757D). Yellow underline or accent bar beneath number for emphasis.",
+    "progress_indicators": "Horizontal bars with yellow (#FFCC00) fill on gray (#F2F2F2) track. Sharp corners (3–4px radius). Percentage label in black (#000000) overlaid or adjacent.",
+    "label_placement": "Outside chart area on horizontal bar charts, below columns on vertical charts — prioritise legibility over tight integration",
+    "gridline_style": "1px solid #6C757D at 20% opacity — subtle guides without clutter"
+  },
+  "brand_marks": {
+    "logo_type": "wordmark",
+    "logo_url": "https://rossiniequipmentcorp.com/wp-content/uploads/2025/07/Joseph-Rossini-Logo-Final-600.png",
+    "logo_placement_convention": "Top-left on website header, likely top-left or centered on covers and infographics",
+    "recurring_motifs": [
+      "Phone number (845) 794-1066 as prominent contact element",
+      "Yellow CTA buttons as brand signature touchpoint",
+      "Equipment photography as visual anchor"
+    ],
+    "favicon_description": "Cropped logo mark at 32×32px — likely simplified 'R' or equipment icon in yellow and black"
+  },
+  "brand_guardrails": [
+    {
+      "avoid": "Pastel or muted yellows (#FFD966, #FFF4CC) that reduce visibility",
+      "instead": "Always use the full-saturation brand yellow #FFCC00 for maximum worksite readability and construction-grade impact"
+    },
+    {
+      "avoid": "Decorative script fonts, handwritten styles, or serif typefaces",
+      "instead": "Stick to Helvetica/Arial/Verdana sans-serif stack — industrial clarity is the brand voice"
+    },
+    {
+      "avoid": "Heavily rounded corners (12px+) or pill-shaped buttons",
+      "instead": "Use the documented 3–4px border radius for a slightly-rounded but functional industrial aesthetic"
+    },
+    {
+      "avoid": "Over-using blue #007BFF as a co-equal brand colour",
+      "instead": "Blue is a secondary support colour only — yellow #FFCC00 must dominate as the brand signature"
+    },
+    {
+      "avoid": "Lifestyle photography with people or abstract imagery",
+      "instead": "Use realistic equipment and worksite photography — the machinery is the hero"
+    },
+    {
+      "avoid": "Gradients, textures, or decorative overlays on backgrounds",
+      "instead": "Solid neutral gray #F2F2F2 or white backgrounds — let yellow accents and equipment imagery provide visual interest"
+    }
+  ],
+  "asset_templates": [
+    {
+      "asset_type": "Blog Cover 16:9",
+      "dimensions": "1200×675px",
+      "structure": "Full-width equipment photo background with dark overlay (40% black). Title in top-third, yellow accent bar below title, logo in bottom-left corner.",
+      "background": "Equipment photography (excavator, track loader, job site) with subtle 40% black overlay for text contrast",
+      "typography_usage": "Helvetica Bold 700 at 48–56px for title in white (#FEFEFE). Subtitle at 24px in muted gray (#6C757D).",
+      "accent_elements": "Horizontal yellow bar (#FFCC00) 8px tall beneath title. Logo watermark bottom-left at 25% opacity.",
+      "colour_usage": "Yellow accent bar, white title text, gray subtitle, black overlay on photo. Logo in original yellow/black."
+    },
+    {
+      "asset_type": "Service Infographic Vertical",
+      "dimensions": "800×2000px",
+      "structure": "Header with title and yellow underline, 4–6 service sections stacked vertically with icons, stat callouts in alternating gray (#F2F2F2) and white sections, footer CTA.",
+      "background": "Alternating white and light gray (#F2F2F2) section backgrounds",
+      "typography_usage": "Helvetica Bold 32px for section headers in black. Arial 18px for body text. Stat callouts at 56px Bold.",
+      "accent_elements": "Yellow (#FFCC00) horizontal rules between sections (4px tall). Yellow stat underlines. Yellow CTA button at footer.",
+      "colour_usage": "60% gray/white backgrounds, 30% black text, 10% yellow accents on rules, CTAs, and stat highlights."
+    },
+    {
+      "asset_type": "Social Media Post 1:1",
+      "dimensions": "1080×1080px",
+      "structure": "Centered equipment photo in top 60%, yellow band with headline in middle 25%, CTA or contact info in bottom 15%.",
+      "background": "Light gray (#F2F2F2) as border/frame around photo. Yellow band as middle divider.",
+      "typography_usage": "Helvetica Bold 42px for headline in black on yellow band. Arial 20px for CTA text in white on black footer.",
+      "accent_elements": "Yellow (#FFCC00) horizontal band 200px tall. Phone number in FontAwesome phone icon + text.",
+      "colour_usage": "Yellow band as primary brand signature, black footer for CTA contrast, gray frame for containment."
+    },
+    {
+      "asset_type": "Equipment Showcase Card",
+      "dimensions": "600×400px",
+      "structure": "Product photo top 70%, equipment name and CTA button in bottom 30% white footer.",
+      "background": "White footer with 3px border-radius. Equipment photo fills top without border.",
+      "typography_usage": "Helvetica Bold 24px for equipment name in black. Arial 16px for 'View Details' button text.",
+      "accent_elements": "Yellow button (#FFCC00) with black text and subtle shadow (rgba(0,0,0,0.2) 5px 5px 20px). Gold border (#C29B00).",
+      "colour_usage": "Yellow CTA button as only branded colour element — photo and white background stay neutral."
+    }
+  ],
+  "generation_suffixes": {
+    "core": "Industrial construction aesthetic with high-visibility yellow #FFCC00 accents on neutral gray #F2F2F2 backgrounds. Bold black #000000 sans-serif typography (Helvetica style) sized large (42–56px titles) for worksite readability. Slightly-rounded corners (3–4px radius) with subtle shadows (5px 5px 20px rgba(0,0,0,0.2)). Functional layout with moderate whitespace — professional, dependable, grounded in heavy equipment rental and excavation services. Yellow reserved for CTAs, accent bars, and brand marks only. Muted gray #6C757D for supporting text.",
+    "infographic": "Vertical layout with alternating white and light gray #F2F2F2 section backgrounds. Yellow #FFCC00 horizontal rules (4px) separating service sections. Stat callouts in bold 56px Helvetica with yellow underlines. FontAwesome solid icons at 28px in black #000000. Section headers at 32px bold black. Body text at 18px Arial in black on high-contrast backgrounds. Yellow CTA button at footer with black text and gold #C29B00 border.",
+    "cover_image": "Full-width heavy equipment photography (excavator, track loader, job site) with 40% black overlay for text contrast. Title in white #FEFEFE Helvetica Bold 48–56px positioned in top-third. Yellow #FFCC00 accent bar (8px tall) directly beneath title. Subtitle in muted gray #6C757D at 24px. Logo watermark in bottom-left at 25% opacity. Strong contrast and bold type for immediate impact.",
+    "social_square": "Centered equipment photo in top 60% of canvas with light gray #F2F2F2 border frame (40px). Yellow #FFCC00 horizontal band (200px tall) in middle third with black #000000 headline text at 42px Helvetica Bold. Black footer bar in bottom 15% with white #FEFEFE CTA text at 20px. Phone icon from FontAwesome. High-contrast three-zone layout.",
+    "midjourney_modifier": "professional construction equipment photography, high-contrast industrial lighting, shallow depth of field on machinery, neutral gray studio backdrop, bold yellow accents, --style raw --ar 16:9 --v 6",
+    "dalle_modifier": "A professional construction equipment photograph featuring a yellow excavator or track loader on a neutral gray background, shot with industrial studio lighting to emphasize metal textures and hydraulic details, bold yellow safety accents visible, photographed as if for a rental catalog cover",
+    "ideogram_modifier": "Bold sans-serif headline 'ROSSINI EQUIPMENT CORP' in black Helvetica on yellow #FFCC00 banner, industrial worksite photo background, high-contrast construction rental aesthetic, professional equipment catalog style"
+  }
+}
+</output_json>`,
 };
 
 const CLIENT_SENTINEL_ASSET_MANAGEMENT: ClientSample = {
@@ -6273,6 +8190,290 @@ const CLIENT_SENTINEL_ASSET_MANAGEMENT: ClientSample = {
     `Diversifying Concentrated Portfolios with Custom SMAs: A Guide`,
     `Estate Tax Planning: A Complete Guide`,
   ],
+  graphicTokenJson: `<output_json>
+{
+  "brand": {
+    "name": "Sentinel Asset Management",
+    "website": "https://sentinelassetmanagementllc.com",
+    "asset_types": ["blog covers", "infographics", "social media assets", "seminar promotional graphics", "client education materials"],
+    "personality_keywords": ["refined-traditional", "trustworthy-conservative", "soft-serif-warmth", "understated-professional", "heritage-neutral"],
+    "visual_summary": "A refined financial services brand anchored in deep teal (#04313F) and warm beige (#ECE9E4), using sophisticated serif typography (Halyard Display headings, Arpona body) with generous whitespace. The palette conveys trust and permanence through muted earth tones with subtle blue-grey accents (#788D92), avoiding aggressive colours in favour of a calm, heritage aesthetic suited to retirement and legacy planning."
+  },
+
+  "extraction_note": "Complete extraction with strong alignment between html_source and branding_json. Primary palette (#04313F, #ECE9E4, #788D92) confirmed across both sources. Typography families (Halyard Display, Arpona) resolved via branding_json as HTML uses obfuscated class names. Accent colour #FF0000 appears in branding_json but has zero HTML evidence — demoted to unverified_accent and excluded from generation guidance. No button styling found in either source — all CTA fields marked as not_found_in_source. No gradients present. Layout is minimal with high whitespace ratio, consistent with editorial financial services aesthetic.",
+
+  "colours": {
+    "palette": [
+      {
+        "role": "primary",
+        "name": "Deep Teal",
+        "hex": "#04313F",
+        "rgba": null,
+        "source": "cross_validated",
+        "usage": "Primary brand colour for headlines, section headers, body text, and logo. Dominant text colour across all content. Use for main titles on covers and key data labels in infographics."
+      },
+      {
+        "role": "background_light",
+        "name": "Warm Beige",
+        "hex": "#ECE9E4",
+        "rgba": null,
+        "source": "cross_validated",
+        "usage": "Primary background colour for all surfaces. Creates soft, approachable canvas for content. Use as base layer for covers and infographic backgrounds."
+      },
+      {
+        "role": "secondary",
+        "name": "Slate Grey",
+        "hex": "#788D92",
+        "rgba": null,
+        "source": "cross_validated",
+        "usage": "Secondary text colour for supporting information, captions, labels. Use for muted data points, source citations, and descriptive text in infographics."
+      }
+    ],
+    "proportion_rule": "70% warm beige background (#ECE9E4), 25% deep teal text/accents (#04313F), 5% slate grey supporting elements (#788D92)"
+  },
+
+  "gradients": [],
+
+  "typography": {
+    "fonts": [
+      {
+        "role": "heading",
+        "family": "Halyard Display",
+        "source": "json_fonts",
+        "google_font_fallback": "DM Serif Display",
+        "style_notes": "Used for large hero headlines and section headers. Observed at 80px for h1, 25px for h2. Serif typeface with contemporary proportions, slightly condensed."
+      },
+      {
+        "role": "body",
+        "family": "Arpona",
+        "source": "json_fonts",
+        "google_font_fallback": "Libre Baskerville",
+        "style_notes": "Used for body text and paragraph content. Observed at 25px. Serif with warm, readable proportions suitable for financial services content."
+      }
+    ],
+    "hierarchy": {
+      "cover_title": {
+        "font_role": "heading",
+        "weight": "not_found_in_source",
+        "size_range_px": "72–96",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "section_header": {
+        "font_role": "heading",
+        "weight": "not_found_in_source",
+        "size_range_px": "36–48",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "stat_callout": {
+        "font_role": "heading",
+        "weight": "not_found_in_source",
+        "size_range_px": "48–64",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "body_label": {
+        "font_role": "body",
+        "weight": "not_found_in_source",
+        "size_range_px": "20–28",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "caption_source": {
+        "font_role": "body",
+        "weight": "not_found_in_source",
+        "size_range_px": "16–20",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      }
+    }
+  },
+
+  "layout": {
+    "content_density": "minimal",
+    "whitespace_ratio": "high (45%+ canvas empty, editorial feel with generous breathing room around content blocks)",
+    "standard_flow": "hero statement → statistics bar with large numerals → three-column service/benefit cards with supporting imagery → educational CTA section"
+  },
+
+  "design_patterns": {
+    "shape_language": {
+      "corner_radius_px": "5",
+      "dominant_shapes": ["soft-rectangle", "rectangular-cards", "subtle-rounded-corners"],
+      "overall_feel": "slightly-rounded with restrained geometry — avoids sharp angles but maintains professional composure"
+    },
+    "backgrounds": {
+      "light_variant": "Solid #ECE9E4 warm beige as primary surface throughout site",
+      "dark_variant": "not_found_in_source",
+      "accent_variant": "not_found_in_source"
+    },
+    "texture_and_pattern": {
+      "used": false,
+      "type": "none",
+      "intensity": "none",
+      "css_implementation": null
+    },
+    "shadows": {
+      "style": "none/flat",
+      "css_value": "none"
+    },
+    "borders_and_rules": {
+      "used": false,
+      "css_value": "none",
+      "application": "No visible borders or divider rules observed in source"
+    },
+    "decorative_elements": ["Large rectangular photographic panels with subtle 5px corner radius", "Minimal decorative approach — photography and typography carry the visual weight", "Generous negative space around content blocks creates implicit separation without rules"]
+  },
+
+  "cta_and_buttons": {
+    "primary": {
+      "background": "not_found_in_source",
+      "text_color": "not_found_in_source",
+      "border_radius_px": "5",
+      "padding": "not_found_in_source",
+      "font_weight": "not_found_in_source",
+      "font_size_px": "not_found_in_source",
+      "text_transform": "not_found_in_source",
+      "border": "not_found_in_source",
+      "shadow": "none",
+      "source": "html_inline"
+    },
+    "secondary": {
+      "background": "not_found_in_source",
+      "text_color": "not_found_in_source",
+      "border_radius_px": "5",
+      "border": "not_found_in_source",
+      "shadow": "none",
+      "source": "html_inline",
+      "notes": "CTA links present in HTML ('Start Your Planning', 'Meet Our Team', 'Register Now!') but inline styling not present in source. Border-radius inherited from global spacing token."
+    },
+    "usage_in_assets": "Given lack of button styling evidence, derive CTA treatment from brand palette: likely #04313F background with #ECE9E4 text for primary actions, or reversed for secondary. Apply 5px border-radius for consistency. Use serif typography at moderate weight for CTA labels to maintain brand refinement."
+  },
+
+  "iconography": {
+    "style": "not observed in source",
+    "stroke_weight": "not_found_in_source",
+    "implementation": "not observed in source",
+    "closest_public_library": "none — recommend simple line icons at 1.5–2px stroke weight in #04313F if needed",
+    "colour_usage": "If icons are introduced, use #04313F (primary) for active/important icons, #788D92 for supporting icons",
+    "size_convention_px": "not_found_in_source — recommend 24px inline, 32px standalone for consistency with minimal aesthetic"
+  },
+
+  "illustration_style": {
+    "present": false,
+    "type": "none",
+    "colour_treatment": "none",
+    "line_quality": "none",
+    "notes": "No illustrations present. Brand relies exclusively on photography and typography."
+  },
+
+  "photography_and_imagery": {
+    "present": true,
+    "style": "lifestyle-editorial with abstract architectural detail",
+    "treatment": "natural/unfiltered with warm neutral tones that complement #ECE9E4 background",
+    "overlay_pattern": "none",
+    "subject_framing": "abstract-detail — close crops of architectural elements, hands, materials suggesting stability and craftsmanship",
+    "human_presence": "hands-only — human elements present but faces not shown, maintaining privacy-conscious professional tone",
+    "css_filters": "none"
+  },
+
+  "data_visualisation": {
+    "observed_in_source": true,
+    "chart_aesthetic": "Large numerals (e.g. '5', '100+', '2,000+') displayed as hero statistics with supporting descriptive text below. Clean, minimal presentation with no gridlines or axes. Emphasis on readability and impact rather than decorative chart elements.",
+    "colour_sequence": ["#04313F", "#788D92"],
+    "stat_callout_format": "Large numeral in #04313F using Halyard Display at 48–64px, followed by smaller descriptive label in Arpona at 20–25px in #788D92. Generous whitespace around each stat block.",
+    "progress_indicators": "not observed — if needed, use simple horizontal bars with #04313F fill on #ECE9E4 background, no borders",
+    "label_placement": "Below numeral, left-aligned or center-aligned depending on layout context",
+    "gridline_style": "none — stat-driven infographics should avoid gridlines in favour of clean negative space separators"
+  },
+
+  "brand_marks": {
+    "logo_type": "combination",
+    "logo_url": "https://sentinelassetmanagementllc.com/wp-content/uploads/2025/10/4a06cad629f59bb28992dbdae40c02ce3a518214.png",
+    "logo_placement_convention": "Top-left on web pages, likely centered or top-right on seminar materials and covers",
+    "recurring_motifs": ["Large rectangular photographic panels as visual anchors", "Generous negative space as a design element", "Pairing of large serif numerals with descriptive text for stats"],
+    "favicon_description": "Circular icon with abstract mark on neutral background — likely simplified logomark from main logo"
+  },
+
+  "brand_guardrails": [
+    {
+      "avoid": "Bright, aggressive accent colours (particularly red #FF0000 which appears in branding data but not in actual design)",
+      "instead": "Maintain the refined three-colour palette: #04313F, #ECE9E4, #788D92. Any additional accent should be a muted earth tone or deeper teal variant."
+    },
+    {
+      "avoid": "High-contrast borders, heavy drop shadows, or decorative frames",
+      "instead": "Use generous whitespace and subtle 5px corner radius to define content areas. Let photography and typography create visual hierarchy without ornamental elements."
+    },
+    {
+      "avoid": "Sans-serif or modern geometric typefaces for headlines",
+      "instead": "Always use Halyard Display for headings and Arpona for body text to maintain the warm, trustworthy serif aesthetic. Fallbacks: DM Serif Display and Libre Baskerville."
+    },
+    {
+      "avoid": "Dense, packed layouts with multiple visual elements competing for attention",
+      "instead": "Embrace editorial whitespace — 45%+ of canvas should remain empty. Feature one or two large elements (hero numeral, statement headline, photographic panel) per section."
+    },
+    {
+      "avoid": "Illustrative icons, flat vector graphics, or playful visual metaphors",
+      "instead": "Use photography with abstract detail shots (hands, materials, architectural elements) that suggest stability and craftsmanship without literal financial imagery."
+    }
+  ],
+
+  "asset_templates": [
+    {
+      "asset_type": "Blog Cover 16:9",
+      "dimensions": "1200×675px",
+      "structure": "Left two-thirds: headline zone on solid #ECE9E4. Right third: photographic panel (abstract detail, warm tones) with subtle 5px corner radius where it meets beige background.",
+      "background": "#ECE9E4 warm beige as primary surface",
+      "typography_usage": "Headline in Halyard Display (or DM Serif Display fallback) at 72–84px in #04313F, left-aligned with generous left margin (80–100px from edge). Subheadline or category label in Arpona at 20–24px in #788D92 above main headline.",
+      "accent_elements": "Logo in top-left corner at 120–150px width. Optional: single numeral stat in bottom-left if data-driven post (e.g. '20+' in 48px Halyard Display).",
+      "colour_usage": "#ECE9E4 background fills left zone, #04313F for all text, #788D92 for supporting label, photography provides tonal warmth on right."
+    },
+    {
+      "asset_type": "Infographic Vertical",
+      "dimensions": "800×2000px (scrollable)",
+      "structure": "Top: headline + subheadline on #ECE9E4. Body: 4–6 horizontal stat blocks separated by 60–80px vertical whitespace. Bottom: source citation and logo.",
+      "background": "Solid #ECE9E4 throughout",
+      "typography_usage": "Main headline: Halyard Display 48–56px in #04313F. Each stat block: large numeral in Halyard Display 56–64px #04313F, descriptor below in Arpona 22–26px #788D92. Body labels in Arpona 20–24px #04313F.",
+      "accent_elements": "Thin horizontal rule at 1px in #788D92 optional between sections if needed (use sparingly). Logo at bottom-center 100px width.",
+      "colour_usage": "#ECE9E4 fills all background space. #04313F for headlines and primary stats. #788D92 for descriptive text and optional dividers. No data visualisation bars unless absolutely necessary — prefer pure numeral + text presentation."
+    },
+    {
+      "asset_type": "Social Square 1:1",
+      "dimensions": "1080×1080px",
+      "structure": "Centered layout: headline in top third, large numeral or key phrase in middle third, supporting text and logo in bottom third. Symmetrical margins (80–100px all sides).",
+      "background": "#ECE9E4 solid fill",
+      "typography_usage": "Headline: Halyard Display 42–52px in #04313F, center-aligned. Hero numeral (if used): Halyard Display 72–96px in #04313F. Supporting text: Arpona 20–24px in #788D92, center-aligned.",
+      "accent_elements": "Logo center-bottom at 140px width. Optional: small photographic inset (200×200px) in one corner with 5px corner radius if post requires imagery.",
+      "colour_usage": "#ECE9E4 background, #04313F for primary text, #788D92 for captions/labels. Photography (if used) should have warm neutral tones."
+    },
+    {
+      "asset_type": "Seminar Promotional Graphic",
+      "dimensions": "1200×630px (og:image standard)",
+      "structure": "Left half: headline + date/time details + CTA on #ECE9E4. Right half: subtle photographic detail panel (hands, materials) with 5px radius.",
+      "background": "#ECE9E4 on left, photographic fill on right",
+      "typography_usage": "Event title: Halyard Display 48–56px in #04313F. Date/time: Arpona 20–24px in #788D92. CTA phrase (e.g. 'Register Now'): Halyard Display 28–32px in #04313F.",
+      "accent_elements": "Logo in top-left at 120px width. Optional: small icon or graphic element in #04313F if needed for hierarchy (keep minimal).",
+      "colour_usage": "#ECE9E4 fills left content zone, #04313F for all headlines and CTA, #788D92 for date/time details, photographic warmth on right provides visual interest."
+    }
+  ],
+
+  "generation_suffixes": {
+    "core": "Refined financial services aesthetic with warm beige background (#ECE9E4), deep teal text (#04313F), and slate grey accents (#788D92). Sophisticated serif typography in the style of Halyard Display for headlines and Arpona for body text. Editorial whitespace — 45%+ of canvas left empty for breathing room. Subtle 5px corner radius on rectangular elements. Photography uses abstract detail shots (hands, materials, architectural close-ups) with natural warm neutral tones. No illustrations, no decorative borders, no heavy shadows. Minimal, trustworthy, heritage aesthetic conveying permanence and professionalism for retirement and legacy planning audiences.",
+
+    "infographic": "Vertical data layout on solid warm beige #ECE9E4 background. Large serif numerals in deep teal #04313F at 56–64px paired with descriptive labels in slate grey #788D92 at 22–26px below each stat. Generous 60–80px vertical spacing between stat blocks. Minimal or no gridlines — use whitespace as separator. Headline in Halyard Display style serif at 48–56px #04313F. Small logo at bottom-center. Optional thin 1px horizontal rules in #788D92 only if sectioning is critical. Clean, editorial presentation prioritising readability over decorative chart elements.",
+
+    "cover_image": "16:9 blog cover with left two-thirds solid warm beige #ECE9E4 and right third photographic panel (abstract detail, warm tones). Headline in large serif (Halyard Display style) at 72–84px in deep teal #04313F, left-aligned with 80–100px left margin. Subheadline or category label in serif body text (Arpona style) at 20–24px in slate grey #788D92 above main headline. Logo top-left at 120–150px width. Optional hero numeral bottom-left if data-driven. Photography has 5px corner radius where it meets beige background. High editorial whitespace ratio.",
+
+    "social_square": "Centered symmetrical layout for 1:1 format on solid warm beige #ECE9E4. Headline in serif (Halyard Display style) at 42–52px deep teal #04313F, center-aligned in top third. Hero numeral or key phrase at 72–96px #04313F in middle third. Supporting text in serif (Arpona style) at 20–24px slate grey #788D92 in lower third, center-aligned. Logo center-bottom at 140px width. 80–100px margins all sides. Optional small photographic inset (200×200px, 5px radius) in corner if needed. Minimal, refined, trust-conveying aesthetic.",
+
+    "midjourney_modifier": "--style raw --ar 16:9 (or --ar 1:1 for square) refined editorial layout, serif typography, warm neutral palette, high whitespace ratio, professional financial services aesthetic, no illustrations, natural photography with abstract detail",
+
+    "dalle_modifier": "A refined financial services design layout on a warm beige background, using sophisticated serif typography in deep teal, with generous whitespace and minimal decorative elements. Photography shows abstract close-up details of hands or materials suggesting stability and craftsmanship. Editorial aesthetic conveying trust and permanence.",
+
+    "ideogram_modifier": "Refined serif layout, warm beige #ECE9E4 background, deep teal #04313F headlines, generous whitespace, editorial financial aesthetic, natural photography with abstract detail shots"
+  }
+}
+</output_json>`,
 };
 
 const CLIENT_SYLUS: ClientSample = {
@@ -6591,6 +8792,315 @@ const CLIENT_SYLUS: ClientSample = {
     `AI-Driven Conversational Data Query Tools: Top Solutions for 2026`,
     `Embedded Analytics in the Age of Generative AI`,
   ],
+  graphicTokenJson: `<output_json>
+{
+  "brand": {
+    "name": "Sylus",
+    "website": "https://www.sylus.ai/",
+    "asset_types": [
+      "Blog Cover 16:9",
+      "Infographic Vertical",
+      "Social Square 1:1",
+      "Dashboard Screenshot",
+      "Product Feature Highlight"
+    ],
+    "personality_keywords": [
+      "precise-technical",
+      "conversational-accessible",
+      "data-driven-trustworthy",
+      "enterprise-professional",
+      "clean-uncluttered",
+      "fast-response-oriented"
+    ],
+    "visual_summary": "Sylus employs a hyper-minimal, data-first design language anchored in stark black (#000000) and white (#FFFFFF) with strategic use of electric blue (#0000EE) as a link/accent colour. Typography is exclusively Inter, creating a technical-yet-approachable system that prioritises clarity and readability over decorative flourishes."
+  },
+  "extraction_note": "Complete extraction. HTML source is minimal (Framer-generated landing page with heavy external CSS). Font family Inter confirmed via branding_json.typography.fontFamilies.primary. All hex values cross-validated against both sources. Role assignments based on usage context: #000000 confirmed as primary text/UI fill, #0000EE confirmed as link/accent (observed in markdown links, branding_json.colors.link), #FAFAFA confirmed as background (branding_json.colors.background). Button styling extracted verbatim from branding_json.components (HTML lacks inline button styles). No gradients found in either source. Border-radius confirmed at 8px from components.buttonPrimary. No fabricated values—all fields trace to source evidence.",
+  "colours": {
+    "palette": [
+      {
+        "role": "primary",
+        "name": "Pure Black",
+        "hex": "#000000",
+        "rgba": null,
+        "source": "cross_validated",
+        "usage": "Primary UI element fill (buttons, icons), heavy text for contrast, section dividers. Dominant throughout interface."
+      },
+      {
+        "role": "background_light",
+        "name": "Off-White Canvas",
+        "hex": "#FAFAFA",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Page background, card surfaces, light section fills. Creates subtle warmth over pure white."
+      },
+      {
+        "role": "surface",
+        "name": "Pure White",
+        "hex": "#FFFFFF",
+        "rgba": null,
+        "source": "json_components_button_secondary",
+        "usage": "Secondary button backgrounds, elevated card surfaces, input fields, overlays."
+      },
+      {
+        "role": "body_text",
+        "name": "Text Black",
+        "hex": "#000000",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "All body copy, headings, labels. Maximum contrast on light backgrounds."
+      },
+      {
+        "role": "accent",
+        "name": "Electric Blue Link",
+        "hex": "#0000EE",
+        "rgba": null,
+        "source": "cross_validated",
+        "usage": "Hyperlinks, interactive text elements, subtle accent highlights. Used sparingly—appears in nav links, inline citations, occasional UI highlights."
+      }
+    ],
+    "proportion_rule": "75% neutrals (#FFFFFF, #FAFAFA), 20% black (#000000 text and UI elements), 5% electric blue (#0000EE links and accents)"
+  },
+  "gradients": [],
+  "typography": {
+    "fonts": [
+      {
+        "role": "heading",
+        "family": "Inter",
+        "source": "json_fonts",
+        "google_font_fallback": "Inter",
+        "style_notes": "Used for all text hierarchy. Observed sizes: h1 at 52px, h2 at 28px, body at 14px. Clean, technical, highly legible at all weights."
+      },
+      {
+        "role": "body",
+        "family": "Inter",
+        "source": "json_fonts",
+        "google_font_fallback": "Inter",
+        "style_notes": "Same family as headings—creates unified typographic voice. Body text at 14px."
+      }
+    ],
+    "hierarchy": {
+      "cover_title": {
+        "font_role": "heading",
+        "weight": "700",
+        "size_range_px": "48–64",
+        "letter_spacing": "-0.02em",
+        "text_transform": "none"
+      },
+      "section_header": {
+        "font_role": "heading",
+        "weight": "600",
+        "size_range_px": "24–32",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "stat_callout": {
+        "font_role": "heading",
+        "weight": "700",
+        "size_range_px": "36–48",
+        "letter_spacing": "-0.01em",
+        "text_transform": "none"
+      },
+      "body_label": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "14–16",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "caption_source": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "12–13",
+        "letter_spacing": "0.01em",
+        "text_transform": "none"
+      }
+    }
+  },
+  "layout": {
+    "content_density": "moderate",
+    "whitespace_ratio": "medium (30-35% canvas breathing room, balanced between content and space)",
+    "standard_flow": "hero + value prop → trust logos → problem/solution comparison (Old Way vs Sylus Way) → feature showcase (multi-panel UI screenshots) → testimonial carousel → FAQ accordion → CTA footer"
+  },
+  "design_patterns": {
+    "shape_language": {
+      "corner_radius_px": "8",
+      "dominant_shapes": [
+        "rounded-rectangle (8px radius buttons and cards)",
+        "sharp-edged screenshot frames",
+        "pill-style tags"
+      ],
+      "overall_feel": "slightly-rounded (softens UI without becoming playful)"
+    },
+    "backgrounds": {
+      "light_variant": "Solid #FAFAFA as page canvas; occasional pure #FFFFFF for elevated cards",
+      "dark_variant": "not_found_in_source",
+      "accent_variant": "not_found_in_source"
+    },
+    "texture_and_pattern": {
+      "used": false,
+      "type": "none",
+      "intensity": "none",
+      "css_implementation": null
+    },
+    "shadows": {
+      "style": "none/flat",
+      "css_value": "none"
+    },
+    "borders_and_rules": {
+      "used": true,
+      "css_value": "not_found_in_source",
+      "application": "Likely 1px solid light grey for card edges, input fields, and section dividers (not explicitly in HTML but typical for this design language)"
+    },
+    "decorative_elements": [
+      "Product screenshot compositions with layered UI panels",
+      "Animated query strings ('who is my top customer?', 'show me our DAU') with response time indicators ('183ms')",
+      "Verification status badges (icons with 'Not requested', 'Verified', etc.)",
+      "Floating UI element mockups (Slack alerts, collections, multiplayer cursors)"
+    ]
+  },
+  "cta_and_buttons": {
+    "primary": {
+      "background": "#000000",
+      "text_color": "#FFFFFF",
+      "border_radius_px": "8",
+      "padding": "not_found_in_source",
+      "font_weight": "not_found_in_source",
+      "font_size_px": "not_found_in_source",
+      "text_transform": "none",
+      "border": "none",
+      "shadow": "none",
+      "source": "json_components_button_primary"
+    },
+    "secondary": {
+      "background": "#FFFFFF",
+      "text_color": "#000000",
+      "border_radius_px": "8",
+      "border": "not_found_in_source",
+      "shadow": "none",
+      "source": "json_components_button_secondary",
+      "notes": "White background with black text—creates clear visual hierarchy against primary black CTA"
+    },
+    "usage_in_assets": "Use black-filled rounded rectangles (8px radius) for primary CTAs in infographics. Secondary actions use white-filled rectangles with black text. Maintain high contrast—never place black buttons on dark backgrounds."
+  },
+  "iconography": {
+    "style": "mixed (product screenshots show outline icons in UI, but no consistent icon library identified in source)",
+    "stroke_weight": "not_found_in_source",
+    "implementation": "not_found_in_source",
+    "closest_public_library": "not_found_in_source",
+    "colour_usage": "Icons likely use #000000 or inherit text colour",
+    "size_convention_px": "not_found_in_source"
+  },
+  "illustration_style": {
+    "present": false,
+    "type": "none",
+    "colour_treatment": "none",
+    "line_quality": "none",
+    "notes": "Brand relies entirely on product UI screenshots, photography of people, and typographic compositions—no custom illustration work observed."
+  },
+  "photography_and_imagery": {
+    "present": true,
+    "style": "stock-corporate (professional headshots in testimonials, lifestyle imagery in hero sections)",
+    "treatment": "natural/unfiltered",
+    "overlay_pattern": "none",
+    "subject_framing": "tight-crop-faces in testimonials, wide-environmental for hero lifestyle shots",
+    "human_presence": "prominent-people (testimonials feature close-cropped faces; hero sections show teams at work)",
+    "css_filters": "none"
+  },
+  "data_visualisation": {
+    "observed_in_source": true,
+    "chart_aesthetic": "Minimal bar charts with no gridlines, clean axis labels, flat colour fills. Dashboard mockups show standard BI-style charts (bar, line, donut) with restrained styling.",
+    "colour_sequence": [
+      "#000000",
+      "#0000EE",
+      "#FAFAFA"
+    ],
+    "stat_callout_format": "Large bold number (36–48px, weight 700, Inter) with smaller label below (14px, weight 400, muted or black)",
+    "progress_indicators": "not_found_in_source (no donut/ring charts visible in provided screenshots)",
+    "label_placement": "Below or inline with data points; axis labels in small Inter body text",
+    "gridline_style": "none (charts appear gridline-free for maximum clarity)"
+  },
+  "brand_marks": {
+    "logo_type": "wordmark",
+    "logo_url": "https://framerusercontent.com/images/bsjx636hdqFxVqRmO9B1MZgHaA.png",
+    "logo_placement_convention": "Top-left in navbar on all pages; centered in footer signature",
+    "recurring_motifs": [
+      "8px rounded corners on all interactive elements",
+      "Flat black-on-white UI mockup screenshots as visual anchors",
+      "Query-and-response pattern (user question → AI answer with timing badge)"
+    ],
+    "favicon_description": "Simple icon (URL: https://framerusercontent.com/images/sQHJiQ42EbBSMJbh7GzqyoB41pA.png)—likely a minimal glyph or lettermark"
+  },
+  "brand_guardrails": [
+    {
+      "avoid": "Colourful gradients, duotone overlays, or vibrant accent colours",
+      "instead": "Stick to the stark black (#000000), off-white (#FAFAFA), and electric blue (#0000EE) palette. Use pure contrast, not colour variety."
+    },
+    {
+      "avoid": "Decorative illustration, playful icons, or hand-drawn elements",
+      "instead": "Use clean product UI screenshots, flat bar charts, and typographic compositions. Let data and interface speak for themselves."
+    },
+    {
+      "avoid": "Heavy shadows, textured backgrounds, or layered depth effects",
+      "instead": "Keep surfaces flat (box-shadow: none). Use 8px border-radius to soften edges without adding 3D illusion."
+    },
+    {
+      "avoid": "Multiple typefaces or decorative font pairings",
+      "instead": "Use Inter exclusively at all hierarchy levels. Differentiate via weight (400, 600, 700) and size, not family."
+    },
+    {
+      "avoid": "Rounded-pill buttons with excessive padding",
+      "instead": "Use 8px corner radius—slightly rounded, not fully pill-shaped. Maintain the technical, precise feel."
+    }
+  ],
+  "asset_templates": [
+    {
+      "asset_type": "Blog Cover 16:9",
+      "dimensions": "1200×675px",
+      "structure": "Full-bleed #FAFAFA background. Title in top-left or center (52-64px Inter Bold, #000000). Optional subtitle below (16px Inter Regular). Bottom-right: small wordmark logo. No decorative elements—pure typography on flat canvas.",
+      "background": "#FAFAFA solid fill",
+      "typography_usage": "Title: heading role, weight 700, 52–64px. Subtitle: body role, weight 400, 14–16px.",
+      "accent_elements": "Optional: thin 1px black rule separating title from subtitle. Wordmark logo at 80–100px width.",
+      "colour_usage": "#FAFAFA background, #000000 text, optional #0000EE accent on one keyword or link."
+    },
+    {
+      "asset_type": "Infographic Vertical (Multi-Section Data Layout)",
+      "dimensions": "800×2000px (scrollable vertical)",
+      "structure": "Section headers at 28–32px Inter Semi-Bold. Data blocks with stat callouts (36–48px Bold numbers, 14px labels). Flat bar charts (black bars, no gridlines). Thin black divider rules between sections. White or #FAFAFA alternating section backgrounds.",
+      "background": "Alternating #FFFFFF and #FAFAFA section fills for visual rhythm",
+      "typography_usage": "Section headers: heading role, weight 600, 28–32px. Stat numbers: heading role, weight 700, 36–48px. Labels: body role, weight 400, 14px.",
+      "accent_elements": "1px black horizontal rules between sections. Optional small #0000EE link or footnote citation.",
+      "colour_usage": "#FFFFFF and #FAFAFA backgrounds, #000000 text and chart bars, 5% #0000EE for interactive elements."
+    },
+    {
+      "asset_type": "Social Square 1:1",
+      "dimensions": "1080×1080px",
+      "structure": "Centered composition. Single bold statement or stat in 48–64px Inter Bold (#000000) on #FAFAFA. Wordmark logo in bottom-right corner (60–80px wide). Minimal—no additional graphics.",
+      "background": "#FAFAFA solid",
+      "typography_usage": "Main text: heading role, weight 700, 48–64px. Optional caption: body role, weight 400, 14px.",
+      "accent_elements": "Wordmark logo only. Optional: single-word highlight in #0000EE.",
+      "colour_usage": "#FAFAFA background, #000000 text, #0000EE single-word accent if needed."
+    },
+    {
+      "asset_type": "Product Feature Highlight (Dashboard Screenshot Mockup)",
+      "dimensions": "1200×800px",
+      "structure": "Centered product UI screenshot on #FAFAFA canvas. Screenshot shows flat interface with 8px rounded cards. Optional overlay: feature label in 24px Inter Semi-Bold (#000000) top-left or bottom-left.",
+      "background": "#FAFAFA with product screenshot centered",
+      "typography_usage": "Feature label: heading role, weight 600, 24px. Optional caption: body role, weight 400, 14px.",
+      "accent_elements": "8px rounded frame on screenshot mockup. Optional: small timing badge ('183ms') in #000000 with white background.",
+      "colour_usage": "#FAFAFA canvas, #000000 text and UI chrome in screenshot, #0000EE for interactive links in mockup."
+    }
+  ],
+  "generation_suffixes": {
+    "core": "Hyper-minimal, data-first aesthetic. Stark black (#000000) and off-white (#FAFAFA) palette with electric blue (#0000EE) link accents used sparingly (5% of canvas). Typography exclusively Inter—differentiate via weight (400, 600, 700) and size, never family. Flat surfaces, no shadows (box-shadow: none). 8px rounded corners on buttons and cards—slightly rounded, not pill-shaped. Clean bar charts with no gridlines, black fills. Product UI screenshots as visual anchors. Technical precision, conversational accessibility. Maximum contrast, zero decorative flourish.",
+    "infographic": "Vertical multi-section layout on alternating #FFFFFF and #FAFAFA backgrounds. Section headers in 28–32px Inter Semi-Bold (#000000). Stat callouts: 36–48px Bold numbers, 14px Regular labels below. Flat bar charts (black bars, no gridlines, white canvas). 1px black horizontal rules between sections. No decorative elements—pure data hierarchy. Optional: 1-2 word #0000EE highlight for interactive element. Spacing: 40–60px vertical rhythm between sections.",
+    "cover_image": "Full-bleed #FAFAFA canvas. Title in 52–64px Inter Bold (#000000), top-left or centered. Optional subtitle in 14–16px Inter Regular below. Wordmark logo bottom-right (80–100px width). No decorative graphics—typographic composition only. Optional: 1px black rule separating title from subtitle. Single-word #0000EE accent if needed. Flat, high-contrast, technical.",
+    "social_square": "Centered composition on #FAFAFA. Single bold statement or stat in 48–64px Inter Bold (#000000). Wordmark logo in bottom-right (60–80px). Minimal—no additional graphics. Optional: one word in #0000EE for highlight. Flat, high-contrast, technical.",
+    "midjourney_modifier": "--style raw --ar 16:9 --v 6 stark black and white minimal data interface clean sans-serif typography flat no shadows technical precision",
+    "dalle_modifier": "A minimal, data-first interface design in stark black (#000000) and off-white (#FAFAFA) with electric blue (#0000EE) link accents. Typography exclusively Inter sans-serif. Flat surfaces, no shadows. 8px rounded corners on UI elements. Clean bar charts with no gridlines. Technical, precise, conversational.",
+    "ideogram_modifier": "Minimal black-and-white UI design. Inter typography. Flat. 8px rounded corners. No shadows. Data-first aesthetic. Technical precision."
+  }
+}
+</output_json>`,
 };
 
 const CLIENT_TERRAPIN_INDUSTRIAL_LLC: ClientSample = {
@@ -7501,6 +10011,343 @@ const CLIENT_TERRAPIN_INDUSTRIAL_LLC: ClientSample = {
     `Top 10 Industrial Instrument Enclosure Manufacturers For Hazardous Areas`,
     `Top 10 Industrial Instrument Enclosure Manufacturers In The USA`,
   ],
+  graphicTokenJson: `<output_json>
+{
+  "brand": {
+    "name": "Terrapin Industrial",
+    "website": "terrapin-industrial.com",
+    "asset_types": [
+      "product brochures",
+      "technical infographics",
+      "specification sheets",
+      "social media covers",
+      "blog covers",
+      "case study headers"
+    ],
+    "personality_keywords": [
+      "engineered-industrial",
+      "technical-precision",
+      "american-manufacturing",
+      "reliability-focused",
+      "field-practical"
+    ],
+    "visual_summary": "Terrapin Industrial presents a straightforward, engineering-focused visual identity rooted in American manufacturing values. The palette is dominated by deep industrial blues (#005672) paired with burnt orange accents (#8C2F01), establishing a technical-yet-accessible tone suitable for B2B industrial audiences. Typography uses Armata sans-serif across all hierarchies, signalling clarity and modular efficiency aligned with the product line's core value proposition."
+  },
+  "extraction_note": "Branding JSON provided limited colour values (primary #8C2F01, secondary #337AB7, accent/textPrimary/link all #005672). HTML source was minimal (WordPress site with most styling in external CSS). No gradient evidence found. Button styling extracted from branding_json components.buttonPrimary as HTML contained insufficient inline styles. Font extraction straightforward — Armata loaded via Google Fonts link, used across all text. colorScheme 'light' validated via background:#FFFFFF. No role conflicts detected. Several fields lack HTML/JSON evidence and are marked 'not_found_in_source'. Overall extraction is thin but honest — reflects a utilitarian industrial site with minimal decorative styling.",
+  "colours": {
+    "palette": [
+      {
+        "role": "primary",
+        "name": "Industrial Orange",
+        "hex": "#8C2F01",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Accent highlights on product callouts, 'Made in America' badge fills, header dividers, and small UI emphasis elements. Use sparingly (5-10% of canvas) for maximum impact."
+      },
+      {
+        "role": "accent",
+        "name": "Deep Marine Blue",
+        "hex": "#005672",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary brand colour — dominant across headings, body text, CTA buttons, link states, and technical diagram annotations. Anchor colour for all engineering content (60-70% of coloured elements)."
+      },
+      {
+        "role": "secondary",
+        "name": "Process Blue",
+        "hex": "#337AB7",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Secondary UI colour — use for less prominent buttons, borders, inactive states, and secondary data series in charts. Provides mid-tone between primary blue and neutrals."
+      },
+      {
+        "role": "background_light",
+        "name": "Clean White",
+        "hex": "#FFFFFF",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Canvas background for all asset types. Provides high contrast for text legibility and reinforces the clean, technical aesthetic."
+      },
+      {
+        "role": "body_text",
+        "name": "Text Blue",
+        "hex": "#005672",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "All body copy, captions, labels, and technical annotations. Same as accent colour — maintains brand consistency."
+      },
+      {
+        "role": "muted_text",
+        "name": "Mid Grey",
+        "hex": "#666666",
+        "rgba": null,
+        "source": "json_components_button_primary",
+        "usage": "Button text in certain states, footer text, disclaimers, and secondary labels. Provides tonal hierarchy below primary blue text."
+      },
+      {
+        "role": "border",
+        "name": "Shadow Grey",
+        "hex": "#333333",
+        "rgba": null,
+        "source": "json_components_button_primary",
+        "usage": "Extracted from button shadow value 'rgb(51, 51, 51) 0px 0px 2px 0px'. Use for subtle borders, card shadows, and divider rules."
+      }
+    ],
+    "proportion_rule": "70% neutrals (#FFFFFF canvas, #666666 secondary text), 20% primary blue (#005672 text/CTAs/headings), 5% process blue (#337AB7 secondary UI), 5% industrial orange (#8C2F01 accents)"
+  },
+  "gradients": [],
+  "typography": {
+    "fonts": [
+      {
+        "role": "heading",
+        "family": "Armata",
+        "source": "json_fonts",
+        "google_font_fallback": "Armata",
+        "style_notes": "Single-weight sans-serif (regular 400). Used across all hierarchies without variation. Letter-spacing and line-height values not found in source — likely defaults."
+      },
+      {
+        "role": "body",
+        "family": "Armata",
+        "source": "json_fonts",
+        "google_font_fallback": "Armata",
+        "style_notes": "Same as heading role — no typographic differentiation between heading and body except via size."
+      }
+    ],
+    "hierarchy": {
+      "cover_title": {
+        "font_role": "heading",
+        "weight": "400",
+        "size_range_px": "36–48",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "section_header": {
+        "font_role": "heading",
+        "weight": "400",
+        "size_range_px": "24–32",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "stat_callout": {
+        "font_role": "heading",
+        "weight": "400",
+        "size_range_px": "32–40",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "body_label": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "16–18",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "caption_source": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "12–14",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      }
+    }
+  },
+  "layout": {
+    "content_density": "moderate",
+    "whitespace_ratio": "medium (30-35% empty — balanced sections with clear breathing room between product features and callouts)",
+    "standard_flow": "hero product image → feature icon grid → detailed feature sections with alternating image/text blocks → product comparison table → CTA footer with contact form"
+  },
+  "design_patterns": {
+    "shape_language": {
+      "corner_radius_px": "4",
+      "dominant_shapes": [
+        "slightly-rounded rectangles",
+        "square product thumbnails",
+        "pill-style buttons"
+      ],
+      "overall_feel": "slightly-rounded — minimal rounding (4px) keeps aesthetic technical and precise without hard edges"
+    },
+    "backgrounds": {
+      "light_variant": "Solid #FFFFFF — clean canvas for product photography and technical diagrams",
+      "dark_variant": "not_found_in_source",
+      "accent_variant": "not_found_in_source"
+    },
+    "texture_and_pattern": {
+      "used": false,
+      "type": "none",
+      "intensity": "none",
+      "css_implementation": null
+    },
+    "shadows": {
+      "style": "soft-subtle",
+      "css_value": "rgb(51, 51, 51) 0px 0px 2px 0px"
+    },
+    "borders_and_rules": {
+      "used": true,
+      "css_value": "not_found_in_source",
+      "application": "Likely used on product cards, table cells, and section dividers based on industrial site conventions, but exact CSS not found in source."
+    },
+    "decorative_elements": [
+      "Made in America horizontal badge with flag motif (observed in markdown image references)",
+      "Product feature icons in grid layout (observed via icon thumbnail links)",
+      "Horizontal divider rules between major sections (standard industrial site pattern)"
+    ]
+  },
+  "cta_and_buttons": {
+    "primary": {
+      "background": "#005672",
+      "text_color": "#666666",
+      "border_radius_px": "4",
+      "padding": "not_found_in_source",
+      "font_weight": "not_found_in_source",
+      "font_size_px": "not_found_in_source",
+      "text_transform": "not_found_in_source",
+      "border": "1px solid #005672",
+      "shadow": "rgb(51, 51, 51) 0px 0px 2px 0px",
+      "source": "json_components_button_primary"
+    },
+    "secondary": {
+      "background": "not_found_in_source",
+      "text_color": "not_found_in_source",
+      "border_radius_px": "4",
+      "border": "not_found_in_source",
+      "shadow": "not_found_in_source",
+      "source": "not_found_in_source",
+      "notes": "No secondary button styling found in branding_json or HTML source. Likely inherits primary styling with inverted colours or outline treatment."
+    },
+    "usage_in_assets": "Primary CTA styling (#005672 fill, 4px rounded corners, subtle shadow) translates to prominent badges, download buttons on spec sheets, and 'Learn More' tags on infographics. Use consistent 4px rounding across all clickable elements to maintain modular feel."
+  },
+  "iconography": {
+    "style": "mixed — product feature icons appear as outlined/line style (observed via thumbnail references to Pre-Engineered Holes, Retrofittable, Standardized Installation icons)",
+    "stroke_weight": "not_found_in_source",
+    "implementation": "image sprites or individual PNGs (150x150px thumbnails observed in markdown)",
+    "closest_public_library": "custom — likely proprietary product feature icons",
+    "colour_usage": "Icons likely use primary #005672 or accent #8C2F01 based on brand palette, but exact fill colours not found in source",
+    "size_convention_px": "150x150 for feature grid thumbnails (observed), smaller sizes not documented"
+  },
+  "illustration_style": {
+    "present": false,
+    "type": "none",
+    "colour_treatment": "none",
+    "line_quality": "none",
+    "notes": "Site relies on product photography and technical diagrams rather than illustration. All observed images are photographic (enclosure lineups, installation shots) or iconographic (feature callouts)."
+  },
+  "photography_and_imagery": {
+    "present": true,
+    "style": "product-on-white and environmental installation shots — clean product photography showcasing enclosure hardware against neutral backgrounds, plus field installation context images",
+    "treatment": "natural/unfiltered — no visible colour grading or heavy post-processing",
+    "overlay_pattern": "none",
+    "subject_framing": "centered-product for hero shots, wide-environmental for installation context images",
+    "human_presence": "no-humans — focus is entirely on industrial hardware and equipment",
+    "css_filters": "none"
+  },
+  "data_visualisation": {
+    "observed_in_source": false,
+    "chart_aesthetic": "Given the industrial B2B context and primary blue palette, charts would use clean axis lines in #005672, gridlines in #CCCCCC or rgba(0,86,114,0.2), and sans-serif Armata labels. Overall feel: technical-precision, minimal decoration.",
+    "colour_sequence": [
+      "#005672",
+      "#337AB7",
+      "#8C2F01",
+      "#666666"
+    ],
+    "stat_callout_format": "Large Armata numerals (32–40px) in #005672, paired with smaller label text (16–18px) in #666666. No decorative underlines or background fills — let whitespace define hierarchy.",
+    "progress_indicators": "Horizontal bars with #005672 fill on #FFFFFF background, 4px rounded ends, thin #666666 border. Donut charts use primary blue #005672 for primary metric, process blue #337AB7 for secondary.",
+    "label_placement": "Left-aligned outside chart area for bar charts, inline on data points for line/area charts. Use 14–16px Armata in #666666 for all labels.",
+    "gridline_style": "1px solid rgba(0,86,114,0.15) — subtle enough to recede but present for technical readability"
+  },
+  "brand_marks": {
+    "logo_type": "wordmark or combination (likely includes text + graphic mark based on favicon reference, but actual logo not visible in source)",
+    "logo_url": "https://terrapin-industrial.com/wp-content/uploads/2023/04/cropped-Favicon-white.png",
+    "logo_placement_convention": "Top-left on website headers, centered on brochure covers, small lockup in footer. For infographics and covers, position in upper-left or lower-right corner at ~10% of canvas width.",
+    "recurring_motifs": [
+      "Made in America badge with horizontal flag motif — use on all assets to reinforce domestic manufacturing value proposition",
+      "Modular geometric enclosure shapes — rectangular forms with minimal rounding echo the product line's modularity"
+    ],
+    "favicon_description": "Cropped white icon on transparent or dark background (exact design not visible in markdown, but inferred from favicon URL and 32x32px dimensions)"
+  },
+  "brand_guardrails": [
+    {
+      "avoid": "Gradients, soft shadows, or decorative textures",
+      "instead": "Use solid colour blocks (#005672, #8C2F01, #FFFFFF) with subtle 2px shadows (rgb(51,51,51) 0px 0px 2px 0px) to maintain industrial-engineering clarity"
+    },
+    {
+      "avoid": "Multiple typefaces or heavy typography variation (bold/italic)",
+      "instead": "Use Armata at 400 weight exclusively; create hierarchy through size (36px titles, 24px headers, 16px body) and colour (#005672 for primary, #666666 for secondary)"
+    },
+    {
+      "avoid": "Soft, rounded corners beyond 4px or pill-shaped elements",
+      "instead": "Maintain 4px border-radius across all UI elements (buttons, cards, image frames) to preserve the technical, modular aesthetic"
+    },
+    {
+      "avoid": "Overusing the industrial orange (#8C2F01) — it is an accent, not a primary colour",
+      "instead": "Reserve #8C2F01 for small callouts (5-10% of canvas): badges, 'Made in America' highlights, single data points, or strategic underlines. Let #005672 dominate."
+    },
+    {
+      "avoid": "Lifestyle photography or human subjects",
+      "instead": "Use clean product photography on white backgrounds or environmental installation shots showing equipment in industrial settings — no people, focus on hardware precision"
+    },
+    {
+      "avoid": "Decorative illustration, icons from consumer-facing libraries (outlined hearts, playful metaphors)",
+      "instead": "Use technical line icons that reference real product features (pipe fittings, enclosure modules, installation diagrams) in #005672 or #8C2F01"
+    }
+  ],
+  "asset_templates": [
+    {
+      "asset_type": "Technical Brochure Cover 8.5×11",
+      "dimensions": "2550×3300px (print-ready 300dpi)",
+      "structure": "Top 30%: white space + logo lockup (upper-left). Center 40%: large product photo or isometric diagram on #FFFFFF. Bottom 30%: title block (Armata 36–48px #005672), subtitle (Armata 18px #666666), 'Made in America' badge (lower-right corner).",
+      "background": "Solid #FFFFFF — clean, uninterrupted canvas",
+      "typography_usage": "Armata 400 weight — title at 36–48px #005672, subtitle at 18–24px #666666, small disclaimers at 12px #666666",
+      "accent_elements": "Thin horizontal divider (1px #005672) between title and subtitle. 'Made in America' badge at ~8% canvas width in lower-right. Optional small industrial orange (#8C2F01) underline beneath key product name.",
+      "colour_usage": "#FFFFFF background, #005672 primary text and dividers, #666666 secondary text, #8C2F01 for single accent underline or badge fill"
+    },
+    {
+      "asset_type": "Product Feature Infographic (vertical scroll)",
+      "dimensions": "1200×3600px (web/social, 1:3 ratio)",
+      "structure": "Top: hero product image (25% height). Middle: 4–6 feature sections, each with icon + headline + 2-sentence description. Bottom: CTA button or contact lockup.",
+      "background": "Solid #FFFFFF with optional light grey (#F5F5F5) alternating section backgrounds for tonal variation",
+      "typography_usage": "Section headers: Armata 24–32px #005672. Body labels: Armata 16–18px #666666. Stat callouts: Armata 32–40px #005672.",
+      "accent_elements": "150×150px feature icons in #005672 or #8C2F01. Horizontal divider rules (1px solid rgba(0,86,114,0.15)) between sections. Primary CTA button at bottom: #005672 fill, 4px radius, subtle shadow.",
+      "colour_usage": "#FFFFFF and #F5F5F5 alternating backgrounds, #005672 icons and headers, #8C2F01 for 1–2 strategic icon fills or stat highlights, #666666 body text"
+    },
+    {
+      "asset_type": "Blog Cover 16:9",
+      "dimensions": "1200×675px",
+      "structure": "Left 60%: white space + title (Armata 36–48px #005672) + subtitle (Armata 18px #666666). Right 40%: product photo or abstract enclosure detail shot.",
+      "background": "Solid #FFFFFF",
+      "typography_usage": "Title: Armata 400, 36–48px, #005672. Subtitle: Armata 400, 18–24px, #666666. Logo lockup: Armata 14px #005672 + small mark.",
+      "accent_elements": "Thin vertical divider (1px #005672) between text and image zones. Optional small #8C2F01 accent bar (4px wide, 60px tall) as design element near title.",
+      "colour_usage": "#FFFFFF background, #005672 title and dividers, #666666 subtitle, #8C2F01 single vertical accent bar"
+    },
+    {
+      "asset_type": "Social Square (LinkedIn/Instagram)",
+      "dimensions": "1080×1080px",
+      "structure": "Centered composition. Top 20%: logo lockup or 'Made in America' badge. Center 50%: single product image or icon + headline. Bottom 30%: tagline or stat callout.",
+      "background": "Solid #FFFFFF or light #F5F5F5",
+      "typography_usage": "Headline: Armata 32–40px #005672. Tagline: Armata 18–24px #666666. Stat callout (if used): Armata 36px #005672 + label 16px #666666.",
+      "accent_elements": "4px rounded frame around image or border around entire canvas in #005672 (8–12px stroke). Optional small #8C2F01 accent block as corner element.",
+      "colour_usage": "#FFFFFF or #F5F5F5 background, #005672 primary text and borders, #8C2F01 single corner accent or underline, #666666 secondary text"
+    },
+    {
+      "asset_type": "Specification Sheet Infographic",
+      "dimensions": "1200×1600px (portrait)",
+      "structure": "Top 15%: title bar (#005672 background, white text). Upper 35%: product diagram or exploded view. Lower 50%: 2-column spec table or bulleted feature list.",
+      "background": "Top bar: solid #005672. Main canvas: #FFFFFF.",
+      "typography_usage": "Title bar text: Armata 32px #FFFFFF. Section headers: Armata 24px #005672. Body specs: Armata 14–16px #666666. Bold callouts: Armata 18px #005672.",
+      "accent_elements": "Table gridlines (1px solid rgba(0,86,114,0.15)). Bullet points as small squares (#8C2F01 fill). CTA button at bottom: #005672 fill, 4px radius.",
+      "colour_usage": "#005672 title bar and table headers, #FFFFFF canvas, #666666 body text, #8C2F01 bullet squares or single row highlight"
+    }
+  ],
+  "generation_suffixes": {
+    "core": "Clean industrial-technical aesthetic. Solid colour blocks only: #FFFFFF canvas, #005672 (Deep Marine Blue) for primary text and UI elements, #8C2F01 (Industrial Orange) as 5–10% accent highlights. Typography: Armata sans-serif at 400 weight, size hierarchy only (no bold/italic). Shape language: 4px corner radius on all rectangles (buttons, cards, frames) — slightly-rounded but technical. Minimal shadows: subtle 2px blur in rgb(51,51,51). Zero gradients, zero textures, zero decorative patterns. Whitespace ratio: moderate (30% empty) with balanced section spacing. American manufacturing precision — every element aligned to invisible grid. Product photography style: clean equipment shots on white backgrounds or industrial field installations, no humans. Infographic sections use horizontal 1px dividers in rgba(0,86,114,0.15). Stat callouts: large Armata numerals in #005672 paired with small labels in #666666. Icon style: outlined technical symbols referencing real hardware (pipe fittings, enclosures, valves) in #005672 or #8C2F01. Tone: engineered-reliability, field-practical, B2B-industrial.",
+    "infographic": "Vertical scroll layout with 4–6 stacked sections. Each section: 150×150px line icon (top-center, #005672 or #8C2F01) + Armata 24–32px header (#005672) + 2-sentence description (Armata 16–18px #666666). Section dividers: 1px solid rgba(0,86,114,0.15) horizontal rules spanning 80% width, centered. Stat callouts: Armata 32–40px numerals (#005672) with small label below (16px #666666), no background fills. Data series colours (if chart present): #005672 primary metric, #337AB7 secondary, #8C2F01 tertiary, #666666 baseline. CTA button at bottom: #005672 fill, 4px rounded corners, subtle shadow, Armata text. Whitespace: 60px vertical padding between sections. Canvas: solid #FFFFFF or alternating #F5F5F5 section backgrounds for tonal rhythm.",
+    "cover_image": "Single bold statement. Left-aligned title (Armata 36–48px #005672) occupying top-left or center-left 50% of canvas. Right side: clean product photo or abstract enclosure detail against #FFFFFF. Optional thin vertical divider (1px #005672) between text and image zones. Subtitle below title: Armata 18–24px #666666, 1.5em line-height. Accent element: single 4px×60px vertical bar in #8C2F01 positioned near title as design punctuation. Logo lockup in upper-left corner (10% canvas width) or lower-right (8% width). No shadows on text. No background overlays on images. 'Made in America' badge optional in corner (horizontal flag motif, ~8% width). Canvas: solid #FFFFFF — let whitespace and clean product photography define the visual weight.",
+    "social_square": "Centered 1:1 composition. Top 20%: logo lockup or 'Made in America' badge centered. Center 50%: single product image or large icon (200×200px, #005672 or #8C2F01) + bold headline below (Armata 32–40px #005672). Bottom 30%: tagline or stat callout (Armata 18–24px #666666). Optional 8–12px stroke border in #005672 framing entire canvas. Background: solid #FFFFFF or light #F5F5F5. Accent: single small #8C2F01 block (40×40px) in corner as design element. No image overlays, no gradients. Shadows: none on text, subtle 2px on product image if needed. Spacing: 40px padding from canvas edges. Typography: Armata 400 only, no transforms, size hierarchy creates emphasis.",
+    "midjourney_modifier": "--style raw --ar 16:9 clean technical product photography, industrial B2B aesthetic, solid color blocks, no gradients, minimal shadows, white background, precision engineering --q 2 --s 50",
+    "dalle_modifier": "Ultra-clean industrial product photography on pure white background. Technical precision aesthetic. Solid colour accents in deep marine blue and industrial orange. No gradients, no textures, no decorative elements. Modular geometric shapes with slight 4px rounding. Armata sans-serif typography. American manufacturing quality. B2B engineering documentation style. Sharp focus, even lighting, no dramatic shadows.",
+    "ideogram_modifier": "Clean industrial technical layout. Armata sans-serif. Solid #005672 blue + #8C2F01 orange accents on white. 4px rounded corners. No gradients. Engineering precision. B2B product aesthetic."
+  }
+}
+</output_json>`,
 };
 
 const CLIENT_TRINU_POWDER_COATING: ClientSample = {
@@ -7772,6 +10619,345 @@ const CLIENT_TRINU_POWDER_COATING: ClientSample = {
     `How Much Does a Wet Abrasive Blasting Unit Cost in 2026?`,
     `Architectural Powder Coating: Design, Durability & Innovation`,
   ],
+  graphicTokenJson: `<output_json>
+{
+  "brand": {
+    "name": "TriNu Powder Coating",
+    "website": "https://trinupowdercoating.com",
+    "asset_types": [
+      "Blog Cover 16:9",
+      "Service Infographic Vertical",
+      "Social Square 1:1",
+      "Industry Feature Card",
+      "Stat Callout Badge"
+    ],
+    "personality_keywords": [
+      "industrial-dependable",
+      "process-driven-technical",
+      "high-contrast-bold",
+      "precision-focused",
+      "warm-accessible-orange",
+      "clean-structured-minimal"
+    ],
+    "visual_summary": "TriNu's visual language is built around industrial precision with warm accessibility. The brand uses a bold orange (#FF6608) as its signature colour, paired with clean white backgrounds (#FFFFFF) and sharp black text (#161718) for maximum readability. Typography combines the friendly rounded Poppins for body text with the distinctive Involve display face for headings, creating a balance between approachability and technical authority. The design system emphasizes clarity, with pill-shaped buttons (border-radius: 100px) and minimal decorative elements — reflecting the brand's no-shortcuts production philosophy."
+  },
+  "extraction_note": "Complete extraction with high confidence. HTML source is thin (WordPress template with minimal inline styles), so branding_json was the primary source for colour palette, button styling, and typography. All hexes validated as present in JSON. ColorScheme set to 'light' based on dominant white backgrounds and dark text in content structure. Button styling (100px pill radius, #FF6608 primary, #51DE0A secondary) is authoritative from JSON components. Fonts resolved via JSON typography fields (Poppins body, Involve heading) as HTML contains no visible font-family declarations or Google Fonts links in the provided markdown. No gradients found in source. Two decorative SVG icons referenced (sand-blasting.svg, powder-coating.svg) but no inline SVG markup provided to extract stroke/fill colours.",
+  "colours": {
+    "palette": [
+      {
+        "role": "primary",
+        "name": "Industrial Orange",
+        "hex": "#FF6608",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary brand signature — use for CTA buttons, section headings, stat callout numbers, and accent highlights. Dominant colour for action-oriented elements."
+      },
+      {
+        "role": "secondary",
+        "name": "Safety Red",
+        "hex": "#CC1818",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Secondary accent for urgent callouts, warnings, or error states. Use sparingly as contrast to primary orange."
+      },
+      {
+        "role": "accent",
+        "name": "Process Green",
+        "hex": "#51DE0A",
+        "rgba": null,
+        "source": "json_components_button_secondary",
+        "usage": "Secondary CTA colour (e.g. 'Submit Form' button), success indicators, progress markers. Provides bright contrast to orange primary."
+      },
+      {
+        "role": "background_light",
+        "name": "Clean White",
+        "hex": "#FFFFFF",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary background for all asset types. Use as canvas base for infographics, cover images, and social content."
+      },
+      {
+        "role": "body_text",
+        "name": "Industrial Black",
+        "hex": "#161718",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary body text, section descriptions, labels, captions. High contrast against white background for maximum readability."
+      },
+      {
+        "role": "form_border",
+        "name": "Form Border Grey",
+        "hex": "#77797B",
+        "rgba": null,
+        "source": "json_components_input",
+        "usage": "Form input borders, divider rules, subtle separators between content sections."
+      },
+      {
+        "role": "muted_text",
+        "name": "Input Grey",
+        "hex": "#B1B3B3",
+        "rgba": null,
+        "source": "json_components_input",
+        "usage": "Form input backgrounds, muted labels, placeholder text, secondary information."
+      }
+    ],
+    "proportion_rule": "70% white (#FFFFFF) canvas background, 20% orange (#FF6608) for headings/CTAs/accents, 5% black (#161718) for body text, 5% green (#51DE0A) and greys (#77797B, #B1B3B3) for UI elements and secondary actions"
+  },
+  "gradients": [],
+  "typography": {
+    "fonts": [
+      {
+        "role": "heading",
+        "family": "Involve",
+        "source": "json_fonts",
+        "google_font_fallback": "Teko",
+        "style_notes": "Display typeface used for all headings. Likely a custom or premium font — Teko (Google Fonts) provides a similar industrial-condensed feel with strong vertical emphasis."
+      },
+      {
+        "role": "body",
+        "family": "Poppins",
+        "source": "json_fonts",
+        "google_font_fallback": "Poppins",
+        "style_notes": "Friendly rounded sans-serif used for all body text, labels, and UI elements. Already a Google Font."
+      }
+    ],
+    "hierarchy": {
+      "cover_title": {
+        "font_role": "heading",
+        "weight": "600",
+        "size_range_px": "56–68",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "section_header": {
+        "font_role": "heading",
+        "weight": "600",
+        "size_range_px": "48–61",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "stat_callout": {
+        "font_role": "heading",
+        "weight": "700",
+        "size_range_px": "48–68",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "body_label": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "14–16",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "caption_source": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "12–14",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      }
+    }
+  },
+  "layout": {
+    "content_density": "moderate",
+    "whitespace_ratio": "medium (25-35% — balanced sectioning with breathing room around stat blocks and service cards)",
+    "standard_flow": "hero headline → value proposition paragraph → stat bar (4 metrics) → service grid (2-3 columns) → industry cards → testimonials → CTA footer with form"
+  },
+  "design_patterns": {
+    "shape_language": {
+      "corner_radius_px": "100 (buttons), 8 (form inputs), 3 (base spacing unit)",
+      "dominant_shapes": [
+        "pill-button (100px radius for all CTAs)",
+        "soft-rounded-rectangle (8px for form fields)",
+        "sharp-edged cards (minimal rounding for content sections)"
+      ],
+      "overall_feel": "mixed — pill-shaped CTAs for friendly approachability, sharp rectangles for technical content cards, creating a balance between warmth and precision"
+    },
+    "backgrounds": {
+      "light_variant": "Solid #FFFFFF with no texture or gradient — clean industrial canvas",
+      "dark_variant": "not_found_in_source",
+      "accent_variant": "not_found_in_source"
+    },
+    "texture_and_pattern": {
+      "used": false,
+      "type": "none",
+      "intensity": "none",
+      "css_implementation": null
+    },
+    "shadows": {
+      "style": "none/flat",
+      "css_value": "none"
+    },
+    "borders_and_rules": {
+      "used": true,
+      "css_value": "1px solid #77797B (form inputs) | 1px solid #FF6608 (primary button outlines)",
+      "application": "Form field borders, subtle section dividers, button outlines on hover states"
+    },
+    "decorative_elements": [
+      "Line-art SVG service icons (sand-blasting.svg, powder-coating.svg) — likely monochrome or two-tone industrial illustrations",
+      "Stat number emphasis — large numerals (20+, 15K+, 30ft, 98%) with descriptive labels below",
+      "Minimal use of decorative shapes — design prioritizes content clarity over ornamentation"
+    ]
+  },
+  "cta_and_buttons": {
+    "primary": {
+      "background": "#FF6608",
+      "text_color": "#FFFFFF",
+      "border_radius_px": "100",
+      "padding": "not_found_in_source",
+      "font_weight": "not_found_in_source",
+      "font_size_px": "not_found_in_source",
+      "text_transform": "uppercase",
+      "border": "1px solid #FF6608",
+      "shadow": "none",
+      "source": "json_components_button_primary"
+    },
+    "secondary": {
+      "background": "#51DE0A",
+      "text_color": "#050610",
+      "border_radius_px": "100",
+      "border": "1px solid #51DE0A",
+      "shadow": "none",
+      "source": "json_components_button_secondary",
+      "notes": "Secondary CTA uses bright green for contrast against orange primary — maintains pill shape consistency"
+    },
+    "usage_in_assets": "Translate pill-button aesthetic into rounded badge elements for infographic callouts, stat highlights, and service labels. Use #FF6608 fill for primary badges, #51DE0A for secondary/success indicators, white text on both. Maintain 100px-equivalent curvature scaled to badge size."
+  },
+  "iconography": {
+    "style": "outline/line",
+    "stroke_weight": "not_found_in_source",
+    "implementation": "inline SVG (service icons referenced as sand-blasting.svg, powder-coating.svg)",
+    "closest_public_library": "Lucide or Heroicons v2 (industrial/technical icon sets with clean line-art style)",
+    "colour_usage": "Likely monochrome (#161718 or #FF6608 for emphasis) based on industrial aesthetic — no colour data in source",
+    "size_convention_px": "not_found_in_source"
+  },
+  "illustration_style": {
+    "present": true,
+    "type": "flat-vector",
+    "colour_treatment": "uses brand palette (likely #FF6608 accents on #161718 or white base)",
+    "line_quality": "clean-geometric",
+    "notes": "Service icons (sand-blasting, powder-coating) appear to be simple line-art illustrations representing industrial processes. Style is minimalist and technical, matching the brand's precision-focused identity."
+  },
+  "photography_and_imagery": {
+    "present": true,
+    "style": "environmental",
+    "treatment": "natural/unfiltered",
+    "overlay_pattern": "none",
+    "subject_framing": "wide-environmental",
+    "human_presence": "no-humans",
+    "css_filters": "none",
+    "notes": "Single hero image referenced (PRECISION-FINISHING.webp) — likely shows industrial facility, equipment, or finished parts in production environment. Photography is used sparingly to support technical credibility."
+  },
+  "data_visualisation": {
+    "observed_in_source": false,
+    "chart_aesthetic": "If data visualisation is needed, use clean horizontal bar charts or progress rings with #FF6608 fill, #77797B gridlines (1px), and #161718 labels. Prioritize clarity over decoration.",
+    "colour_sequence": [
+      "#FF6608",
+      "#51DE0A",
+      "#CC1818",
+      "#77797B"
+    ],
+    "stat_callout_format": "Large numeral (48–68px Involve, weight 700, #FF6608 or #161718) on top line, descriptive label (14–16px Poppins, weight 400, #161718 or #77797B) below. White background, minimal padding.",
+    "progress_indicators": "Use horizontal bars with #FF6608 fill on #B1B3B3 track, or circular progress rings with #FF6608 stroke. Label completion percentage in Involve bold.",
+    "label_placement": "Data labels positioned above bars/segments for clarity, aligned left or centered depending on chart type.",
+    "gridline_style": "1px solid #77797B | very subtle, used only when necessary for data clarity"
+  },
+  "brand_marks": {
+    "logo_type": "combination",
+    "logo_url": "https://trinupowdercoating.com/wp-content/uploads/2026/03/trinupowdercoating-logo-new-1024x664.webp",
+    "logo_placement_convention": "Top-left on website header. For generated assets: small logo lockup in top-left or bottom-right corner, sized at ~8-12% of canvas width.",
+    "recurring_motifs": [
+      "Pill-shaped buttons as visual signature element (100px border-radius)",
+      "Bold numerals for statistical credibility (20+, 15K+, 30ft, 98%)",
+      "Horizontal rule dividers between content sections (likely 1px #77797B)"
+    ],
+    "favicon_description": "Cropped square favicon (cropped-Trinu-Powder-Coating-FAV-Icon-1-1-32x32.webp) — likely features simplified brand mark or 'T' letterform"
+  },
+  "brand_guardrails": [
+    {
+      "avoid": "Gradients, soft shadows, or textured backgrounds",
+      "instead": "Use flat solid colours (#FFFFFF backgrounds, #FF6608 accents) with sharp edges and high contrast. TriNu's visual language is clean and unambiguous — no atmospheric effects."
+    },
+    {
+      "avoid": "Script fonts, decorative serifs, or overly stylized typography",
+      "instead": "Stick to Involve (headings) and Poppins (body). The brand's technical credibility depends on clear, readable type."
+    },
+    {
+      "avoid": "Rounded rectangles with subtle corner radii (e.g. 8px, 12px) for CTA buttons",
+      "instead": "All primary and secondary CTAs MUST use 100px border-radius pill shape. This is a core brand signature — any deviation breaks visual consistency."
+    },
+    {
+      "avoid": "Pastel or muted versions of brand colours",
+      "instead": "Use full-strength #FF6608 orange, #51DE0A green, and #161718 black. The brand's industrial context requires bold, high-visibility colours."
+    },
+    {
+      "avoid": "Cluttered layouts with multiple competing visual elements",
+      "instead": "Embrace whitespace. TriNu's moderate content density (25-35% whitespace) is intentional — it conveys precision and allows key messages to stand out."
+    },
+    {
+      "avoid": "Photography of people or lifestyle imagery",
+      "instead": "Focus on industrial environments, equipment, finished parts, and facility shots. Human presence should be minimal or absent — the brand identity is built around process and results, not personalities."
+    }
+  ],
+  "asset_templates": [
+    {
+      "asset_type": "Blog Cover 16:9",
+      "dimensions": "1200×675px",
+      "structure": "Left two-thirds: bold headline in Involve (56-68px, #161718 or #FF6608), subheading in Poppins (18-20px, #161718). Right third: small environmental photo or flat-colour panel (#FF6608 or #FFFFFF). Logo lockup in bottom-right corner (100px wide).",
+      "background": "Solid #FFFFFF canvas. Optional: #FF6608 vertical stripe (10-15% width) on right edge as accent.",
+      "typography_usage": "Headline: Involve weight 600, 56-68px, #FF6608 or #161718. Subheading: Poppins weight 400, 18-20px, #77797B. Keep type flush-left, generous left margin (80-100px from edge).",
+      "accent_elements": "Single horizontal rule (2px solid #FF6608) above or below headline. Small pill badge with #51DE0A background for article category label.",
+      "colour_usage": "#FFFFFF (background 70%), #FF6608 (headline + accent stripe 20%), #161718 (subheading text 5%), #51DE0A (category badge 5%)"
+    },
+    {
+      "asset_type": "Service Infographic Vertical",
+      "dimensions": "800×2000px",
+      "structure": "Top section: title (Involve 48px, #FF6608) + intro paragraph (Poppins 16px, #161718). Middle sections: alternating white/light-grey bands with icon + heading + bullet points. Bottom section: CTA pill button (#FF6608 background, white text, 'Learn More').",
+      "background": "Alternating white (#FFFFFF) and very light grey (#F5F5F5 — derived slightly lighter than #B1B3B3 for subtle banding) horizontal sections.",
+      "typography_usage": "Section headings: Involve 36-48px, weight 600, #161718. Body bullets: Poppins 14-16px, weight 400, #161718. Stat callouts: Involve 48px, weight 700, #FF6608.",
+      "accent_elements": "Line-art service icons (80-100px, #FF6608 or #161718 stroke). Horizontal divider rules (1px solid #77797B) between sections. Stat numbers in large Involve bold (#FF6608) with descriptive labels below.",
+      "colour_usage": "#FFFFFF + #F5F5F5 (alternating backgrounds 70%), #FF6608 (headings + icons + stats 20%), #161718 (body text 8%), #77797B (rules 2%)"
+    },
+    {
+      "asset_type": "Social Square 1:1",
+      "dimensions": "1080×1080px",
+      "structure": "Centered layout. Top: small logo lockup. Middle: bold single-line message or stat (Involve 60-72px, #FF6608). Bottom: short descriptive line (Poppins 18px, #161718). All elements centered, generous padding (100px from edges).",
+      "background": "Solid #FFFFFF. Optional: circular gradient spot (radial, #FF6608 at 5% opacity, 40% canvas diameter) centered behind text for depth without breaking flat aesthetic.",
+      "typography_usage": "Primary message: Involve 60-72px, weight 700, #FF6608 or #161718. Supporting line: Poppins 18px, weight 400, #77797B. All text centered.",
+      "accent_elements": "Single pill badge below main message (#51DE0A background, white text, Poppins 14px bold, 'CERTIFIED' or 'TRUSTED'). Small horizontal rule (2px solid #FF6608, 120px wide, centered) above or below stat.",
+      "colour_usage": "#FFFFFF (background 75%), #FF6608 (primary text + rule 15%), #161718 or #77797B (supporting text 8%), #51DE0A (badge 2%)"
+    },
+    {
+      "asset_type": "Industry Feature Card",
+      "dimensions": "600×400px",
+      "structure": "Left third: solid #FF6608 panel with white industry icon (100px). Right two-thirds: white background with industry name (Involve 32px, #161718) + 2-line description (Poppins 14px, #77797B).",
+      "background": "#FF6608 left panel (33% width), #FFFFFF right panel (67% width).",
+      "typography_usage": "Industry name: Involve 32px, weight 600, #161718. Description: Poppins 14px, weight 400, #77797B. All type flush-left with 30px padding from panel edge.",
+      "accent_elements": "White line-art icon (100px, centered on orange panel). Subtle 1px border (#77797B) around entire card for definition.",
+      "colour_usage": "#FF6608 (left panel 33%), #FFFFFF (right panel background 60%), #161718 (heading 5%), #77797B (description text + border 2%)"
+    },
+    {
+      "asset_type": "Stat Callout Badge",
+      "dimensions": "400×300px",
+      "structure": "Centered layout. Top: large numeral + unit (Involve 60px, #FF6608). Bottom: descriptive label (Poppins 16px, #161718). All elements centered, white background.",
+      "background": "Solid #FFFFFF. Optional: thin 2px border (#FF6608) around entire badge for emphasis.",
+      "typography_usage": "Stat numeral: Involve 60px, weight 700, #FF6608. Unit/suffix (e.g. '+', 'ft', '%'): Involve 48px, weight 700, #FF6608. Label: Poppins 16px, weight 400, #161718, centered below numeral.",
+      "accent_elements": "Optional: small horizontal rule (1px solid #77797B, 60px wide, centered) between numeral and label for separation.",
+      "colour_usage": "#FFFFFF (background 80%), #FF6608 (numeral 15%), #161718 (label text 4%), #77797B (rule 1%)"
+    }
+  ],
+  "generation_suffixes": {
+    "core": "Clean industrial design with high-contrast flat colours: vibrant orange #FF6608 for primary accents and CTAs, white #FFFFFF backgrounds, and sharp black #161718 text. Typography: bold geometric sans-serif headlines (Involve aesthetic — condensed, strong verticals) paired with friendly rounded sans-serif body text (Poppins-like). Shape language: pill-shaped buttons with extreme rounding (border-radius 100px), minimal use of texture or shadows (flat aesthetic), and moderate whitespace (25-35% breathing room). Precision-focused layout with clear hierarchy — large numerals for statistics, horizontal divider rules in mid-grey #77797B, and strict alignment. Visual tone: dependable, process-driven, industrial warmth — never decorative or atmospheric. Every element serves clarity and technical credibility.",
+    "infographic": "Vertical multi-section layout with alternating white and very light grey (#F5F5F5) horizontal bands for content separation. Section headers in bold geometric sans (Involve aesthetic, 36-48px, #161718), body bullets in rounded sans (Poppins, 14-16px). Large orange #FF6608 numerals for stat callouts (60-68px, Involve weight 700) with descriptive labels below in black #161718. Line-art service icons (80-100px, #FF6608 or #161718 stroke, clean industrial style). Horizontal rules between sections (1px solid #77797B). Bottom CTA: orange pill button (#FF6608 bg, white text, 100px radius). Maintain 60-80px padding around all content blocks. Data visualisation: use horizontal bars with #FF6608 fill on #B1B3B3 tracks, or simple progress rings. Colour sequence for multi-data: #FF6608 → #51DE0A → #CC1818 → #77797B.",
+    "cover_image": "Bold asymmetric composition: headline occupies left two-thirds (Involve 56-68px, #FF6608 or #161718, flush-left with 80-100px margin), right third features solid colour panel (#FF6608 or white) or small environmental photo. Single horizontal accent rule (2px solid #FF6608) above or below headline. Subheading in Poppins 18-20px, #77797B, positioned below headline. Logo lockup in bottom-right corner (100px wide, white or black version depending on background). Optional: narrow vertical stripe (#FF6608, 10-15% width) along right edge as brand signature. Entire composition on white #FFFFFF background. No gradients, no soft shadows — maintain flat industrial aesthetic with maximum contrast for readability at thumbnail size.",
+    "social_square": "Centered composition, generous padding (100px from all edges). Dominant single-line message or stat: Involve 60-72px, weight 700, #FF6608 or #161718, horizontally centered. Supporting descriptive line below: Poppins 18px, #77797B, centered. Small logo lockup at top (80px wide, centered). Optional accent: circular radial gradient spot behind text (#FF6608 at 5% opacity, 40% canvas diameter, centered) for subtle depth without breaking flat aesthetic. Single pill badge element (#51DE0A background, white text, Poppins 14px bold, 'CERTIFIED' or 'TRUSTED') positioned below main message. All content centered, white #FFFFFF background. Short horizontal rule (2px solid #FF6608, 120px wide, centered) between elements if needed for visual separation. Keep composition minimal — one clear message, maximum 3 text elements total.",
+    "midjourney_modifier": "--style raw --ar 16:9 (or 1:1 for social), flat graphic design, bold sans-serif typography, industrial aesthetic, high contrast colour blocking, clean geometric shapes, professional corporate infographic",
+    "dalle_modifier": "Corporate graphic design layout with bold orange #FF6608 accents on white background, geometric sans-serif headlines, industrial precision aesthetic, clean flat shapes with no gradients or textures, professional business infographic style, high readability",
+    "ideogram_modifier": "Industrial infographic design, bold geometric sans-serif headlines (Involve-style condensed typeface), vibrant orange #FF6608 accents, white background, flat minimal aesthetic, pill-shaped UI elements, clean typography hierarchy, professional technical style"
+  }
+}
+</output_json>`,
 };
 
 const CLIENT_7BROWN: ClientSample = {
@@ -8046,6 +11232,345 @@ const CLIENT_7BROWN: ClientSample = {
     `Why Buying Direct from Your Farmer Is the Best Choice`,
     `Carnivore Diet Beef Brisket: Complete Cooking Guide`,
   ],
+  graphicTokenJson: `<output_json>
+{
+  "brand": {
+    "name": "7 Brown Farms",
+    "website": "7brown.com",
+    "asset_types": ["blog covers", "social media posts", "infographics", "promotional banners", "email headers"],
+    "personality_keywords": ["farm-authentic", "heritage-grounded", "quality-focused", "family-direct", "rustic-premium", "trust-building"],
+    "visual_summary": "7 Brown Farms employs a bold, farm-authentic visual system anchored by a vibrant red (#C90000) primary accent against clean white backgrounds (#FFFFFF). The brand pairs Lalezar headings (display serif with strong personality) with Hind body text (clean sans-serif) to balance rustic heritage with modern readability. Minimal corner radius (4px) and straightforward Bootstrap-based layouts emphasize honesty and directness."
+  },
+  "extraction_note": "Complete extraction from branding_json source. HTML source was minimal (markdown conversion only, no inline styles or embedded CSS). All colour values, typography, button styling, and component data derived from branding_json. Bootstrap framework confirmed. No gradients found in either source. Logo and imagery URLs extracted from branding_json.images. No cross-validation conflicts — branding_json was the authoritative source for this extraction.",
+  "colours": {
+    "palette": [
+      {
+        "role": "primary",
+        "name": "Farm Red",
+        "hex": "#C90000",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary brand colour for CTAs, headings, accents, and key UI elements. Dominates buttons and attention-drawing elements."
+      },
+      {
+        "role": "secondary",
+        "name": "Pasture Green",
+        "hex": "#3C763D",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Secondary supporting colour for success states, environmental cues, and subtle accents. Used sparingly."
+      },
+      {
+        "role": "accent",
+        "name": "Brand Accent Red",
+        "hex": "#C90000",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Accent colour (same as primary) — used for highlights, links in hover states, and call-to-action emphasis."
+      },
+      {
+        "role": "background_light",
+        "name": "Clean White",
+        "hex": "#FFFFFF",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary canvas background. Provides clean, airy foundation for content."
+      },
+      {
+        "role": "body_text",
+        "name": "Charcoal Gray",
+        "hex": "#3D3D3D",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary body text and paragraph copy. High contrast on white backgrounds."
+      },
+      {
+        "role": "cta_fill",
+        "name": "Deep Red Border",
+        "hex": "#B50000",
+        "rgba": null,
+        "source": "json_components_button_primary",
+        "usage": "Primary button border colour. Slightly darker than fill to create subtle depth."
+      },
+      {
+        "role": "cta_text",
+        "name": "Button Text White",
+        "hex": "#FFFFFF",
+        "rgba": null,
+        "source": "json_components_button_primary",
+        "usage": "Text colour for primary buttons. Ensures legibility on red background."
+      },
+      {
+        "role": "secondary",
+        "name": "Secondary Button Gray",
+        "hex": "#3D3D3D",
+        "rgba": null,
+        "source": "json_components_button_secondary",
+        "usage": "Secondary button background. Provides neutral alternative to primary red CTA."
+      },
+      {
+        "role": "border",
+        "name": "Secondary Button Border",
+        "hex": "#292929",
+        "rgba": null,
+        "source": "json_components_button_secondary",
+        "usage": "Border for secondary buttons. Darker than fill for definition."
+      },
+      {
+        "role": "form_border",
+        "name": "Input Border Gray",
+        "hex": "#CCCCCC",
+        "rgba": null,
+        "source": "json_components_input",
+        "usage": "Border colour for form inputs and text fields."
+      },
+      {
+        "role": "muted_text",
+        "name": "Input Text Gray",
+        "hex": "#555555",
+        "rgba": null,
+        "source": "json_components_input",
+        "usage": "Placeholder and muted text within form fields."
+      },
+      {
+        "role": "link",
+        "name": "Link Blue",
+        "hex": "#337AB7",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Standard hyperlink colour. Bootstrap default blue retained for clarity."
+      }
+    ],
+    "proportion_rule": "70% white background (#FFFFFF) and neutral grays (#3D3D3D, #555555, #CCCCCC), 20% Farm Red (#C90000, #B50000) for CTAs and accents, 10% supporting colours (Pasture Green #3C763D, Link Blue #337AB7)"
+  },
+  "gradients": [],
+  "typography": {
+    "fonts": [
+      {
+        "role": "heading",
+        "family": "Lalezar",
+        "source": "json_fonts",
+        "google_font_fallback": "Lalezar",
+        "style_notes": "Display serif with strong personality. Used for all headings to convey heritage and boldness."
+      },
+      {
+        "role": "body",
+        "family": "Hind",
+        "source": "json_fonts",
+        "google_font_fallback": "Hind",
+        "style_notes": "Clean sans-serif for readability. Used for body text, labels, and UI elements."
+      }
+    ],
+    "hierarchy": {
+      "cover_title": {
+        "font_role": "heading",
+        "weight": "400",
+        "size_range_px": "48–64",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "section_header": {
+        "font_role": "heading",
+        "weight": "400",
+        "size_range_px": "34–42",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "stat_callout": {
+        "font_role": "heading",
+        "weight": "400",
+        "size_range_px": "56–72",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "body_label": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "16–18",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "caption_source": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "14–16",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      }
+    }
+  },
+  "layout": {
+    "content_density": "moderate",
+    "whitespace_ratio": "medium (25-40%)",
+    "standard_flow": "hero banner → product showcase grid → process steps → testimonials → story section → footer CTA"
+  },
+  "design_patterns": {
+    "shape_language": {
+      "corner_radius_px": "4",
+      "dominant_shapes": ["slightly-rounded rectangles", "pill buttons (4px radius)", "square product images"],
+      "overall_feel": "slightly-rounded — minimal rounding for a clean, straightforward aesthetic"
+    },
+    "backgrounds": {
+      "light_variant": "Solid white #FFFFFF as primary canvas",
+      "dark_variant": "Charcoal Gray #3D3D3D used for secondary buttons and subtle section contrast",
+      "accent_variant": "Farm Red #C90000 used sparingly as button backgrounds and attention-drawing highlights"
+    },
+    "texture_and_pattern": {
+      "used": false,
+      "type": "none",
+      "intensity": "none",
+      "css_implementation": null
+    },
+    "shadows": {
+      "style": "soft-subtle",
+      "css_value": "rgba(0, 0, 0, 0.075) 0px 1px 1px 0px inset"
+    },
+    "borders_and_rules": {
+      "used": true,
+      "css_value": "1px solid #CCCCCC (inputs), 1px solid #B50000 (primary button), 1px solid #292929 (secondary button)",
+      "application": "Form inputs, button borders, and subtle separation between sections"
+    },
+    "decorative_elements": ["Checkmark icons (✔) used as trust indicators in hero section", "Star ratings (⭐) in testimonials", "Minimalist layout with no extraneous ornamentation — content-first approach"]
+  },
+  "cta_and_buttons": {
+    "primary": {
+      "background": "#C90000",
+      "text_color": "#FFFFFF",
+      "border_radius_px": "4",
+      "padding": "not_found_in_source",
+      "font_weight": "not_found_in_source",
+      "font_size_px": "not_found_in_source",
+      "text_transform": "none",
+      "border": "1px solid #B50000",
+      "shadow": "none",
+      "source": "json_components_button_primary"
+    },
+    "secondary": {
+      "background": "#3D3D3D",
+      "text_color": "#FFFFFF",
+      "border_radius_px": "4",
+      "border": "1px solid #292929",
+      "shadow": "none",
+      "source": "json_components_button_secondary",
+      "notes": "Secondary buttons use asymmetric corner radius — topLeft: 0px, topRight: 4px, bottomRight: 4px, bottomLeft: 0px — creating a subtle diagonal-cut feel on one corner"
+    },
+    "usage_in_assets": "Primary red buttons (#C90000) should be used for high-priority CTAs like 'Shop Now' or 'Learn More'. Secondary gray buttons (#3D3D3D) for lower-priority actions. In infographics, adapt button styling to badges or callout boxes: 4px rounded corners, red fill (#C90000) with white text for key stats, gray (#3D3D3D) for supporting labels."
+  },
+  "iconography": {
+    "style": "mixed — emoji-style unicode symbols (✔, ⭐) and minimal geometric icons",
+    "stroke_weight": "N/A",
+    "implementation": "Unicode characters for checkmarks and stars; likely custom or Bootstrap Glyphicons for any additional UI icons",
+    "closest_public_library": "Bootstrap Icons or Glyphicons (legacy Bootstrap component library)",
+    "colour_usage": "Icons inherit text colour (#3D3D3D) or use Farm Red (#C90000) for emphasis",
+    "size_convention_px": "16–20px inline, 24px for standalone feature icons"
+  },
+  "illustration_style": {
+    "present": false,
+    "type": "none",
+    "colour_treatment": "none",
+    "line_quality": "none",
+    "notes": "Brand relies on product photography rather than illustrations. No custom illustration work observed."
+  },
+  "photography_and_imagery": {
+    "present": true,
+    "style": "product-on-context — high-quality beef cuts on white or natural surfaces, lifestyle farm photography",
+    "treatment": "natural/unfiltered — no heavy colour grading or filters. Emphasis on authentic, honest representation of product quality",
+    "overlay_pattern": "none",
+    "subject_framing": "centered-product — tight crops on beef cuts, wide environmental shots of farm landscapes",
+    "human_presence": "no-humans — focus is entirely on product and farm environment, not people",
+    "css_filters": "none"
+  },
+  "data_visualisation": {
+    "observed_in_source": false,
+    "chart_aesthetic": "Clean, minimal charts with no gridlines. Emphasis on large numeric callouts in Lalezar heading font. Axis lines (if present) should use #CCCCCC. Overall feel: straightforward, farm-honest data presentation.",
+    "colour_sequence": ["#C90000", "#3C763D", "#337AB7", "#3D3D3D"],
+    "stat_callout_format": "Large Lalezar numerals (56–72px) in Farm Red (#C90000) or Charcoal Gray (#3D3D3D), with smaller Hind label text (14–16px) in #555555 below. White background with ample whitespace.",
+    "progress_indicators": "Horizontal bars with 4px border-radius, Farm Red (#C90000) fill on white background, light gray (#CCCCCC) unfilled portion. No fancy animations — straightforward percentage fill.",
+    "label_placement": "Labels positioned below or to the right of data points. Hind body font, 14–16px, #3D3D3D or #555555.",
+    "gridline_style": "1px solid #CCCCCC, minimal — only when necessary for clarity"
+  },
+  "brand_marks": {
+    "logo_type": "logomark",
+    "logo_url": "https://storage.googleapis.com/grazecart-images-prod/7brownfarms/images/1765042730_69346a2a1768b.png",
+    "logo_placement_convention": "Top-left corner on website header. On covers and social assets: top-left or centered in footer lockup.",
+    "recurring_motifs": ["Checkmark symbols (✔) as trust indicators", "Star ratings (⭐) as social proof", "Minimal geometric rectangles with 4px rounding", "Product-forward imagery with no decorative embellishments"],
+    "favicon_description": "https://storage.googleapis.com/grazecart-images-prod/7brownfarms/images/1766845785_694fed592d51a.jpg — likely simplified brand mark or farm icon"
+  },
+  "brand_guardrails": [
+    {
+      "avoid": "Overly ornate typography or decorative script fonts",
+      "instead": "Always use Lalezar for headings and Hind for body. Keep type hierarchy clean and straightforward."
+    },
+    {
+      "avoid": "Heavy colour grading, filters, or oversaturated product photography",
+      "instead": "Use natural, unfiltered product photography. Authenticity over polish — let the beef quality speak for itself."
+    },
+    {
+      "avoid": "Complex gradients, multi-colour overlays, or trendy design effects",
+      "instead": "Stick to the core palette: Farm Red (#C90000), white (#FFFFFF), and charcoal gray (#3D3D3D). Simple, honest, and direct."
+    },
+    {
+      "avoid": "Rounded pill buttons or excessive corner rounding (8px+)",
+      "instead": "Use 4px border-radius consistently. Buttons should feel solid and straightforward, not overly soft."
+    },
+    {
+      "avoid": "Busy backgrounds, patterns, or textures that distract from content",
+      "instead": "Maintain clean white (#FFFFFF) backgrounds. Let product photography and bold red CTAs do the visual work."
+    },
+    {
+      "avoid": "Using Pasture Green (#3C763D) or Link Blue (#337AB7) as primary accent colours",
+      "instead": "Farm Red (#C90000) is the dominant accent. Use green and blue sparingly for success states and hyperlinks only."
+    }
+  ],
+  "asset_templates": [
+    {
+      "asset_type": "Blog Cover 16:9",
+      "dimensions": "1200×675px",
+      "structure": "Full-bleed product photography background with 40% dark gradient overlay (bottom to top, rgba(0,0,0,0.6) to transparent). Title text in upper-left or center-left third. Logo lockup in bottom-right corner.",
+      "background": "Product photography (beef cuts, farm landscape) with subtle dark overlay to ensure text legibility. Fallback: solid white (#FFFFFF) with Farm Red (#C90000) accent bar.",
+      "typography_usage": "Title: Lalezar, 48–56px, white (#FFFFFF), left-aligned. Subheading (if needed): Hind, 18–20px, white or light gray. Caption/date: Hind, 14px, rgba(255,255,255,0.8).",
+      "accent_elements": "Logo in bottom-right (60–80px height). Optional: thin Farm Red (#C90000) underline or side bar (4px width) to frame title.",
+      "colour_usage": "White text on dark photography overlay. Farm Red (#C90000) used sparingly as accent bar or logo border. Charcoal Gray (#3D3D3D) reserved for alternative light-background covers."
+    },
+    {
+      "asset_type": "Social Media Square 1:1",
+      "dimensions": "1080×1080px",
+      "structure": "Centered composition. Product image or farm scene in upper 60%, solid colour block or gradient fade in lower 40% containing text. Logo in top-left corner.",
+      "background": "Upper: product photography. Lower: solid white (#FFFFFF) or Farm Red (#C90000) block for text zone.",
+      "typography_usage": "Main message: Lalezar, 40–48px, white on red or charcoal gray (#3D3D3D) on white. Supporting text: Hind, 16–18px, matching contrast.",
+      "accent_elements": "Checkmark (✔) or star (⭐) icons at 24px. Logo at 50–60px height. Optional: 4px border in Farm Red (#C90000) around entire canvas for branded frame.",
+      "colour_usage": "Dominant white (#FFFFFF) or Farm Red (#C90000) background. Text in high contrast. Minimal use of Pasture Green (#3C763D) or Link Blue (#337AB7)."
+    },
+    {
+      "asset_type": "Infographic Vertical",
+      "dimensions": "800×2000px (flexible height)",
+      "structure": "Top hero section (200px) with title and logo. Repeating content blocks (300–400px each) separated by 1px #CCCCCC dividers. Each block: icon/stat on left, body text on right. Footer CTA block (200px) at bottom.",
+      "background": "White (#FFFFFF) canvas. Alternating subtle gray (#F9F9F9 — not extracted but common Bootstrap default) for section backgrounds if needed.",
+      "typography_usage": "Main title: Lalezar, 48–56px, Farm Red (#C90000). Section headers: Lalezar, 34–42px, Charcoal Gray (#3D3D3D). Body text: Hind, 16–18px, #3D3D3D. Stat callouts: Lalezar, 56–72px, Farm Red (#C90000).",
+      "accent_elements": "Checkmarks (✔) or numbered badges in Farm Red (#C90000). Stats in large Lalezar numerals. Horizontal dividers in light gray (#CCCCCC). CTA button at bottom: 4px rounded, Farm Red fill, white text.",
+      "colour_usage": "70% white background, 20% Farm Red accents (headings, badges, CTA), 10% charcoal gray text and borders."
+    },
+    {
+      "asset_type": "Email Header",
+      "dimensions": "600×200px",
+      "structure": "Logo left-aligned (100px height), headline right-aligned or centered. Clean horizontal banner with optional Farm Red accent bar at top or bottom (8px height).",
+      "background": "Solid white (#FFFFFF) or light product photography with 50% white overlay.",
+      "typography_usage": "Headline: Lalezar, 28–34px, Farm Red (#C90000) or Charcoal Gray (#3D3D3D). Tagline: Hind, 14–16px, #555555.",
+      "accent_elements": "Logo (80–100px height). Optional: thin Farm Red (#C90000) horizontal rule (2px) below header.",
+      "colour_usage": "White background, Farm Red headline or accent bar, charcoal gray body text."
+    }
+  ],
+  "generation_suffixes": {
+    "core": "7 Brown Farms brand aesthetic: clean farm-authentic design on white (#FFFFFF) canvas. Bold Farm Red (#C90000) accents for CTAs and headings. Lalezar display serif for all headlines (strong personality, heritage feel), Hind sans-serif for body text (modern readability). Minimal 4px corner rounding on buttons and cards — straightforward, honest geometry. High-quality product photography with no filters or overlays. Charcoal Gray (#3D3D3D) for body text and secondary elements. Ample whitespace, moderate content density. Bootstrap-clean layout with no decorative flourishes — content-first, authentic, direct. Checkmark (✔) and star (⭐) icons as trust signals.",
+    "infographic": "Vertical multi-section layout on white background. Lalezar section headers (34–42px) in Charcoal Gray (#3D3D3D), Lalezar stat callouts (56–72px) in Farm Red (#C90000). Hind body labels (16–18px) in #555555. Sections separated by 1px solid #CCCCCC horizontal rules. Numbered badges or checkmarks in Farm Red with white text. Data bars: 4px rounded, Farm Red (#C90000) fill, light gray (#CCCCCC) unfilled. Minimal gridlines, clean axis lines. Ample whitespace between sections (40–60px). Bottom CTA: red button, 4px rounded, white text. Logo lockup in footer.",
+    "cover_image": "16:9 blog cover. Full-bleed product photography with 40% dark gradient overlay (bottom to top, rgba(0,0,0,0.6) to transparent). Title in Lalezar (48–56px), white (#FFFFFF), left-aligned in upper-left or center-left third. Optional Farm Red (#C90000) underline or side accent bar (4px). Logo in bottom-right (60–80px height). High contrast, bold type, honest photography. Minimal decorative elements — let the beef quality and bold red branding do the work.",
+    "social_square": "1:1 square format. Centered composition: product photo or farm scene in upper 60%, solid Farm Red (#C90000) or white (#FFFFFF) block in lower 40% for text. Lalezar message text (40–48px), white on red or Charcoal Gray (#3D3D3D) on white. Logo in top-left (50–60px). Optional 4px Farm Red border framing entire canvas. Checkmark or star icon (24px) if needed. Clean, bold, farm-honest aesthetic. No filters, no heavy design effects.",
+    "midjourney_modifier": "--style raw --ar 16:9, clean product photography, bold sans-serif typography overlay, high contrast, minimal design, farm-authentic aesthetic, --q 2",
+    "dalle_modifier": "High-quality commercial product photography in the style of direct-to-consumer farm brands. Clean white backgrounds, bold red (#C90000) and charcoal gray (#3D3D3D) typography overlays. Minimal decorative elements. Professional e-commerce product shot aesthetic with honest, unfiltered presentation.",
+    "ideogram_modifier": "Farm-direct brand aesthetic. Lalezar bold serif headlines, Hind body text. Farm Red (#C90000) CTAs on clean white. Product-focused, no heavy effects. 4px rounded corners, straightforward layout."
+  }
+}
+</output_json>`,
 };
 
 const CLIENT_ABBAHVAC: ClientSample = {
@@ -8310,6 +11835,331 @@ const CLIENT_ABBAHVAC: ClientSample = {
     `Expert Tips for a Smooth HVAC Installation`,
     `Mini Split HVAC System vs Baseboard Heating Systems`,
   ],
+  graphicTokenJson: `<output_json>
+{
+  "brand": {
+    "name": "Abba HVAC",
+    "website": "https://www.abbahvac.com/",
+    "asset_types": ["Blog Covers", "Service Infographics", "Social Media Assets", "Technical Guides", "Customer Education Materials"],
+    "personality_keywords": ["approachable-professional", "trust-forward", "service-oriented", "clean-technical", "community-focused", "no-nonsense-reliable"],
+    "visual_summary": "Abba HVAC employs a clean, trust-forward visual system anchored by a professional blue primary (#0362A2) and crisp light backgrounds (#FFFFFF, #E6F2FA). The typography system uses Inter for headings and body text, creating a cohesive, modern, accessible feel. Dark accents (#111111) provide strong CTA contrast, while the overall aesthetic balances technical competence with approachable, dad-level care messaging."
+  },
+  "extraction_note": "Complete extraction with strong HTML-JSON alignment. All colours sourced from branding_json and cross-validated against typical HVAC service site patterns. Typography resolved via json_fonts (Inter, Roboto, Helvetica). Button styling sourced from json_components with high confidence (0.9). No gradients observed in source. ColorScheme confirmed as light via json and typical service site layout. No obfuscated fonts or role conflicts detected.",
+  "colours": {
+    "palette": [
+      {
+        "role": "primary",
+        "name": "Professional Blue",
+        "hex": "#0362A2",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary brand colour for headers, links, and key UI elements. Use for section titles, service category badges, and data visualization primary series."
+      },
+      {
+        "role": "secondary",
+        "name": "Light Sky",
+        "hex": "#E6F2FA",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Secondary background for alternating sections, callout boxes, and subtle surface highlights. Use for stat callout backgrounds and infographic section dividers."
+      },
+      {
+        "role": "accent",
+        "name": "Deep Charcoal",
+        "hex": "#111111",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "High-contrast accent for primary CTAs, bold headings, and emphasis text. Use for button fills and strong typographic hierarchy."
+      },
+      {
+        "role": "background_light",
+        "name": "Pure White",
+        "hex": "#FFFFFF",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary canvas background for all light-mode assets. Dominant surface colour for clean, professional layouts."
+      },
+      {
+        "role": "body_text",
+        "name": "Neutral Charcoal",
+        "hex": "#1E1E1E",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary body text and paragraph colour. Use for all readable content, labels, and descriptions."
+      },
+      {
+        "role": "cta_text",
+        "name": "Link Blue",
+        "hex": "#064B77",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Link and interactive text colour. Use for secondary CTAs, inline links, and navigation elements."
+      },
+      {
+        "role": "form_border",
+        "name": "Slate Border",
+        "hex": "#CBD5E1",
+        "rgba": null,
+        "source": "json_components_input",
+        "usage": "Form input borders and subtle dividing lines. Use for input field outlines and light rule separators."
+      },
+      {
+        "role": "muted_text",
+        "name": "Slate Text",
+        "hex": "#0F172A",
+        "rgba": null,
+        "source": "json_components_input",
+        "usage": "Form input text and secondary content. Use for placeholder text and de-emphasized labels."
+      },
+      {
+        "role": "surface",
+        "name": "Light Neutral Surface",
+        "hex": "#F4F6F7",
+        "rgba": null,
+        "source": "json_components_button_secondary",
+        "usage": "Secondary button background and card surfaces. Use for low-emphasis UI elements and secondary action buttons."
+      }
+    ],
+    "proportion_rule": "70% neutral whites and light surfaces (#FFFFFF, #E6F2FA, #F4F6F7), 20% primary blue (#0362A2, #064B77), 10% dark accents (#111111, #1E1E1E)"
+  },
+  "gradients": [],
+  "typography": {
+    "fonts": [
+      {
+        "role": "heading",
+        "family": "Inter",
+        "source": "json_fonts",
+        "google_font_fallback": "Inter",
+        "style_notes": "Clean, geometric sans-serif. Primary heading typeface with strong legibility at all sizes."
+      },
+      {
+        "role": "body",
+        "family": "Roboto",
+        "source": "json_fonts",
+        "google_font_fallback": "Roboto",
+        "style_notes": "Secondary body typeface for readability and technical clarity."
+      },
+      {
+        "role": "ui",
+        "family": "Helvetica",
+        "source": "json_fonts",
+        "google_font_fallback": "Helvetica",
+        "style_notes": "Fallback system font for UI elements and accessibility."
+      },
+      {
+        "role": "display",
+        "family": "Urbanist",
+        "source": "json_fonts",
+        "google_font_fallback": "Urbanist",
+        "style_notes": "Display-weight heading option for large hero text and cover titles."
+      }
+    ],
+    "hierarchy": {
+      "cover_title": {
+        "font_role": "heading",
+        "weight": "700",
+        "size_range_px": "48–72",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "section_header": {
+        "font_role": "heading",
+        "weight": "600",
+        "size_range_px": "20–32",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "stat_callout": {
+        "font_role": "heading",
+        "weight": "700",
+        "size_range_px": "36–48",
+        "letter_spacing": "-0.01em",
+        "text_transform": "none"
+      },
+      "body_label": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "14–16",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "caption_source": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "12–14",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      }
+    }
+  },
+  "layout": {
+    "content_density": "moderate",
+    "whitespace_ratio": "medium (30-35% empty, service-focused with breathing room)",
+    "standard_flow": "hero with CTA → service category cards → testimonial carousel → trust signals (24/7, expertise) → coverage map → contact form"
+  },
+  "design_patterns": {
+    "shape_language": {
+      "corner_radius_px": "8–10",
+      "dominant_shapes": ["rounded-rectangle", "pill-button", "card-based-grid"],
+      "overall_feel": "slightly-rounded"
+    },
+    "backgrounds": {
+      "light_variant": "Solid #FFFFFF as primary canvas with #E6F2FA alternating section backgrounds for visual rhythm",
+      "dark_variant": "not_found_in_source",
+      "accent_variant": "#E6F2FA at full opacity for section highlights and callout boxes"
+    },
+    "texture_and_pattern": {
+      "used": false,
+      "type": "none",
+      "intensity": "none",
+      "css_implementation": null
+    },
+    "shadows": {
+      "style": "none/flat",
+      "css_value": "none"
+    },
+    "borders_and_rules": {
+      "used": true,
+      "css_value": "1px solid #CBD5E1",
+      "application": "Form inputs, card dividers, and subtle section separators"
+    },
+    "decorative_elements": ["Service category icons (outline style)", "Client testimonial avatars (circular crop)", "24/7 emergency badge graphic", "Interactive coverage map pins"]
+  },
+  "cta_and_buttons": {
+    "primary": {
+      "background": "#111111",
+      "text_color": "#FFFFFF",
+      "border_radius_px": "8",
+      "padding": "not_found_in_source",
+      "font_weight": "not_found_in_source",
+      "font_size_px": "not_found_in_source",
+      "text_transform": "none",
+      "border": "none",
+      "shadow": "none",
+      "source": "json_components_button_primary"
+    },
+    "secondary": {
+      "background": "#F4F6F7",
+      "text_color": "#0362A2",
+      "border_radius_px": "10",
+      "border": "none",
+      "shadow": "none",
+      "source": "json_components_button_secondary",
+      "notes": "Slightly larger radius than primary (10px vs 8px). Used for Learn More and secondary navigation CTAs."
+    },
+    "usage_in_assets": "Primary CTA style (#111111 fill, white text, 8px radius) translates to bold action badges and primary data callouts in infographics. Secondary style (#F4F6F7 fill, #0362A2 text, 10px radius) works for secondary labels, category tags, and less-urgent callouts."
+  },
+  "iconography": {
+    "style": "outline/line",
+    "stroke_weight": "not_found_in_source",
+    "implementation": "image sprites and inline graphics",
+    "closest_public_library": "Lucide or Heroicons v2 (based on service category iconography patterns)",
+    "colour_usage": "Icons use primary blue (#0362A2) for active states and neutral charcoal (#1E1E1E) for default states",
+    "size_convention_px": "24px inline, 48px feature section icons"
+  },
+  "illustration_style": {
+    "present": true,
+    "type": "photographic",
+    "colour_treatment": "natural/unfiltered with slight warm tone for human subject photos",
+    "line_quality": "none",
+    "notes": "Service photography (technicians, equipment, installations) used throughout. Clean, professional staging with focus on expertise and accessibility."
+  },
+  "photography_and_imagery": {
+    "present": true,
+    "style": "lifestyle and environmental (service documentation style)",
+    "treatment": "natural/unfiltered with slight warm tone",
+    "overlay_pattern": "none",
+    "subject_framing": "wide-environmental for service context shots, tight-crop for testimonials",
+    "human_presence": "prominent-people (technicians, homeowners, service interactions)",
+    "css_filters": "none"
+  },
+  "data_visualisation": {
+    "observed_in_source": false,
+    "chart_aesthetic": "Clean, minimal chart style with #CBD5E1 gridlines and #E6F2FA alternating row/bar backgrounds. Axis labels in 12px Roboto, gridlines at 1px dashed.",
+    "colour_sequence": ["#0362A2", "#064B77", "#E6F2FA", "#111111"],
+    "stat_callout_format": "Large bold number in Inter 700 36-48px (#111111), label below in Roboto 400 14px (#1E1E1E), optional subtitle in 12px (#0F172A)",
+    "progress_indicators": "Horizontal bar with #E6F2FA track, #0362A2 fill, 8px border-radius, progress percentage in Inter 600 14px right-aligned",
+    "label_placement": "Outside-end for horizontal bars, above for vertical columns, centered for pie/donut segments",
+    "gridline_style": "1px dashed #CBD5E1"
+  },
+  "brand_marks": {
+    "logo_type": "combination",
+    "logo_url": "https://cdn.prod.website-files.com/68e7913aa58f5b95db115158/68ff83bd6fd3dd4ae681df62_Copy%20of%20Abba%20logo%20wth%20text%20(1)%20(1).png",
+    "logo_placement_convention": "Top-left on covers and infographics, centered on social square formats",
+    "recurring_motifs": ["24/7 emergency badge (circular with clock icon)", "Service category icons (consistent outline style)", "Coverage map pin markers"],
+    "favicon_description": "32x32px favicon at https://cdn.prod.website-files.com/68e7913aa58f5b95db115158/68ff8744ca2c6baaaeb9f5cc_favicon-32x32.png"
+  },
+  "brand_guardrails": [
+    {
+      "avoid": "Using gradients or vibrant accent colours outside the extracted palette (#0362A2, #064B77, #E6F2FA, #111111, #1E1E1E, #FFFFFF, #CBD5E1, #0F172A, #F4F6F7)",
+      "instead": "Stick to the professional blue primary (#0362A2) and deep charcoal accent (#111111) for all emphasis. Use light sky (#E6F2FA) for backgrounds and subtle highlights only."
+    },
+    {
+      "avoid": "Heavy shadows, dramatic lighting, or overly stylized design elements",
+      "instead": "Maintain flat, clean surfaces with no shadows. Use solid fills and subtle borders (#CBD5E1) for structure."
+    },
+    {
+      "avoid": "Decorative script fonts, condensed display faces, or playful typefaces",
+      "instead": "Use Inter for all headings and Roboto for body text. Maintain professional, technical clarity in all typography."
+    },
+    {
+      "avoid": "Abstract or artistic photography styles",
+      "instead": "Use straightforward service documentation photography: technicians at work, equipment close-ups, home comfort contexts. Natural lighting, clear framing, human presence for trust-building."
+    },
+    {
+      "avoid": "Rounded corners beyond 10px or sharp geometric angles (0px radius)",
+      "instead": "Maintain consistent 8–10px border-radius for all UI elements, cards, and buttons. This slight rounding balances approachability with professionalism."
+    }
+  ],
+  "asset_templates": [
+    {
+      "asset_type": "Blog Cover 16:9",
+      "dimensions": "1200×675px",
+      "structure": "Left two-thirds: title + subtitle zone. Right third: service icon or photo. Top 60px: logo. Bottom 60px: category badge.",
+      "background": "Solid #FFFFFF primary canvas with optional #E6F2FA accent bar (100px tall) as top or bottom stripe",
+      "typography_usage": "Title: Inter 700 48–60px (#111111). Subtitle: Roboto 400 18px (#1E1E1E). Category badge: Inter 600 14px (#0362A2) on #E6F2FA background.",
+      "accent_elements": "Service category icon (48px outline style, #0362A2 stroke) in right third. Logo (120px width) in top-left 40px from edges.",
+      "colour_usage": "#FFFFFF background, #111111 title, #0362A2 accent stripe or icon, #E6F2FA badge background, #1E1E1E body text"
+    },
+    {
+      "asset_type": "Service Infographic (Vertical)",
+      "dimensions": "800×2000px",
+      "structure": "Header zone (200px): title + service category. Content zones (300–400px each): stat callouts, process steps, feature lists. Footer zone (150px): CTA badge + contact info.",
+      "background": "Alternating #FFFFFF and #E6F2FA section backgrounds (300px tall each) for visual rhythm",
+      "typography_usage": "Section headers: Inter 600 24px (#0362A2). Stat numbers: Inter 700 42px (#111111). Body labels: Roboto 400 16px (#1E1E1E). CTA text: Inter 600 18px (#FFFFFF on #111111).",
+      "accent_elements": "Service icons (32px outline, #0362A2) next to each section header. Horizontal rule dividers (1px solid #CBD5E1) between sections. Primary CTA badge (8px radius, #111111 fill) in footer.",
+      "colour_usage": "70% white/light surfaces (#FFFFFF, #E6F2FA), 20% primary blue accents (#0362A2, #064B77), 10% dark text and CTA fills (#111111, #1E1E1E)"
+    },
+    {
+      "asset_type": "Social Square 1:1",
+      "dimensions": "1080×1080px",
+      "structure": "Centered title + stat or quote. Bottom 180px: service category badge + logo. Optional: icon or small photo in background at 30% opacity.",
+      "background": "Solid #E6F2FA for high-visibility posts, solid #FFFFFF for clean testimonial quotes",
+      "typography_usage": "Title/quote: Inter 700 36–42px (#111111), centered. Category badge: Inter 600 16px (#0362A2) on #FFFFFF badge (10px radius). Logo: 100px width in bottom-right 40px from edges.",
+      "accent_elements": "Single service icon (64px, #0362A2 stroke at 20% opacity) as watermark behind title. Category badge (140px wide, 10px radius, #FFFFFF fill, 1px #CBD5E1 border) in bottom-left.",
+      "colour_usage": "#E6F2FA or #FFFFFF background (alternating by post type), #111111 title, #0362A2 accents, #FFFFFF badge surface"
+    },
+    {
+      "asset_type": "Testimonial Card",
+      "dimensions": "600×400px",
+      "structure": "Top 60px: 5-star icon row. Center 200px: quote text. Bottom 140px: client photo (80px circle) + name + role.",
+      "background": "Solid #FFFFFF with optional 1px #CBD5E1 border",
+      "typography_usage": "Quote: Roboto 400 18px (#1E1E1E), line-height 1.6. Name: Inter 600 16px (#111111). Role: Roboto 400 14px (#0F172A).",
+      "accent_elements": "5-star icon row (20px per star, #0362A2 fill). Client photo (80px diameter circle crop, 2px #E6F2FA border). Optional service category badge (80px wide, 8px radius, #E6F2FA fill, #0362A2 text) in top-right corner.",
+      "colour_usage": "#FFFFFF background, #1E1E1E quote text, #0362A2 star icons, #111111 name, #0F172A role"
+    }
+  ],
+  "generation_suffixes": {
+    "core": "Clean, professional service brand aesthetic with #FFFFFF and #E6F2FA light backgrounds, #0362A2 professional blue primary accents, and #111111 deep charcoal for emphasis. Typography uses Inter for headings (weight 600–700) and Roboto for body text (weight 400), maintaining technical clarity and approachability. Shapes have slight 8–10px rounded corners. No shadows or gradients—flat, solid surfaces only. Photography is straightforward service documentation style: technicians at work, equipment close-ups, natural lighting, human presence for trust. Icons are outline-style in #0362A2. Layout is balanced with moderate whitespace (30-35% empty) and clear hierarchical sections. Colour proportion: 70% neutral whites, 20% blue accents, 10% dark text/CTA fills. Dad-level care meets professional-grade service—honest, reliable, accessible.",
+    "infographic": "Multi-section vertical layout with alternating #FFFFFF and #E6F2FA backgrounds (300px tall sections). Section dividers are 1px solid #CBD5E1 horizontal rules. Stat callouts: Inter 700 42px (#111111) numbers with Roboto 400 16px (#1E1E1E) labels below. Service icons (32px outline, #0362A2 stroke) next to each section header (Inter 600 24px #0362A2). Data series colour sequence: #0362A2 → #064B77 → #E6F2FA → #111111. CTA badges at footer: 8px radius, #111111 fill, #FFFFFF text, Inter 600 18px. Spacing rhythm: 24px between elements, 48px between major sections. No shadows, flat design only.",
+    "cover_image": "16:9 horizontal layout with left two-thirds for title zone, right third for service icon or photo. Title: Inter 700 48–60px (#111111). Subtitle: Roboto 400 18px (#1E1E1E). Background: solid #FFFFFF with optional 100px tall #E6F2FA accent stripe at top or bottom. Logo (120px width) in top-left 40px from edges. Service icon (48px outline, #0362A2 stroke) in right third as focal point. Category badge (Inter 600 14px #0362A2 on #E6F2FA, 8px radius) in bottom-left or top-right corner. Flat, clean composition with strong typographic hierarchy.",
+    "social_square": "1:1 centered composition. Title/quote: Inter 700 36–42px (#111111), centered vertically. Background: #E6F2FA for high-visibility posts, #FFFFFF for testimonials. Single service icon (64px, #0362A2 stroke at 20% opacity) as subtle watermark behind title. Category badge (140px wide, 10px radius, #FFFFFF fill, 1px #CBD5E1 border, Inter 600 16px #0362A2) in bottom-left. Logo (100px width) in bottom-right 40px from edges. Minimal, balanced layout with clear focal point and breathing room.",
+    "midjourney_modifier": "--style raw --ar 16:9 flat design, no shadows, service brand aesthetic, professional blue accents, clean typography",
+    "dalle_modifier": "Flat design style with clean white and light blue backgrounds, professional blue accent colour, no shadows or gradients, service industry aesthetic, straightforward technical clarity, outline-style icons, natural lighting for photography",
+    "ideogram_modifier": "Clean service brand design, Inter bold headings, #0362A2 blue accents, #FFFFFF background, flat no-shadow style, 8px rounded corners, professional HVAC aesthetic"
+  }
+}
+</output_json>`,
 };
 
 const CLIENT_UNLEASHX: ClientSample = {
@@ -8620,6 +12470,359 @@ const CLIENT_UNLEASHX: ClientSample = {
     `How to Automate Subscription Contract Renewals: Complete Guide`,
     `5 Best Practices for Integrating AI Voice Technology in Business`,
   ],
+  graphicTokenJson: `<output_json>
+{
+  "brand": {
+    "name": "UnleashX",
+    "website": "https://unleashx.ai",
+    "asset_types": ["infographic", "blog_cover", "social_media_post", "case_study_visual", "feature_highlight", "stat_callout", "agent_card"],
+    "personality_keywords": ["technical-precise", "enterprise-confident", "AI-forward", "data-driven", "globally-scalable", "professional-modern"],
+    "visual_summary": "UnleashX presents a dark, technology-focused visual identity anchored by a deep charcoal background (#0D0C11) and vibrant purple accent (#7A4AE4). Typography uses Lexend Deca for all hierarchy levels with moderate letter-spacing and clean sans-serif structure. The brand balances technical credibility (stat callouts, integration logos, precise metrics) with accessible warmth (rounded 6-8px corners, soft shadows, conversational agent personas)."
+  },
+  "extraction_note": "Primary source: branding_json (HTML contained Next.js obfuscated classes and external stylesheet references with minimal inline styles). Cross-validation identified: colorScheme correctly marked 'dark' (background #0D0C11 is deep charcoal). Typography fully resolved via json_fonts (HTML had __variable_ class obfuscation). Button styling trusted from json_components (buttonPrimary and buttonSecondary both validated). Hex #7A4AE4 appears as primary CTA and accent throughout json_components. No conflicting evidence found between sources. Font source confirmed via json_fonts due to HTML obfuscation. All extracted values trace to branding_json with high confidence (0.925 overall, 0.95 buttons, 0.9 colors).",
+  "colours": {
+    "palette": [
+      {
+        "role": "background_dark",
+        "name": "Deep Charcoal",
+        "hex": "#0D0C11",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary canvas background for all dark-mode assets. Use as base layer for infographics, covers, and social posts."
+      },
+      {
+        "role": "surface",
+        "name": "Midnight Slate",
+        "hex": "#1F202E",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Elevated surface color for cards, panels, and content containers. Creates subtle depth against #0D0C11 background."
+      },
+      {
+        "role": "input_surface",
+        "name": "Input Dark",
+        "hex": "#1B191C",
+        "rgba": null,
+        "source": "json_components_input",
+        "usage": "Form field backgrounds. Use for any input-like UI elements in infographics (search bars, filter controls)."
+      },
+      {
+        "role": "border",
+        "name": "Border Subtle",
+        "hex": "#141624",
+        "rgba": null,
+        "source": "json_components_input",
+        "usage": "Subtle borders for form fields and dividers. Use sparingly to separate sections without heavy contrast."
+      },
+      {
+        "role": "primary",
+        "name": "Vibrant Purple",
+        "hex": "#7A4AE4",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary brand accent. Use for CTAs, key stats, feature highlights, and any element requiring high visibility. Appears on buttonPrimary background."
+      },
+      {
+        "role": "cta_fill",
+        "name": "CTA Purple",
+        "hex": "#7A4AE4",
+        "rgba": null,
+        "source": "json_components_button_primary",
+        "usage": "Primary CTA button fill. Use for 'Hire Now', 'Talk Now', 'Submit' buttons and any primary action badge in infographics."
+      },
+      {
+        "role": "cta_text",
+        "name": "Button White",
+        "hex": "#FFFFFF",
+        "rgba": null,
+        "source": "json_components_button_primary",
+        "usage": "Text color on primary purple buttons. High contrast for readability."
+      },
+      {
+        "role": "secondary",
+        "name": "Off-White Bright",
+        "hex": "#FCFDFF",
+        "rgba": null,
+        "source": "json_components_button_secondary",
+        "usage": "Secondary button background (light on dark). Use for secondary CTAs like 'Request a Demo' or less prominent actions."
+      },
+      {
+        "role": "body_text",
+        "name": "Near-Black Text",
+        "hex": "#000211",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Body text and link color. Note: This hex appears in branding_json as textPrimary and link, but given dark background (#0D0C11), this likely represents text on light surfaces (e.g. secondary buttons). On dark backgrounds, actual text is white (#FFFFFF per buttonPrimary textColor)."
+      },
+      {
+        "role": "heading_text",
+        "name": "Pure White",
+        "hex": "#FFFFFF",
+        "rgba": null,
+        "source": "json_components_input",
+        "usage": "Heading and body text on dark backgrounds. Use for all primary text elements on #0D0C11 or #1F202E surfaces."
+      },
+      {
+        "role": "secondary_cta_text",
+        "name": "Dark Text on Light",
+        "hex": "#121314",
+        "rgba": null,
+        "source": "json_components_button_secondary",
+        "usage": "Text color for secondary (light) buttons. Provides contrast against #FCFDFF background."
+      }
+    ],
+    "proportion_rule": "70% dark neutrals (#0D0C11, #1F202E, #1B191C) as canvas and surfaces, 20% white (#FFFFFF, #FCFDFF) for text and secondary CTAs, 10% vibrant purple (#7A4AE4) as accent for CTAs and key highlights"
+  },
+  "gradients": [],
+  "typography": {
+    "fonts": [
+      {
+        "role": "display",
+        "family": "Lexend Deca",
+        "source": "json_fonts",
+        "google_font_fallback": "Lexend Deca",
+        "style_notes": "Used universally for headings (h1, h2) at 40px. Clean, geometric sans-serif with slightly condensed proportions. Moderate letter-spacing for technical clarity."
+      },
+      {
+        "role": "body",
+        "family": "Lexend Deca",
+        "source": "json_fonts",
+        "google_font_fallback": "Lexend Deca",
+        "style_notes": "Body text at 18px. Same typeface as headings creates cohesive hierarchy via size and weight differentiation only."
+      },
+      {
+        "role": "ui",
+        "family": "Roboto",
+        "source": "json_fonts",
+        "google_font_fallback": "Roboto",
+        "style_notes": "Secondary font (role unknown in branding_json). Likely used for UI elements, captions, or labels. Roboto provides technical precision and excellent screen readability."
+      }
+    ],
+    "hierarchy": {
+      "cover_title": {
+        "font_role": "display",
+        "weight": "700",
+        "size_range_px": "48–64",
+        "letter_spacing": "-0.01em",
+        "text_transform": "none"
+      },
+      "section_header": {
+        "font_role": "display",
+        "weight": "600",
+        "size_range_px": "32–40",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "stat_callout": {
+        "font_role": "display",
+        "weight": "700",
+        "size_range_px": "40–52",
+        "letter_spacing": "-0.02em",
+        "text_transform": "none"
+      },
+      "body_label": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "16–18",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "caption_source": {
+        "font_role": "ui",
+        "weight": "400",
+        "size_range_px": "12–14",
+        "letter_spacing": "0.01em",
+        "text_transform": "none"
+      }
+    }
+  },
+  "layout": {
+    "content_density": "moderate",
+    "whitespace_ratio": "medium (30-35% — balanced spacing between hero stats, feature grids, and testimonial cards)",
+    "standard_flow": "hero with stat bar → value proposition section → AI employee cards (3-col grid) → feature grid (icon + title + description) → case study testimonials → integration logo marquee → FAQ accordion → CTA footer"
+  },
+  "design_patterns": {
+    "shape_language": {
+      "corner_radius_px": "6 (buttons primary), 8 (buttons secondary, base unit for cards)",
+      "dominant_shapes": ["rounded-rectangle", "pill-button", "soft-card"],
+      "overall_feel": "slightly-rounded — technical but approachable, modern without excessive softness"
+    },
+    "backgrounds": {
+      "light_variant": "not_found_in_source — brand operates in dark mode only",
+      "dark_variant": "Solid #0D0C11 as primary canvas. Elevated surfaces use #1F202E. No gradients observed in background treatments.",
+      "accent_variant": "Purple #7A4AE4 used as solid fill for buttons and highlights, not as background tint or overlay."
+    },
+    "texture_and_pattern": {
+      "used": false,
+      "type": "none",
+      "intensity": "none",
+      "css_implementation": null
+    },
+    "shadows": {
+      "style": "soft-subtle — minimal elevation for depth without drama",
+      "css_value": "Primary button: rgba(0, 0, 0, 0.22) 0px 0px 16px 0px | Secondary button: rgba(0, 0, 0, 0.16) 0px 0px 12px 0px"
+    },
+    "borders_and_rules": {
+      "used": true,
+      "css_value": "Input border: #141624 (exact width not specified in source, assume 1px solid)",
+      "application": "Form field borders and subtle container outlines. Borders are understated to maintain clean, uncluttered layouts."
+    },
+    "decorative_elements": [
+      "Animated voice bar GIF in hero section (https://unleashx.ai/_next/image/?url=%2F_next%2Fstatic%2Fmedia%2Fvoice-bars.ddc7cb4b.gif) — conveys real-time voice AI activity",
+      "Ellipse blur image as hero background accent (suggests depth and focus)",
+      "SVG 'X' shape as recurring brand mark (https://unleashx.ai/images/x.svg) — appears in footer and likely other decorative contexts",
+      "Integration logo marquee with continuous scroll animation — showcases 200+ tool connections",
+      "Agent avatar portraits in circular frames — humanises AI employees (Peter, Sarah, James)"
+    ]
+  },
+  "cta_and_buttons": {
+    "primary": {
+      "background": "#7A4AE4",
+      "text_color": "#FFFFFF",
+      "border_radius_px": "6",
+      "padding": "not_found_in_source",
+      "font_weight": "not_found_in_source",
+      "font_size_px": "not_found_in_source",
+      "text_transform": "not_found_in_source",
+      "border": "none",
+      "shadow": "rgba(0, 0, 0, 0.22) 0px 0px 16px 0px",
+      "source": "json_components_button_primary"
+    },
+    "secondary": {
+      "background": "#FCFDFF",
+      "text_color": "#121314",
+      "border_radius_px": "8",
+      "border": "not_found_in_source",
+      "shadow": "rgba(0, 0, 0, 0.16) 0px 0px 12px 0px",
+      "source": "json_components_button_secondary",
+      "notes": "Light button on dark background creates strong contrast. Used for lower-hierarchy CTAs like 'Request a Demo'."
+    },
+    "usage_in_assets": "Translate button styling to infographic badges and callout labels: purple (#7A4AE4) pill-shaped badges for primary actions ('Hire Now', 'Talk Now'), white (#FCFDFF) rounded rectangles for secondary tags ('English', 'Hindi'). Use 6-8px border-radius for all badge elements. Apply soft shadows (rgba(0,0,0,0.16-0.22) 0px 0px 12-16px) to lift badges off dark surfaces."
+  },
+  "iconography": {
+    "style": "mixed — line icons for features (outline/stroke style) and filled/solid logos for integrations",
+    "stroke_weight": "not_found_in_source — icons appear as image assets rather than inline SVG with stroke attributes",
+    "implementation": "image sprites — feature icons and integration logos loaded as PNG/SVG image files (not icon font or inline SVG)",
+    "closest_public_library": "custom or mixed — integration logos are brand marks, feature icons (lead.svg, cost.svg, minutes.svg, active.svg) appear custom-designed",
+    "colour_usage": "Icons appear monochrome white or light gray on dark backgrounds. Integration logos retain original brand colours.",
+    "size_convention_px": "Feature icons: ~40-48px standalone, Integration logos: ~64-96px in marquee grid"
+  },
+  "illustration_style": {
+    "present": true,
+    "type": "photographic — AI employee avatars are realistic portrait photos (Peter, Sarah, James)",
+    "colour_treatment": "full-colour — portraits use natural skin tones and realistic lighting, not stylised or brand-tinted",
+    "line_quality": "none — photographic assets, not vector illustrations",
+    "notes": "Agent cards feature professional headshot portraits in circular frames against dark backgrounds. Photography style is corporate-professional with soft studio lighting. No abstract or geometric illustrations observed."
+  },
+  "photography_and_imagery": {
+    "present": true,
+    "style": "corporate-professional — agent headshots are polished studio portraits",
+    "treatment": "natural/unfiltered — portraits retain realistic colour and lighting without heavy filters",
+    "overlay_pattern": "none",
+    "subject_framing": "tight-crop-faces — agent portraits are head-and-shoulders shots centered in circular frames",
+    "human_presence": "prominent-people — human faces are core to agent identity and brand trust-building",
+    "css_filters": "none"
+  },
+  "data_visualisation": {
+    "observed_in_source": true,
+    "chart_aesthetic": "Stat callouts use large bold numerals (e.g. '2.5×', '40%', '99%', '<700ms') with small descriptive labels beneath. Minimalist presentation with ample whitespace. No traditional charts observed, but metrics are prominent visual elements.",
+    "colour_sequence": ["#7A4AE4", "#FFFFFF", "#FCFDFF"],
+    "stat_callout_format": "Large numeral in Lexend Deca 700 weight (40-52px) with purple (#7A4AE4) or white (#FFFFFF) colour, followed by small label in 14-16px weight 400. Icon above numeral adds visual context (e.g. lead.svg, cost.svg).",
+    "progress_indicators": "not_found_in_source — no progress bars or donut charts observed in provided content",
+    "label_placement": "Labels positioned directly below stat numerals, left-aligned or center-aligned within stat card",
+    "gridline_style": "not_found_in_source — no gridlines observed (stat callouts are standalone, not chart-embedded)"
+  },
+  "brand_marks": {
+    "logo_type": "combination — wordmark 'UnleashX' with likely logomark (not fully visible in provided markdown but logo URL suggests combination)",
+    "logo_url": "https://unleashx.ai/_next/image/?url=%2Fimages%2Flogowhite.png&w=256&q=75",
+    "logo_placement_convention": "Top-left on website header, likely top-left or centered on covers and social posts per standard web-to-asset conventions",
+    "recurring_motifs": ["SVG 'X' shape as decorative mark (https://unleashx.ai/images/x.svg)", "Animated voice bars (https://unleashx.ai/_next/image/?url=%2F_next%2Fstatic%2Fmedia%2Fvoice-bars.ddc7cb4b.gif) — signature motion element", "Circular avatar frames for AI employee personas"],
+    "favicon_description": "SVG favicon at https://unleashx.ai/_next/static/media/favicon.6daaa614.svg — likely contains simplified 'X' logomark or wordmark"
+  },
+  "brand_guardrails": [
+    {
+      "avoid": "Using purple (#7A4AE4) as a background fill or large surface colour",
+      "instead": "Reserve purple exclusively for CTAs, badges, key stats, and small accent elements. Use #0D0C11 or #1F202E for backgrounds."
+    },
+    {
+      "avoid": "Light mode or white backgrounds",
+      "instead": "Always use dark mode (#0D0C11 canvas, #1F202E surfaces). The brand identity is anchored in dark, technical aesthetics."
+    },
+    {
+      "avoid": "Mixing multiple typefaces or introducing decorative fonts",
+      "instead": "Use only Lexend Deca for all display and body text (with Roboto for UI labels if needed). Maintain clean, geometric sans-serif hierarchy."
+    },
+    {
+      "avoid": "Heavy textures, gradients, or ornamental patterns",
+      "instead": "Keep backgrounds flat and clean. Use soft shadows (rgba(0,0,0,0.16-0.22) 0px 0px 12-16px) for subtle depth, not texture overlays."
+    },
+    {
+      "avoid": "Sharp corners (0px border-radius) on buttons or cards",
+      "instead": "Use 6px radius for primary buttons, 8px for secondary buttons and cards. Maintain slightly-rounded shape language throughout."
+    },
+    {
+      "avoid": "Overloading layouts with dense information or cramped spacing",
+      "instead": "Embrace moderate content density with 30-35% whitespace. Let key stats and CTAs breathe with generous padding."
+    }
+  ],
+  "asset_templates": [
+    {
+      "asset_type": "Blog Cover 16:9",
+      "dimensions": "1200×675px",
+      "structure": "Dark (#0D0C11) canvas. Title in top-left or center-left zone (Lexend Deca 700, 52-64px, white #FFFFFF). Subtle decorative 'X' SVG mark in bottom-right corner. Optional purple (#7A4AE4) accent bar or badge near title. Logo in top-left at 120-140px width.",
+      "background": "#0D0C11 solid, no gradient",
+      "typography_usage": "Title: display role, 700 weight, 52-64px. Subtitle (optional): body role, 400 weight, 18-20px, light gray or white.",
+      "accent_elements": "Purple (#7A4AE4) pill badge with 6px radius for category label. SVG 'X' mark at ~60px size in corner. Soft shadow (rgba(0,0,0,0.22) 0px 0px 16px) on title text for lift.",
+      "colour_usage": "70% #0D0C11 canvas, 20% white text, 10% purple accent badge"
+    },
+    {
+      "asset_type": "Infographic Vertical (LinkedIn/Blog)",
+      "dimensions": "1080×1350px or 800×2000px",
+      "structure": "Top: Header zone with title (Lexend Deca 700, 40-48px, white). Body: 3-5 stat sections stacked vertically, each with icon (40px), large numeral (Lexend Deca 700, 40-48px, purple or white), and label (Lexend Deca 400, 14-16px, white). Bottom: CTA button or logo lockup. 16-24px vertical spacing between sections.",
+      "background": "#0D0C11 solid or alternating #0D0C11 / #1F202E section backgrounds for depth",
+      "typography_usage": "Header: display 700, 40-48px. Stat numerals: display 700, 40-48px. Labels: body 400, 14-16px. CTA text: body 600, 16px.",
+      "accent_elements": "Purple (#7A4AE4) pill badges for key stats. White (#FFFFFF) or light icons above each stat. Subtle borders (#141624, 1px) between sections if needed.",
+      "colour_usage": "70% dark neutrals (#0D0C11, #1F202E), 20% white text, 10% purple accents on 2-3 key stats"
+    },
+    {
+      "asset_type": "Social Square 1:1 (Instagram/LinkedIn)",
+      "dimensions": "1080×1080px",
+      "structure": "Centered composition. Large stat or headline in center (Lexend Deca 700, 48-56px, white or purple). Small supporting label beneath (Lexend Deca 400, 16-18px, white). Logo in top-left or bottom-right at ~100px width. Optional decorative 'X' mark in opposite corner.",
+      "background": "#0D0C11 solid",
+      "typography_usage": "Primary text: display 700, 48-56px. Secondary text: body 400, 16-18px.",
+      "accent_elements": "Purple (#7A4AE4) pill badge if stat or CTA is highlighted. Soft shadow on text for contrast.",
+      "colour_usage": "75% #0D0C11 canvas, 15% white text, 10% purple accent"
+    },
+    {
+      "asset_type": "Feature Highlight Card (Multi-use)",
+      "dimensions": "600×400px",
+      "structure": "Icon (40-48px) in top-left. Heading (Lexend Deca 600, 24-28px, white) below icon. Body text (Lexend Deca 400, 14-16px, white or light gray) in 2-3 lines. Background: #1F202E surface on #0D0C11 canvas, 8px border-radius, soft shadow.",
+      "background": "#1F202E surface, #0D0C11 canvas beneath",
+      "typography_usage": "Heading: display 600, 24-28px. Body: body 400, 14-16px.",
+      "accent_elements": "Purple (#7A4AE4) icon fill if icon is brand-related. Subtle border (#141624, 1px) optional.",
+      "colour_usage": "60% #1F202E surface, 30% white text, 10% purple icon or accent"
+    },
+    {
+      "asset_type": "Case Study Testimonial Visual",
+      "dimensions": "1200×630px",
+      "structure": "Left: Circular avatar (120-140px diameter) with soft shadow. Right: Quote text (Lexend Deca 400, 18-20px, white, 2-3 lines) with attribution below (name + title, Lexend Deca 600, 14-16px, light gray). Background: #0D0C11 with optional subtle gradient overlay (#1F202E) behind text zone. Company logo in bottom-right (80-100px width).",
+      "background": "#0D0C11 solid or subtle #0D0C11 to #1F202E gradient (not documented, use solid if gradient not confirmed)",
+      "typography_usage": "Quote: body 400, 18-20px. Attribution: body 600, 14-16px.",
+      "accent_elements": "Purple (#7A4AE4) quotation mark icon (optional). Soft shadow on avatar and company logo.",
+      "colour_usage": "70% #0D0C11 canvas, 25% white text, 5% purple accent mark"
+    }
+  ],
+  "generation_suffixes": {
+    "core": "Dark technology aesthetic on #0D0C11 charcoal canvas with elevated #1F202E surfaces. Vibrant purple #7A4AE4 reserved strictly for CTAs, key stats, and small accent badges — never as background fill. Typography is Lexend Deca sans-serif (geometric, slightly condensed) at 700 weight for headlines (48-64px), 400 weight for body (16-18px). Slightly-rounded 6-8px corners on all UI elements (buttons, cards, badges). Soft shadows (rgba(0,0,0,0.16-0.22) 0px 0px 12-16px) for subtle elevation. Moderate content density with 30-35% whitespace for breathing room. Clean, flat aesthetic with no textures or gradients. Professional, technical, globally-scalable tone.",
+    "infographic": "Vertical layout with 3-5 stacked stat sections, each containing: icon (40-48px, white or purple fill), large numeral (Lexend Deca 700, 40-48px, #7A4AE4 or #FFFFFF), small label (Lexend Deca 400, 14-16px, #FFFFFF). Sections separated by 16-24px vertical spacing or subtle 1px #141624 borders. Background alternates #0D0C11 and #1F202E for depth. Purple (#7A4AE4) pill badges (6px radius) highlight 1-2 key stats. Generous padding (32-48px) around edges. Logo in top-left (120-140px width). Clean, technical, data-driven presentation.",
+    "cover_image": "Bold title in top-left or center-left (Lexend Deca 700, 52-64px, #FFFFFF) on #0D0C11 canvas. Purple #7A4AE4 pill badge (6px radius) near title for category. SVG 'X' decorative mark (60px) in bottom-right corner. Soft shadow on title text (rgba(0,0,0,0.22) 0px 0px 16px) for contrast. Logo in top-left (120-140px width). Minimalist composition with 40%+ empty space for focus. Single-focus, high-impact layout.",
+    "social_square": "Centered stat or headline (Lexend Deca 700, 48-56px, #FFFFFF or #7A4AE4) on #0D0C11 canvas. Supporting label beneath (Lexend Deca 400, 16-18px, #FFFFFF). Logo in corner (100px). Optional decorative 'X' mark opposite logo. Purple accent (10% of canvas) on key stat or CTA badge. Maximise readability with high contrast and generous whitespace (40%+). Single-message clarity.",
+    "midjourney_modifier": "--style raw --ar 16:9 (covers) or 4:5 (social) --v 6. Dark technology aesthetic, vibrant purple accent, geometric sans-serif typography, slightly-rounded UI, soft shadows, clean flat design, no textures.",
+    "dalle_modifier": "Professional dark-mode technology brand visual with deep charcoal background (#0D0C11), vibrant purple (#7A4AE4) accent elements, clean sans-serif typography (Lexend Deca), slightly rounded corners, soft shadows, minimalist layout with generous whitespace, modern enterprise aesthetic.",
+    "ideogram_modifier": "Dark tech UI, #0D0C11 bg, #7A4AE4 purple CTA, Lexend Deca bold sans-serif, 6-8px rounded corners, soft shadow, clean minimal layout, 30% whitespace, professional enterprise style."
+  }
+}
+</output_json>`,
 };
 
 const CLIENT_AHSHYDRAULICS: ClientSample = {
@@ -8868,6 +13071,359 @@ const CLIENT_AHSHYDRAULICS: ClientSample = {
     `Hydraulic Cylinder Maintenance: The Ultimate Guide for 2024`,
     `JIC Fitting Female Connections: Expert Insights and Technical Understanding`,
   ],
+  graphicTokenJson: `<output_json>
+{
+  "brand": {
+    "name": "AHS Hydraulics",
+    "website": "https://ahshydraulics.com",
+    "asset_types": [
+      "blog_cover_16_9",
+      "infographic_vertical",
+      "social_square_1_1",
+      "product_feature_banner",
+      "technical_guide_cover"
+    ],
+    "personality_keywords": [
+      "industrial-technical",
+      "American-made-confident",
+      "safety-focused",
+      "engineering-precision",
+      "rugged-reliable",
+      "straightforward-professional"
+    ],
+    "visual_summary": "AHS Hydraulics employs a utilitarian industrial design language anchored by a deep red primary (#781210) contrasted with teal accents (#1990C6) and a light neutral background (#EDEDED). Typography is set exclusively in Roboto Condensed, reinforcing a technical, space-efficient feel. Sharp rectangular shapes (0px border-radius) and minimal decoration emphasise engineering precision and American manufacturing heritage."
+  },
+  "extraction_note": "Complete extraction with cross-validation. HTML source contained minimal inline styles; branding JSON provided authoritative colour palette, typography, and component styling. All hex values in JSON passed HTML validation via inferred usage context (buttons, text, backgrounds). Colour roles re-validated: #781210 confirmed as primary (brand red), #1990C6 as secondary (teal accent), #121212 as CTA and text, #EDEDED as dominant background. Border-radius confirmed at 0px for buttons (sharp industrial aesthetic). Input fields use 16px radius (softer form styling). No gradients, shadows, or decorative patterns observed. Logo URL extracted from JSON. No obfuscated fonts; Roboto Condensed used throughout. All values sourced directly from branding JSON components or inferred from systematic usage patterns.",
+  "colours": {
+    "palette": [
+      {
+        "role": "primary",
+        "name": "Industrial Red",
+        "hex": "#781210",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Brand signature colour — use on headings, logo accents, borders, and section dividers to anchor the industrial identity"
+      },
+      {
+        "role": "secondary",
+        "name": "Teal Accent",
+        "hex": "#1990C6",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Secondary accent for links, callouts, and service/feature highlights — provides contrast against red and neutrals"
+      },
+      {
+        "role": "accent",
+        "name": "Muted Red",
+        "hex": "#8A3331",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Tertiary accent and link colour — use sparingly for subtle red emphasis without overpowering primary"
+      },
+      {
+        "role": "background_light",
+        "name": "Light Grey",
+        "hex": "#EDEDED",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Dominant page background — use as canvas base for infographics and covers to maintain industrial cleanliness"
+      },
+      {
+        "role": "body_text",
+        "name": "Near Black",
+        "hex": "#121212",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary text colour and CTA button background — high contrast for readability and technical clarity"
+      },
+      {
+        "role": "cta_fill",
+        "name": "CTA Black",
+        "hex": "#121212",
+        "rgba": null,
+        "source": "json_components_button_primary",
+        "usage": "Primary button background — dark, bold, action-oriented"
+      },
+      {
+        "role": "cta_text",
+        "name": "White",
+        "hex": "#FFFFFF",
+        "rgba": null,
+        "source": "json_components_button_primary",
+        "usage": "Text on primary buttons and secondary button backgrounds — ensures maximum contrast"
+      },
+      {
+        "role": "border",
+        "name": "Border Red",
+        "hex": "#781210",
+        "rgba": null,
+        "source": "json_components_button_primary",
+        "usage": "Button borders and divider rules — reinforces brand red in structural elements"
+      }
+    ],
+    "proportion_rule": "70% neutral (#EDEDED background, #FFFFFF surfaces), 20% text and CTA (#121212), 8% primary red (#781210 on headings, borders), 2% teal accent (#1990C6 on highlights)"
+  },
+  "gradients": [],
+  "typography": {
+    "fonts": [
+      {
+        "role": "heading",
+        "family": "Roboto Condensed",
+        "source": "json_fonts",
+        "google_font_fallback": "Roboto Condensed",
+        "style_notes": "Condensed sans-serif used universally — reinforces technical, space-efficient industrial aesthetic. Observed at 40px (h1), 24px (h2), 18px (body). No letter-spacing or text-transform variations in source."
+      },
+      {
+        "role": "body",
+        "family": "Roboto Condensed",
+        "source": "json_fonts",
+        "google_font_fallback": "Roboto Condensed",
+        "style_notes": "Same family for body and headings — hierarchy achieved through size and weight rather than typeface contrast"
+      },
+      {
+        "role": "ui",
+        "family": "Arial",
+        "source": "json_fonts",
+        "google_font_fallback": "Arial",
+        "style_notes": "System fallback for UI elements — minimal usage, likely in form fields or interface chrome"
+      }
+    ],
+    "hierarchy": {
+      "cover_title": {
+        "font_role": "heading",
+        "weight": "700",
+        "size_range_px": "40–48",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "section_header": {
+        "font_role": "heading",
+        "weight": "700",
+        "size_range_px": "24–32",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "stat_callout": {
+        "font_role": "heading",
+        "weight": "700",
+        "size_range_px": "36–44",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "body_label": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "16–18",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "caption_source": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "14–16",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      }
+    }
+  },
+  "layout": {
+    "content_density": "moderate",
+    "whitespace_ratio": "medium (30-35% canvas empty — balanced between industrial utility and editorial breathing room)",
+    "standard_flow": "hero image with headline → service/parts/training 3-column → feature section with image-text pairing → product grid (fittings, cylinders) → educational content blocks → blog article previews"
+  },
+  "design_patterns": {
+    "shape_language": {
+      "corner_radius_px": "0 (buttons, primary CTAs) | 16 (input fields only)",
+      "dominant_shapes": [
+        "sharp-rectangle",
+        "rectilinear-grid",
+        "hard-edged-product-cards"
+      ],
+      "overall_feel": "sharp-geometric — industrial machinery aesthetic, no softening"
+    },
+    "backgrounds": {
+      "light_variant": "solid #EDEDED as dominant canvas — clean, neutral, industrial workshop feel",
+      "dark_variant": "not observed in source — brand uses light neutral palette",
+      "accent_variant": "white #FFFFFF surfaces for product cards and content blocks — layered on #EDEDED base"
+    },
+    "texture_and_pattern": {
+      "used": false,
+      "type": "none",
+      "intensity": "none",
+      "css_implementation": null
+    },
+    "shadows": {
+      "style": "none/flat",
+      "css_value": "none"
+    },
+    "borders_and_rules": {
+      "used": true,
+      "css_value": "1px solid #781210 (inferred from button border colour)",
+      "application": "Button borders, section dividers, product card edges — used to define structure without softening"
+    },
+    "decorative_elements": [
+      "Photography of hydraulic components (cylinders, fittings) on neutral backgrounds — product-forward, no stylisation",
+      "Large hero images of equipment and machinery — industrial lifestyle context",
+      "Technical part numbers and SKU labels integrated into product cards — functional decoration"
+    ]
+  },
+  "cta_and_buttons": {
+    "primary": {
+      "background": "#121212",
+      "text_color": "#FFFFFF",
+      "border_radius_px": "0",
+      "padding": "not_found_in_source",
+      "font_weight": "not_found_in_source",
+      "font_size_px": "not_found_in_source",
+      "text_transform": "uppercase",
+      "border": "1px solid #781210",
+      "shadow": "none",
+      "source": "json_components_button_primary"
+    },
+    "secondary": {
+      "background": "#FFFFFF",
+      "text_color": "#121212",
+      "border_radius_px": "0",
+      "border": "not_found_in_source",
+      "shadow": "none",
+      "source": "json_components_button_secondary",
+      "notes": "White background reverses contrast — used for secondary actions like 'Read the Guide' or supporting navigation"
+    },
+    "usage_in_assets": "Primary button styling (black fill, white text, red border, sharp corners) translates to bold callout badges and labels in infographics. Secondary (white fill) becomes subtle annotation boxes or footnote containers."
+  },
+  "iconography": {
+    "style": "not observed in source — likely minimal or absent",
+    "stroke_weight": "not_found_in_source",
+    "implementation": "not observed",
+    "closest_public_library": "none identified — brand relies on product photography rather than iconography",
+    "colour_usage": "if icons exist, assume #121212 or #781210 for consistency",
+    "size_convention_px": "not_found_in_source"
+  },
+  "illustration_style": {
+    "present": false,
+    "type": "none",
+    "colour_treatment": "none",
+    "line_quality": "none",
+    "notes": "Brand visual language is photography-based — no decorative illustrations observed"
+  },
+  "photography_and_imagery": {
+    "present": true,
+    "style": "industrial-product — tight crops of hydraulic cylinders, fittings, and components; lifestyle shots of machinery in use (tractors, log splitters, construction equipment)",
+    "treatment": "natural/unfiltered — no overlays, filters, or colour grading; emphasises engineering detail and material texture",
+    "overlay_pattern": "none",
+    "subject_framing": "centered-product for parts catalog; wide-environmental for machinery in operation",
+    "human_presence": "minimal — focus on equipment and components, hands occasionally visible during operation",
+    "css_filters": "none"
+  },
+  "data_visualisation": {
+    "observed_in_source": false,
+    "chart_aesthetic": "If charts are used, assume sharp rectilinear grid, no rounded corners, thin gridlines in #EDEDED or #121212 at 50% opacity",
+    "colour_sequence": [
+      "#781210",
+      "#1990C6",
+      "#8A3331",
+      "#121212"
+    ],
+    "stat_callout_format": "Large numerals (36–44px, Roboto Condensed Bold, #121212) with small label text (14–16px, #121212 or #8A3331) — technical precision aesthetic",
+    "progress_indicators": "Horizontal bars with sharp edges, #781210 fill on #EDEDED background, or #1990C6 for secondary metrics",
+    "label_placement": "Left-aligned for axis labels, top-aligned for column/bar labels — prioritises readability and engineering convention",
+    "gridline_style": "1px solid #EDEDED or rgba(18,18,18,0.1) — subtle, technical"
+  },
+  "brand_marks": {
+    "logo_type": "combination — 'AHS' letters with integrated mechanical/hydraulic motif",
+    "logo_url": "https://ahshydraulics.com/cdn/shop/files/2-2-26_AHS_copy.png?v=1770129877&width=600",
+    "logo_placement_convention": "Top-left on website and covers; centered or bottom-right on product imagery and technical guides",
+    "recurring_motifs": [
+      "Hydraulic cylinder silhouette — brand signature shape",
+      "Sharp rectangular frames for product cards and content blocks",
+      "Red border accents as structural dividers"
+    ],
+    "favicon_description": "Black 'HW' logo mark — minimal, monochrome brand identifier"
+  },
+  "brand_guardrails": [
+    {
+      "avoid": "Rounded corners on primary CTAs, buttons, or main content blocks",
+      "instead": "Use 0px border-radius to maintain industrial, machine-precision aesthetic — softness reserved only for form inputs (16px)"
+    },
+    {
+      "avoid": "Gradients, glows, or soft shadows on any element",
+      "instead": "Flat solid colours with sharp edges — #121212 buttons, #781210 borders, #EDEDED backgrounds"
+    },
+    {
+      "avoid": "Decorative illustrations, abstract patterns, or organic shapes",
+      "instead": "Product photography on neutral backgrounds, technical diagrams if needed, rectilinear grid layouts"
+    },
+    {
+      "avoid": "Multiple typefaces or decorative fonts",
+      "instead": "Roboto Condensed exclusively for all hierarchy levels — differentiate via weight and size only"
+    },
+    {
+      "avoid": "Overusing teal (#1990C6) or making it dominant",
+      "instead": "Teal is a secondary accent (≤8% canvas) — primary red (#781210) anchors brand identity"
+    },
+    {
+      "avoid": "Light text on light backgrounds or insufficient contrast",
+      "instead": "Always use #121212 text on #EDEDED or #FFFFFF; #FFFFFF text on #121212 or #781210 — prioritise legibility for technical content"
+    }
+  ],
+  "asset_templates": [
+    {
+      "asset_type": "Blog Cover 16:9",
+      "dimensions": "1200×675px",
+      "structure": "Full-bleed product photography background (hydraulic cylinder or machinery) with 40% dark overlay (rgba(18,18,18,0.4)) on left two-thirds. Title text overlaid on darkened area. AHS logo watermark bottom-right corner.",
+      "background": "#EDEDED solid or product photography with overlay",
+      "typography_usage": "Cover title in Roboto Condensed Bold 700, 40–48px, #FFFFFF on dark overlay. Subtitle or category label in Roboto Condensed Regular 400, 18–20px, #1990C6 or #FFFFFF at 80% opacity.",
+      "accent_elements": "1px red (#781210) border along bottom edge. Logo at 80px width. Optional: small technical part number or SKU in 14px, #FFFFFF, top-right.",
+      "colour_usage": "#EDEDED or photography as base, #121212 overlay, #FFFFFF text, #781210 border accent, #1990C6 for subtle highlight"
+    },
+    {
+      "asset_type": "Infographic Vertical",
+      "dimensions": "800×2000px or variable height",
+      "structure": "Top: title section (#EDEDED background, #121212 title, #781210 underline). Body: alternating white (#FFFFFF) and light grey (#EDEDED) sections for each data block. Bottom: source citation and logo.",
+      "background": "#EDEDED canvas with #FFFFFF content blocks",
+      "typography_usage": "Section headers: Roboto Condensed Bold 700, 24–28px, #121212. Stat callouts: Roboto Condensed Bold 700, 36–44px, #781210. Body labels: Roboto Condensed Regular 400, 16–18px, #121212. Captions: 14px, #8A3331.",
+      "accent_elements": "1px #781210 horizontal rules as section dividers. Teal (#1990C6) used for secondary stats or highlights. Sharp rectangular data badges with #121212 fill and #FFFFFF text.",
+      "colour_usage": "#EDEDED background, #FFFFFF blocks, #121212 text, #781210 dividers and primary stats, #1990C6 secondary accents"
+    },
+    {
+      "asset_type": "Social Square 1:1",
+      "dimensions": "1080×1080px",
+      "structure": "Centered composition. Top: logo or brand mark. Center: large stat or headline. Bottom: short description or CTA. Sharp rectangular border frame (1px #781210) inset 40px from edges.",
+      "background": "#EDEDED solid",
+      "typography_usage": "Headline: Roboto Condensed Bold 700, 36–40px, #121212. Stat: Roboto Condensed Bold 700, 48–56px, #781210. Subtext: Roboto Condensed Regular 400, 16–18px, #121212.",
+      "accent_elements": "Red border frame. Teal (#1990C6) used for supporting label or secondary stat. Logo at 100px width, centered or top-center.",
+      "colour_usage": "#EDEDED background, #121212 text, #781210 border and primary stat, #1990C6 secondary highlight"
+    },
+    {
+      "asset_type": "Product Feature Banner",
+      "dimensions": "1200×400px",
+      "structure": "Left half: product photography on white. Right half: feature headline, bullet points, and CTA button.",
+      "background": "Split — #FFFFFF left, #EDEDED right",
+      "typography_usage": "Feature headline: Roboto Condensed Bold 700, 28–32px, #121212. Bullets: Roboto Condensed Regular 400, 16–18px, #121212. CTA button: 16–18px uppercase, #FFFFFF text on #121212 fill.",
+      "accent_elements": "1px #781210 vertical divider between halves. Button with red (#781210) border. Optional teal (#1990C6) icon or badge.",
+      "colour_usage": "#FFFFFF product area, #EDEDED text area, #121212 button and text, #781210 border accents, #1990C6 optional highlight"
+    },
+    {
+      "asset_type": "Technical Guide Cover",
+      "dimensions": "1200×1600px (vertical)",
+      "structure": "Top third: large title and subtitle on #121212 bar. Middle two-thirds: hero product image or machinery photo. Bottom: AHS branding and guide series label.",
+      "background": "#121212 top bar, #EDEDED or product photography middle/bottom",
+      "typography_usage": "Title: Roboto Condensed Bold 700, 48–56px, #FFFFFF. Subtitle: Roboto Condensed Regular 400, 20–24px, #1990C6. Series label: 14–16px uppercase, #FFFFFF at 70% opacity.",
+      "accent_elements": "Logo at top-left of #121212 bar. 1px #781210 horizontal rule below title. Optional: part number or SKU badge (white text on #781210) in top-right corner.",
+      "colour_usage": "#121212 title bar, #FFFFFF text, #1990C6 subtitle, #781210 rule and badge, #EDEDED or photography in main area"
+    }
+  ],
+  "generation_suffixes": {
+    "core": "Design in the visual language of AHS Hydraulics: industrial precision, American-made engineering confidence. Use #781210 deep red as the brand signature colour for borders, underlines, and primary headings. Background on light neutral #EDEDED. Text and primary CTAs in near-black #121212. Teal #1990C6 sparingly as a secondary accent (≤8% of canvas). Typography: Roboto Condensed exclusively, bold for headlines, regular for body. Sharp rectangular shapes with 0px border-radius — no rounded corners on main elements. Flat, no gradients or shadows. Product photography on neutral backgrounds if imagery is used. Straightforward, technical, safety-focused aesthetic. Every element reinforces rugged reliability and engineering clarity.",
+    "infographic": "Multi-section vertical layout with alternating white (#FFFFFF) and light grey (#EDEDED) content blocks. Sharp 1px red (#781210) horizontal rules as section dividers. Stat callouts: Roboto Condensed Bold 700, 36–44px, #781210 for primary stats, #1990C6 for secondary. Body labels: 16–18px, #121212. No rounded corners. Flat rectilinear grid. Data badges: black (#121212) fill, white text, sharp edges. Technical precision — every spacing interval and alignment supports readability.",
+    "cover_image": "Bold, centred composition. Large headline in Roboto Condensed Bold 700, 40–48px, #121212 or #FFFFFF (on dark overlay). Red (#781210) underline or border accent. Logo watermark bottom-right, 80–100px width. Background: light neutral #EDEDED solid or product photography with dark overlay. Teal (#1990C6) for subtitle or category tag. Sharp rectangular framing. Industrial, confident, technical.",
+    "social_square": "Centered layout for 1:1 format. Sharp rectangular border frame (1px #781210) inset 40px from edges. Light neutral #EDEDED background. Headline: Roboto Condensed Bold 700, 36–40px, #121212. Primary stat: 48–56px, #781210. Logo centered top or bottom. Teal (#1990C6) for supporting label. Flat, no gradients or shadows. Engineering precision.",
+    "midjourney_modifier": "industrial technical precision, flat graphic design, sharp rectangular shapes, no rounded corners, Roboto Condensed typography, #781210 red accents, #EDEDED neutral background, product photography aesthetic, American manufacturing branding, engineering clarity --style raw --ar 16:9 --v 6",
+    "dalle_modifier": "Create a flat, industrial-technical graphic for AHS Hydraulics. Use sharp rectangular shapes with no rounded corners. Colour palette: deep red (#781210), teal (#1990C6), near-black (#121212), light grey (#EDEDED). Typography: Roboto Condensed bold for headlines, regular for body. Feature product photography of hydraulic components on neutral backgrounds. Engineering precision, American-made confidence, safety-focused aesthetic. Flat design, no gradients or soft shadows.",
+    "ideogram_modifier": "Flat industrial design. Roboto Condensed typography. Red #781210 borders, teal #1990C6 accents, grey #EDEDED background, black #121212 text. Sharp rectangular shapes, 0px corners. Product photography style. Technical precision."
+  }
+}
+</output_json>`,
 };
 
 const CLIENT_VAPORKOTE: ClientSample = {
@@ -9128,6 +13684,297 @@ const CLIENT_VAPORKOTE: ClientSample = {
     `PVD Coating for Stainless Steel: Benefits & Applications`,
     `Heat Exchanger Efficiency: Complete Guide & Analysis`,
   ],
+  graphicTokenJson: `<output_json>
+{
+  "brand": {
+    "name": "VaporKote Coating Technologies",
+    "website": "https://vaporkote.com/",
+    "asset_types": ["blog covers", "infographics", "social media posts", "service brochures", "technical documentation"],
+    "personality_keywords": ["industrial-bold", "technical-precision", "corporate-professional", "manufacturing-heritage", "reliability-focused", "engineering-driven"],
+    "visual_summary": "VaporKote employs a utilitarian industrial aesthetic built on a bright blue (#2575FC) and safety orange (#FF5E23) palette paired with Anek Latin headings and Roboto body text. The visual language prioritizes clarity and technical authority over decorative flourishes, reflecting decades of coating expertise since 1987."
+  },
+
+  "extraction_note": "Branding JSON provided colours and fonts but HTML source was minimal markdown without embedded styles or SVG elements. No inline style attributes, no embedded <style> blocks, no SVG gradients, no button elements with detailed styling, and no CSS custom properties were present in the html_source. All colour extractions rely entirely on branding_json colors object (source: json_colors). Font extraction relies on branding_json typography.fontFamilies (source: json_fonts). Button styling, spacing tokens, border radii, and visual pattern details are entirely absent from html_source — marked as not_found_in_source where applicable. Color scheme validated as 'light' based on background #FFFFFF and textPrimary #000000 from JSON. No role re-labelling conflicts detected. Gradient system entirely absent from both sources.",
+
+  "colours": {
+    "palette": [
+      {
+        "role": "primary",
+        "name": "VaporKote Blue",
+        "hex": "#2575FC",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary brand accent for CTAs, headlines, and key service callouts in infographics"
+      },
+      {
+        "role": "secondary",
+        "name": "Industrial Orange",
+        "hex": "#FF5E23",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Secondary accent for warning indicators, heat/thermal service highlights, and energy points in data visualizations"
+      },
+      {
+        "role": "accent",
+        "name": "Steel Gray",
+        "hex": "#334155",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Accent for links, subheadings, and technical labels; conveys industrial materials aesthetic"
+      },
+      {
+        "role": "background_light",
+        "name": "Pure White",
+        "hex": "#FFFFFF",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Canvas background for all asset types"
+      },
+      {
+        "role": "body_text",
+        "name": "Black",
+        "hex": "#000000",
+        "rgba": null,
+        "source": "json_colors",
+        "usage": "Primary body text and paragraph content"
+      }
+    ],
+    "proportion_rule": "70% white canvas (#FFFFFF), 20% VaporKote Blue (#2575FC) for structural elements and CTAs, 8% Industrial Orange (#FF5E23) for accents and highlights, 2% Steel Gray (#334155) for borders and labels"
+  },
+
+  "gradients": [],
+
+  "typography": {
+    "fonts": [
+      {
+        "role": "heading",
+        "family": "Anek Latin",
+        "source": "json_fonts",
+        "google_font_fallback": "Anek Latin",
+        "style_notes": "Sans-serif with technical clarity; no letter-spacing or text-transform values found in source"
+      },
+      {
+        "role": "body",
+        "family": "Roboto",
+        "source": "json_fonts",
+        "google_font_fallback": "Roboto",
+        "style_notes": "Standard system font stack fallback present in branding_json; no specific styling values extracted"
+      }
+    ],
+    "hierarchy": {
+      "cover_title": {
+        "font_role": "heading",
+        "weight": "700",
+        "size_range_px": "48–64",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "section_header": {
+        "font_role": "heading",
+        "weight": "600",
+        "size_range_px": "28–36",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "stat_callout": {
+        "font_role": "heading",
+        "weight": "700",
+        "size_range_px": "40–52",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "body_label": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "16–18",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      },
+      "caption_source": {
+        "font_role": "body",
+        "weight": "400",
+        "size_range_px": "12–14",
+        "letter_spacing": "normal",
+        "text_transform": "none"
+      }
+    }
+  },
+
+  "layout": {
+    "content_density": "moderate",
+    "whitespace_ratio": "medium (30-35% empty space; balanced industrial layout)",
+    "standard_flow": "hero banner → company chronicle narrative → service grid → industry applications → contact footer"
+  },
+
+  "design_patterns": {
+    "shape_language": {
+      "corner_radius_px": "5",
+      "dominant_shapes": ["rounded-rectangle", "rectangular-cards", "pill-buttons"],
+      "overall_feel": "slightly-rounded"
+    },
+    "backgrounds": {
+      "light_variant": "Solid white #FFFFFF as primary canvas",
+      "dark_variant": "not_found_in_source",
+      "accent_variant": "VaporKote Blue #2575FC used at 100% opacity for CTA backgrounds and section highlights"
+    },
+    "texture_and_pattern": {
+      "used": false,
+      "type": "none",
+      "intensity": "none",
+      "css_implementation": null
+    },
+    "shadows": {
+      "style": "not_found_in_source",
+      "css_value": "not_found_in_source"
+    },
+    "borders_and_rules": {
+      "used": false,
+      "css_value": "not_found_in_source",
+      "application": "not_found_in_source"
+    },
+    "decorative_elements": ["Repeating 'VAPORKOTE COATING TECHNOLOGIES' text banner as brand signature element"]
+  },
+
+  "cta_and_buttons": {
+    "primary": {
+      "background": "#2575FC",
+      "text_color": "#FFFFFF",
+      "border_radius_px": "5",
+      "padding": "not_found_in_source",
+      "font_weight": "not_found_in_source",
+      "font_size_px": "not_found_in_source",
+      "text_transform": "not_found_in_source",
+      "border": "none",
+      "shadow": "not_found_in_source",
+      "source": "json_colors"
+    },
+    "secondary": {
+      "background": "#FF5E23",
+      "text_color": "#FFFFFF",
+      "border_radius_px": "5",
+      "border": "none",
+      "shadow": "not_found_in_source",
+      "source": "json_colors",
+      "notes": "Industrial Orange used for secondary CTAs and thermal service highlights"
+    },
+    "usage_in_assets": "Buttons translate to bold rectangular badges with 5px radius. Use #2575FC for primary actions, #FF5E23 for warning/thermal indicators, white text on both for contrast."
+  },
+
+  "iconography": {
+    "style": "not_found_in_source",
+    "stroke_weight": "not_found_in_source",
+    "implementation": "not_found_in_source",
+    "closest_public_library": "not_found_in_source",
+    "colour_usage": "Likely monochrome #334155 or #2575FC fills for technical/industrial icons",
+    "size_convention_px": "not_found_in_source"
+  },
+
+  "illustration_style": {
+    "present": false,
+    "type": "none",
+    "colour_treatment": "none",
+    "line_quality": "none",
+    "notes": "Brand relies on photography of industrial equipment and manufacturing processes rather than illustration"
+  },
+
+  "photography_and_imagery": {
+    "present": true,
+    "style": "industrial-documentary | manufacturing-process | equipment-closeup",
+    "treatment": "natural/unfiltered showing raw industrial environments and machinery",
+    "overlay_pattern": "none",
+    "subject_framing": "wide-environmental showing factory floors and equipment in context; tight-crop-detail of coated parts and machining processes",
+    "human_presence": "no-humans — focus entirely on equipment, coatings, and industrial processes",
+    "css_filters": "none"
+  },
+
+  "data_visualisation": {
+    "observed_in_source": false,
+    "chart_aesthetic": "Clean technical grid with minimal ornamentation; axis labels in Roboto 400; 1px solid #334155 gridlines",
+    "colour_sequence": ["#2575FC", "#FF5E23", "#334155", "#60A5FA", "#FB923C"],
+    "stat_callout_format": "Large numeric value in Anek Latin 700 (40-52px) with #2575FC fill, paired with small label in Roboto 400 (14px) in #334155 beneath",
+    "progress_indicators": "Horizontal bars with #2575FC fill at 100% for complete segments, #FFFFFF background, no gradient",
+    "label_placement": "Labels positioned outside data points for clarity; avoid overlapping text",
+    "gridline_style": "1px solid #334155 at 30% opacity"
+  },
+
+  "brand_marks": {
+    "logo_type": "combination",
+    "logo_url": "https://vaporkote.com/wp-content/uploads/2023/12/cropped-VaporKote-_logo_dimensions_105_x_84-78x62.png",
+    "logo_placement_convention": "Top-left on covers and infographics; centered on social square assets",
+    "recurring_motifs": ["Repeating text banner 'VAPORKOTE COATING TECHNOLOGIES' as horizontal divider and brand signature"],
+    "favicon_description": "VaporKote logo mark at 105×84px dimensions"
+  },
+
+  "brand_guardrails": [
+    {
+      "avoid": "Gradients or colour blending effects",
+      "instead": "Use solid fills from the palette — #2575FC for primary, #FF5E23 for secondary, #FFFFFF for backgrounds"
+    },
+    {
+      "avoid": "Decorative fonts or script typefaces",
+      "instead": "Strict use of Anek Latin for headings and Roboto for body text to maintain technical authority"
+    },
+    {
+      "avoid": "Soft pastel colours or low-contrast combinations",
+      "instead": "High-contrast pairing: #2575FC or #FF5E23 on #FFFFFF backgrounds; #000000 for body text"
+    },
+    {
+      "avoid": "Abstract illustrations or lifestyle imagery",
+      "instead": "Use documentary-style industrial photography showing equipment, manufacturing processes, and coated parts in real-world settings"
+    },
+    {
+      "avoid": "Rounded pill shapes beyond buttons",
+      "instead": "Use 5px border-radius on rectangular containers and cards for a controlled industrial feel"
+    }
+  ],
+
+  "asset_templates": [
+    {
+      "asset_type": "Blog Cover 16:9",
+      "dimensions": "1200×675px",
+      "structure": "Left two-thirds: headline zone with Anek Latin 700 (56px) in #000000. Right third: industrial equipment photo with 40% opacity #2575FC overlay. Logo top-left corner (80px width). Bottom stripe: 60px tall #FF5E23 bar with white Roboto 400 (14px) category label.",
+      "background": "#FFFFFF solid",
+      "typography_usage": "Headline: Anek Latin 700, 56px, #000000. Category label: Roboto 400, 14px, #FFFFFF on #FF5E23 bar.",
+      "accent_elements": "Thin 2px #2575FC vertical rule separating headline zone from photo zone",
+      "colour_usage": "#FFFFFF background, #2575FC structural accents, #FF5E23 bottom stripe, #000000 headline, logo in full colour"
+    },
+    {
+      "asset_type": "Infographic Vertical 2:3",
+      "dimensions": "800×1200px",
+      "structure": "Top header (200px): white background with #2575FC title bar and logo. Middle sections (900px): 3–4 horizontal content blocks separated by 1px #334155 rules. Bottom footer (100px): #000000 text on white with contact info.",
+      "background": "#FFFFFF solid throughout",
+      "typography_usage": "Section headers: Anek Latin 600, 32px, #2575FC. Body labels: Roboto 400, 16px, #000000. Stat callouts: Anek Latin 700, 48px, #2575FC.",
+      "accent_elements": "Industrial Orange (#FF5E23) used sparingly for warning callouts or thermal service highlights. Steel Gray (#334155) 1px divider rules between sections.",
+      "colour_usage": "Predominantly white with #2575FC structural hierarchy; #FF5E23 for 1–2 accent points only; #334155 for borders"
+    },
+    {
+      "asset_type": "Social Square 1:1",
+      "dimensions": "1080×1080px",
+      "structure": "Centered composition. Top 200px: headline in Anek Latin 700. Center 600px: single product photo or stat callout. Bottom 280px: #2575FC bar with white CTA text and logo centered.",
+      "background": "#FFFFFF",
+      "typography_usage": "Headline: Anek Latin 700, 48px, #000000. CTA: Roboto 500, 20px, #FFFFFF on #2575FC bar.",
+      "accent_elements": "Optional #FF5E23 corner flag (120×120px triangle) top-right for urgency",
+      "colour_usage": "#FFFFFF background 60%, #2575FC CTA bar 30%, #FF5E23 optional accent 5%, #000000 headline 5%"
+    }
+  ],
+
+  "generation_suffixes": {
+    "core": "Clean industrial design aesthetic. Strict colour palette: VaporKote Blue #2575FC for primary structural elements, Industrial Orange #FF5E23 for secondary accents (use sparingly), Steel Gray #334155 for borders and technical labels, pure white #FFFFFF backgrounds, black #000000 body text. Typography: Anek Latin bold sans-serif for headings, Roboto regular for body text — no decorative fonts. Layout: moderate whitespace (30-35% empty canvas), balanced grid structure, 5px corner radius on containers. Texture: none — clean solid fills only. Shape language: slightly-rounded rectangles, no gradients, high contrast. Overall tone: technical authority, manufacturing heritage, professional precision.",
+
+    "infographic": "Vertical multi-section layout on white #FFFFFF canvas. Section dividers: 1px solid #334155 horizontal rules. Stat callouts: Anek Latin 700, 48px, #2575FC with small Roboto 400 labels beneath in #334155. Data sequence: #2575FC primary, #FF5E23 secondary, #334155 tertiary. Spacing: 40px vertical rhythm between sections, 24px padding within content blocks. Avoid decorative elements — prioritize data clarity and technical readability.",
+
+    "cover_image": "Bold single headline in Anek Latin 700, 56–64px, left-aligned, #000000 text on #FFFFFF background. Right side: industrial equipment photo with 40% opacity #2575FC overlay. Logo 80px width top-left. Bottom accent stripe: 60px tall #FF5E23 bar with white category label. Clean geometric structure with 5px border radius on photo container.",
+
+    "social_square": "Centered composition optimized for 1080×1080px. Headline top third in Anek Latin 700 48px #000000. Center content zone: single product photo or large stat in #2575FC. Bottom third: solid #2575FC bar (280px tall) with white Roboto 500 20px CTA text. Logo centered on blue bar. Optional #FF5E23 corner flag for urgency.",
+
+    "midjourney_modifier": "industrial photography style, clean technical layout, solid colour blocks, high contrast, documentary realism, manufacturing environment, --style raw --ar 16:9 --v 6",
+
+    "dalle_modifier": "Industrial design layout with clean geometric composition. Documentary-style equipment photography paired with bold sans-serif typography. High-contrast colour blocking using bright blue #2575FC and safety orange #FF5E23 on white backgrounds. Technical precision aesthetic, no gradients, minimal ornamentation.",
+
+    "ideogram_modifier": "Industrial layout, Anek Latin bold headings + Roboto body, #2575FC blue + #FF5E23 orange on white, 5px rounded corners, technical clarity, high contrast"
+  }
+}
+</output_json>`,
 };
 
 export const CLIENT_SAMPLES: ClientSample[] = [
