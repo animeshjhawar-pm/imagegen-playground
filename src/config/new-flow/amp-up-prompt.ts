@@ -52,17 +52,29 @@ Required:
 
 Optional anchor (use when present, infer from expected_image when absent):
   business_context = {
-    industry_vertical: one of "industrial_manufacturing" | "field_services" | 
-                              "saas" | "professional_advisory" | 
-                              "consumer_retail" | "specialised_regulated",
-    explicit_out_of_scope: array of strings
+    business_profile: {
+      inventory_nature:      string,            // free-form e.g. "Specialty gas cylinders, certified reference gas mixtures…"
+      business_identity:     string,            // free-form one-line identity
+      primary_verticals:     array of strings,  // e.g. ["Specialty Gas Cylinders", "Reference Gas Mixtures", "Laser Gas Blends"]
+      explicit_out_of_scope: array of strings   // e.g. ["Consumer-grade gas products", "Welding fuel cylinders for retail"]
+    }
   }
+
+Map business_profile.primary_verticals + business_identity to ONE of these
+industry_vertical labels for the realism direction in STEP 3:
+    "industrial_manufacturing" | "field_services" |
+    "saas" | "professional_advisory" |
+    "consumer_retail" | "specialised_regulated"
+
+If business_profile is absent, infer the same label from expected_image alone.
 </inputs>
 
 <execution>
 
 STEP 1 — IDENTIFY PRIMARY SUBJECT AND SECONDARY ELEMENTS
-From expected_image (or business_context.industry_vertical if provided):
+From expected_image (or, when business_context is present, derive an
+industry_vertical label by reading business_context.business_profile.primary_verticals
+and business_context.business_profile.business_identity):
 
 Primary subject — drives realism direction:
   - person/people as focal point → people_primary
@@ -116,7 +128,12 @@ Then add scene-specific (only the lines that apply, not a dump):
   - saas_primary or secondary_ui: ", UI extending beyond screen bezels, floating UI not anchored to a surface, distorted typography, lorem ipsum"
   - environmental: ", HDR oversaturation, cinematic teal-orange grade"
 
-If business_context.explicit_out_of_scope is provided, append each item as a brief negative.
+If business_context.business_profile.explicit_out_of_scope is provided, append each item as a brief negative.
+
+Additionally, if business_context.business_profile.primary_verticals is
+provided, lightly bias the rendered subject toward an item in that list
+when expected_image is ambiguous (do NOT override expected_image when
+it is specific).
 
 End with "."
 
@@ -163,11 +180,50 @@ export const AMP_UP_USER_TEMPLATE_NEW = `
 // ---------------------------------------------------------------------------
 
 export const AMP_UP_SYSTEM_PROMPT_OLD = `
-PASTE_OLD_AMP_UP_SYSTEM_PROMPT_HERE
+You are an expert AI Prompt Engineer creating instructions for generative image editing to transform images into high-quality landing page assets.
 
-(This is the prod stormbreaker amp_up_prompt_system_prompt. Replace
-this placeholder with the Python source's literal value. The View
-Prompt button on the refined-image cell renders whatever you put here.)
+The inputs provided will be a json {description: "[Instruction for Image Generation Prompt]"}
+Instruction for Image Generation Prompt will consist of:
+1. Existing image's description in <existing_image></existing_image> tags.
+2. Expected image description in <expected_image</expected_image> tags.
+
+**YOUR TASK:**
+
+Follow these steps in order:
+
+**Step 1: Identify Core Changes**
+
+Compare the existing and expected descriptions. List the KEY differences that must change (subject, composition, setting, objects, etc.).
+
+**Step 2: Preserve What's Already Correct**
+
+Note any elements that are ALREADY present in the existing image that match the expected state. Do NOT include instructions to change these.
+
+**Step 3: Apply Landing Page Standards**
+
+For elements that ARE changing or being added, enhance them with professional marketing quality:
+
+- **People:** Must look at camera with warm, confident, professional smiles
+
+- **Lighting:** Bright, natural, welcoming (or warm golden-hour if outdoor)
+
+- **Colors:** Vibrant and rich
+
+- **Quality:** Pristine, professional, flawless condition
+
+- **Environment:** Clean, modern, aspirational
+
+**Step 4: Write the Transformation Prompt**
+
+Create a single, clear instruction that:
+
+1. Focuses ONLY on the delta (changes needed)
+
+2. Incorporates landing page enhancements for changed/new elements
+
+3. Is specific but not overly granular
+
+4. Uses descriptive, impactful language
 `.trim();
 
 export const AMP_UP_USER_TEMPLATE_OLD = `
