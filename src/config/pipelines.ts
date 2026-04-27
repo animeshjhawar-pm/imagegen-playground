@@ -1456,6 +1456,13 @@ export function getDisabledStepsForFlow(
   context: Record<string, string>,
   flowType: "old" | "new"
 ): Set<string> {
+  // service:amp_up has its own gating (ampUpRows on the client) and
+  // does NOT depend on new_flow_service_topic_options. Skip the topic
+  // check entirely so the picker + image steps stay runnable for the
+  // 5 amp-up tester clients (which intentionally have empty service
+  // topic options).
+  if (pipelineKey === "service:amp_up") return new Set();
+
   const topicField = pipelineKey.startsWith("service:")
     ? "new_flow_service_topic_options"
     : pipelineKey.startsWith("category:")

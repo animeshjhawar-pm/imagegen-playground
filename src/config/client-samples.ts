@@ -14031,19 +14031,24 @@ function ampUpStub(opts: {
   name: string;
   url: string;
   rows: AmpUpRow[];
+  /** business_profile JSON string. Used as the new-flow Build Amp-Up
+   *  Prompt step's `business_context` input. Empty string skips it. */
+  additionalInfoJson?: string;
+  /** Direct logo URL (becomes company_logo_url client-context). */
+  primaryLogoUrl?: string;
 }): ClientSample {
   return {
     id:                       opts.id,
     slug:                     opts.slug,
     name:                     opts.name,
     url:                      opts.url,
-    primaryLogoUrl:           "",
+    primaryLogoUrl:           opts.primaryLogoUrl ?? "",
     sampleServiceTopic:       "",
     sampleCategoryTopic:      "",
     sampleBlogTopic:          "",
     designTokensJson:         "",
     companyInfoJson:          "",
-    additionalInfoJson:       "",
+    additionalInfoJson:       opts.additionalInfoJson ?? "",
     logoUrlsJson:             "",
     serviceCatalogJson:       "",
     productInformationJson:   "",
@@ -14061,6 +14066,25 @@ const CLIENT_SPEC_GAS: ClientSample = ampUpStub({
   slug: "spec-gas",
   name: "Spec Gas",
   url:  "https://specgasinc.com/",
+  additionalInfoJson: `{
+  "business_profile": {
+    "inventory_nature": "Specialty gas cylinders, certified reference gas mixtures, custom multi-component gas blends, laser gas blends. Cylinders are sized for B2B lab and industrial use; gases are formulated to customer specifications.",
+    "business_identity": "B2B specialty gas supplier serving defense, aerospace, semiconductor, physics/chemistry research, and industrial laser markets with high-purity calibration and reference gases.",
+    "primary_verticals": [
+      "Specialty Gas Cylinders",
+      "Certified Reference Gas Mixtures",
+      "Custom Multi-Component Gas Blends",
+      "Laser Gas Blends",
+      "Excimer Laser Gas Mixtures"
+    ],
+    "explicit_out_of_scope": [
+      "Consumer-grade gas products",
+      "Food-grade or beverage CO2",
+      "Welding fuel cylinders for retail",
+      "Propane / fuel gas distribution"
+    ]
+  }
+}`,
   rows: [
     {
       label:                "Specialty Gas Cylinders for Defense & Satellite Testing",
@@ -14110,6 +14134,25 @@ const CLIENT_HPR: ClientSample = ampUpStub({
   slug: "hydrostatic-pump-repair",
   name: "Hydrostatic Pump Repair",
   url:  "https://hydrostaticpumprepair.com/",
+  additionalInfoJson: `{
+  "business_profile": {
+    "inventory_nature": "Hydrostatic pump repair services, remanufactured OEM parts catalog, heavy-equipment hydraulic system service. Inventory mixes service capacity (workshop labor) and remanufactured parts SKUs.",
+    "business_identity": "Heavy-equipment hydraulic specialist in Bel Air, MD offering on-bench pump repair, motor service, and a remanufactured-parts e-commerce store for excavators and construction machinery.",
+    "primary_verticals": [
+      "Hydrostatic Pump Repair",
+      "Heavy Equipment Hydraulic Service",
+      "Excavator Service & Repair",
+      "Pump Motor Installation",
+      "Remanufactured OEM Parts"
+    ],
+    "explicit_out_of_scope": [
+      "Engine rebuilds (non-hydraulic)",
+      "Tire / wheel services",
+      "Bulk hydraulic fluid sales",
+      "New-equipment sales"
+    ]
+  }
+}`,
   rows: [
     {
       label:                "Heavy Equipment Repair in Bel Air, MD",
@@ -14159,6 +14202,25 @@ const CLIENT_TYSON_MARTIN: ClientSample = ampUpStub({
   slug: "tyson-martin",
   name: "Tyson Martin",
   url:  "https://tysonmartin.com/",
+  additionalInfoJson: `{
+  "business_profile": {
+    "inventory_nature": "Independent advisory and fractional executive services. No physical product inventory; offerings are time-based engagements (board advisory, fractional CISO/CIO/CDO).",
+    "business_identity": "Nashville-based fractional executive practitioner serving as Board Advisor and Interim CISO/CIO/CDO for organisations needing senior cybersecurity, technology, and data leadership without a full-time hire.",
+    "primary_verticals": [
+      "Fractional CISO Services",
+      "Cybersecurity Risk Governance",
+      "C-Suite & Board Advisory",
+      "Interim CIO / CDO Services",
+      "Executive Risk Reporting"
+    ],
+    "explicit_out_of_scope": [
+      "Penetration testing engagements",
+      "Managed detection / SOC services",
+      "Software product sales",
+      "Generic IT support / helpdesk"
+    ]
+  }
+}`,
   rows: [
     {
       label:                "Fractional CISO Services in Nashville, TN",
@@ -14184,6 +14246,25 @@ const CLIENT_CNC: ClientSample = ampUpStub({
   slug: "cnc-programming-solutions",
   name: "CNC Programming Solutions",
   url:  "https://cncprogrammingsolutions.com/",
+  additionalInfoJson: `{
+  "business_profile": {
+    "inventory_nature": "Contract manufacturing capacity: CNC milling / machining centres, aluminum anodizing tanks, laser-cutting and finishing equipment. Inventory mixes machine-time slots and per-job consumables.",
+    "business_identity": "Fresno, CA contract manufacturer specialising in precision CNC machining, aluminum anodizing (parts and coil), welding, and laser-cut finishing for industrial customers.",
+    "primary_verticals": [
+      "CNC Machining",
+      "Aluminum Anodizing",
+      "Aluminum Coil Anodizing",
+      "Welding Services",
+      "Laser Cut Deburring & Finishing"
+    ],
+    "explicit_out_of_scope": [
+      "Software / programming services",
+      "3D / additive printing",
+      "Casting & foundry work",
+      "Consumer e-commerce of finished products"
+    ]
+  }
+}`,
   rows: [
     {
       label:                "Aluminum Anodizing Services in Fresno, CA",
@@ -14225,6 +14306,25 @@ const CLIENT_CODEWAVE: ClientSample = ampUpStub({
   slug: "codewave",
   name: "Codewave",
   url:  "https://codewave.com/",
+  additionalInfoJson: `{
+  "business_profile": {
+    "inventory_nature": "AI consulting engagements + AI agent / automation product implementations. No physical inventory; offerings are project-based services and licensable agents that integrate with customer systems.",
+    "business_identity": "AI consulting and product firm building agentic automation for enterprise back-office (billing, collections), industry verticals (telecom), and broader AI infrastructure programs.",
+    "primary_verticals": [
+      "AI Billing & Invoicing Agents",
+      "AI Debt Collection Agents",
+      "AI Consulting (Telecom)",
+      "AI Infrastructure Automation",
+      "Enterprise AI Tools & Integration"
+    ],
+    "explicit_out_of_scope": [
+      "Hardware manufacturing",
+      "Cybersecurity services",
+      "Generic web design / wordpress builds",
+      "Consumer mobile apps"
+    ]
+  }
+}`,
   rows: [
     {
       label:                "AI Billing Agent Solutions for Multi-Currency Invoicing",

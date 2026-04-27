@@ -193,6 +193,63 @@ export function StepCell({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pickerOptions?.length, step.picker]);
 
+  // Auto-render renderOnly *image-URL* steps as soon as their inputs
+  // are ready — no Run-Step click required. Scoped to outputType
+  // "image_url" + renderOnly + non-picker so it ONLY catches the
+  // display-only image cells (currently service:amp_up's old-flow
+  // generate_image, whose systemPromptOld is "{{amped_image_url}}").
+  // Other renderOnly steps that produce text prompts (legacy blog
+  // cover/internal) keep their existing user-triggered behavior.
+  useEffect(() => {
+    if (!step.renderOnly) return;
+    if (step.picker) return;                         // picker has its own auto-init above
+    if (step.outputType !== "image_url") return;     // narrow to display-only image cells
+    if (disabled) return;
+    if (stepState.status === "running") return;
+
+    const template =
+      (flowType === "old" ? step.systemPromptOld : step.systemPromptNew) ?? "";
+    if (!template) return;
+
+    // Build the input values map and bail if any required input is missing.
+    const effectiveInputs: Record<string, string> = {};
+    let missingRequired = false;
+    for (const inputDef of step.inputs) {
+      const v = getEffectiveInputValue(inputDef.name, stepState, sourceResolved);
+      effectiveInputs[inputDef.name] = v;
+      if (inputDef.required && !v.trim()) missingRequired = true;
+    }
+    if (missingRequired) return;
+
+    const rendered = interpolate(template, effectiveInputs).trim();
+    if (!rendered) return;
+
+    // Skip if the cell already shows this exact output (avoids a render
+    // loop) or if the user has manually pinned a different value.
+    if (stepState.isOutputOverride) return;
+    if ((stepState.output ?? "").trim() === rendered) return;
+
+    dispatch({
+      type: "SET_STEP_RUN_OUTPUT",
+      clientId, flowType, flowIndex,
+      stepName: step.name,
+      output: rendered,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    step.renderOnly,
+    step.systemPromptOld,
+    step.systemPromptNew,
+    flowType,
+    // Re-run whenever any source-resolved input value changes (e.g.
+    // picker output changes → upstream step_output.field re-resolves).
+    JSON.stringify(sourceResolved),
+    stepState.output,
+    stepState.isOutputOverride,
+    stepState.status,
+    disabled,
+  ]);
+
   const requiredInputsMissing = step.inputs
     .filter((i) => i.required)
     .some((i) => getEffectiveInputValue(i.name, stepState, sourceResolved).trim() === "");
