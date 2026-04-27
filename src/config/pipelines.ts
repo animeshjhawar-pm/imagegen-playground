@@ -40,6 +40,10 @@ import {
   BLOG_COVER_SYSTEM_PROMPT_NEW,
   BLOG_COVER_USER_TEMPLATE_NEW,
 } from "./new-flow/cover-prompt";
+import {
+  CUSTOM_TESTER_SYSTEM_PROMPT,
+  CUSTOM_TESTER_USER_TEMPLATE,
+} from "./new-flow/custom-tester-prompt";
 
 export type PageType = "blog" | "service" | "category" | "custom";
 
@@ -51,8 +55,7 @@ export type ImageType =
   | "generic"
   | "title"
   | "h2"
-  | "industry"
-  | "cover";
+  | "industry";
 
 export type StepStatus = "idle" | "running" | "completed" | "failed";
 export type StepDiff = "same_as_old" | "modified" | "new" | "skipped";
@@ -247,7 +250,7 @@ export const IMAGE_TYPES_BY_PAGE: Record<PageType, ImageType[]> = {
   blog: ["cover_thumbnail", "internal", "external", "infographic", "generic"],
   service: ["title", "h2"],
   category: ["industry"],
-  custom: ["cover"],
+  custom: ["cover_thumbnail"],
 };
 
 export const IMAGE_TYPE_LABELS: Record<ImageType, string> = {
@@ -259,7 +262,6 @@ export const IMAGE_TYPE_LABELS: Record<ImageType, string> = {
   title: "Title Image",
   h2: "H2 Image",
   industry: "Industry Image",
-  cover: "Cover (tester)",
 };
 
 // ---------------------------------------------------------------------------
@@ -937,18 +939,22 @@ const generateCoverImagePromptStep_blog: StepDefinition = {
 };
 
 /**
- * Custom-tester Build Image Prompt step. New-flow only. Drops every
- * input the cover/thumbnail variant carried except: blog_title (from
- * picker), business_context (client context), graphic_token (read from
- * client_context.graphic_token, NOT the extract step — the custom
- * pipeline skips the scrape + extract steps entirely; the user pastes a
- * graphic_token JSON into the context panel by hand).
+ * Custom-tester Build Image Prompt step. New-flow only. One Claude
+ * call produces a single prompt that drives BOTH the 16:9 cover render
+ * and the 3:2 thumbnail render that follow. graphic_token is sourced
+ * directly from client_context (the custom pipeline skips the scrape
+ * + extract steps entirely; the token is either manually pasted or
+ * pre-populated from sample.graphicTokenJson on preset import).
+ *
+ * Uses the dedicated CUSTOM_TESTER_SYSTEM_PROMPT / USER_TEMPLATE so
+ * you can iterate on the tester independently of the blog cover
+ * prompt — see src/config/new-flow/custom-tester-prompt.ts.
  */
 const generateCustomCoverPromptStep: StepDefinition = {
   name: "build_image_prompt",
   title: "Generate Image Prompt",
   description:
-    "Custom tester variant — generates the cover prompt off the picked blog topic, business_context, and a manually-entered graphic_token. No scrape, no extract, no company_info. Output feeds the single 16:9 cover render that follows.",
+    "Custom tester variant — uses its own dedicated prompt (custom-tester-prompt.ts). One Claude call produces a single prompt used for BOTH the 16:9 cover and 3:2 thumbnail renders that follow. graphic_token comes from client_context (manual paste or preset).",
   model: "claude-sonnet-4-6",
   provider: "portkey",
   diffOld: "skipped",
@@ -969,36 +975,38 @@ const generateCustomCoverPromptStep: StepDefinition = {
     },
     {
       name: "graphic_token",
-      label: "graphic_token (manual JSON)",
+      label: "graphic_token (manual JSON / preset)",
       source: { kind: "client_context", field: "graphic_token" },
       required: false,
       flows: ["new"],
     },
   ],
-  systemPromptNew: BLOG_COVER_SYSTEM_PROMPT_NEW,
-  userPromptTemplateNew: BLOG_COVER_USER_TEMPLATE_NEW,
+  systemPromptNew: CUSTOM_TESTER_SYSTEM_PROMPT,
+  userPromptTemplateNew: CUSTOM_TESTER_USER_TEMPLATE,
   outputType: "text",
 };
 
 /**
- * Custom-tester Generate Image step. Always 16:9; surfaces a second
- * reference-image URL field alongside the company-logo input so the
- * Replicate `image_input` array carries [logo, reference] on every
- * run. The reference URL is pre-filled with the configured layout-
- * reference image but the user can override it per-run via the cell.
+ * Custom-tester Generate Image steps. Two distinct renders driven by
+ * the same Build Image Prompt output:
+ *   - generate_cover_image: 16:9, uses public/cover.png as the layout
+ *     reference (alongside the company logo).
+ *   - generate_thumbnail_image: 3:2, uses public/thumbnail.png.
+ * The reference URLs hot-link the GitHub raw blobs so they resolve over
+ * the public internet even when the playground is only running locally
+ * (Replicate fetches the references from its own infrastructure).
  */
 const CUSTOM_COVER_REFERENCE_IMAGE_URL =
-  "https://cdn.gushwork.ai/cover-images/sylus.ai/426c551b-431a-4c78-ba98-2a9d212062ea.jpg";
+  "https://raw.githubusercontent.com/animeshjhawar-pm/imagegen-playground/main/public/cover.png";
+const CUSTOM_THUMBNAIL_REFERENCE_IMAGE_URL =
+  "https://raw.githubusercontent.com/animeshjhawar-pm/imagegen-playground/main/public/thumbnail.png";
 
 const generateCustomCoverImageStep: StepDefinition = {
   ...makeGenerateImageStep({
-    name: "generate_image",
+    name: "generate_cover_image",
     title: "Generate Cover Image",
     fixedAspectRatio: "16:9",
   }),
-  // Re-declare inputs to insert the reference-image URL right after
-  // the existing image_input (logo) field. The base factory only
-  // defines final_prompt + image_input; we add a second URL slot.
   inputs: [
     {
       name: "final_prompt",
@@ -1014,8 +1022,37 @@ const generateCustomCoverImageStep: StepDefinition = {
     },
     {
       name: "reference_image_url",
-      label: "Reference Image URL (layout scaffold)",
+      label: "Reference Image URL (cover.png — layout scaffold)",
       source: { kind: "literal", value: CUSTOM_COVER_REFERENCE_IMAGE_URL },
+      required: false,
+      imageInputMember: true,
+    },
+  ],
+};
+
+const generateCustomThumbnailImageStep: StepDefinition = {
+  ...makeGenerateImageStep({
+    name: "generate_thumbnail_image",
+    title: "Generate Thumbnail Image",
+    fixedAspectRatio: "3:2",
+  }),
+  inputs: [
+    {
+      name: "final_prompt",
+      label: "Final Prompt",
+      source: { kind: "step_output", stepName: "build_image_prompt" },
+      required: true,
+    },
+    {
+      name: "image_input",
+      label: "Logo URL",
+      source: { kind: "client_context", field: "company_logo_url" },
+      required: false,
+    },
+    {
+      name: "reference_image_url",
+      label: "Reference Image URL (thumbnail.png — layout scaffold)",
+      source: { kind: "literal", value: CUSTOM_THUMBNAIL_REFERENCE_IMAGE_URL },
       required: false,
       imageInputMember: true,
     },
@@ -1184,26 +1221,30 @@ export const PIPELINES: Record<string, PipelineDefinition> = {
       "Same handler and upstream prompt as service:title (update_images.py). In stormbreaker the title vs h2 distinction only exists in each image object's `context` field within page_info.",
   }),
 
-  // Custom tester pipeline. New-flow only, 3 steps:
+  // Custom tester pipeline. New-flow only, 4 steps:
   //   1) Choose blog topic (picker over new_flow_blog_topic_options)
   //   2) Generate Image Prompt — runs Claude with placeholder_description
-  //      + business_context + graphic_token (graphic_token comes from a
-  //      MANUALLY entered client-context field, not from extract). No
-  //      scrape, no extract, no company_info.
-  //   3) Generate Cover Image — single 16:9 render. The image_input
-  //      array always includes the configured layout-reference image
-  //      ALONGSIDE the user's company logo.
-  "custom:cover": {
+  //      + business_context + graphic_token (graphic_token comes from
+  //      client_context — pre-populated from preset, or manually pasted —
+  //      NOT from an extract step). No scrape, no extract, no company_info.
+  //      Uses its own dedicated prompt (custom-tester-prompt.ts).
+  //   3) Generate Cover Image — 16:9 render. image_input = [logo, cover.png].
+  //   4) Generate Thumbnail Image — 3:2 render. image_input = [logo,
+  //      thumbnail.png]. Both references are committed in /public and hot-
+  //      linked from raw.githubusercontent.com so they resolve even when
+  //      the playground only runs locally.
+  "custom:cover_thumbnail": {
     steps: [
       chooseBlogImageDescriptionStep,
       generateCustomCoverPromptStep,
       generateCustomCoverImageStep,
+      generateCustomThumbnailImageStep,
     ],
     clientContextFields: SHARED_CLIENT_CONTEXT_FIELDS,
     defaultAspectRatio: "16:9",
     omitOldFlow: true,
     alignmentNote:
-      "Custom tester pipeline — new flow only. 3 steps: pick topic → generate prompt (uses manually-entered graphic_token) → generate 16:9 cover image. The cover render always pins a fixed reference image alongside the logo.",
+      "Custom tester pipeline — new flow only. 4 steps: pick topic → generate prompt (own template) → 16:9 cover render with cover.png reference + 3:2 thumbnail render with thumbnail.png reference. Logo is included in image_input alongside the per-render layout scaffold.",
   },
 
   "category:industry": makePipeline({
