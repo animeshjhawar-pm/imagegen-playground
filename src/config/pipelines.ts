@@ -266,6 +266,15 @@ export interface PipelineDefinition {
    * custom:cover tester pipeline which only exercises the new flow.
    */
   omitOldFlow?: boolean;
+  /**
+   * When true, the old-flow row stays visible but is treated as fully
+   * pre-rendered: per-row "Run row" button hidden, per-cell "Run Step"
+   * buttons hidden, Run All / column Run All silently skip the old
+   * lane regardless of the chosen scope. Use for pipelines whose old
+   * flow is purely display-driven (every step is renderOnly with auto-
+   * render). Currently service:amp_up.
+   */
+  oldFlowReadOnly?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -1501,6 +1510,7 @@ export const PIPELINES: Record<string, PipelineDefinition> = {
     ],
     clientContextFields: SHARED_CLIENT_CONTEXT_FIELDS,
     defaultAspectRatio: "1:1",
+    oldFlowReadOnly: true,
     alignmentNote:
       "Service amp-up tester. OLD flow is fully pre-filled (picker → input image → refined image, all auto-rendered, no run buttons). NEW flow runs Build Amp-Up Prompt then Generate Image at 1:1 against Replicate with image_input=[existing_image_url, logo]. Compare button shows OLD refined vs NEW generated.",
   },

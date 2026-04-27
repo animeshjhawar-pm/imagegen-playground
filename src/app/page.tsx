@@ -269,8 +269,13 @@ function PlaygroundInner() {
             { flowType: "old", flowIndex: 0 },
             ...client.newFlows.map((_, i) => ({ flowType: "new" as const, flowIndex: i })),
           ];
+          // Pipelines flagged oldFlowReadOnly never want their old
+          // lane in any wave — its cells are renderOnly + auto-rendered,
+          // so firing them is wasted work and risks spurious dispatches.
+          // Override scope to "new" silently for those.
+          const effectiveScope = pipeline.oldFlowReadOnly ? "new" : scope;
           const lanes = allLanes.filter((l) =>
-            scope === "both" ? true : scope === "old" ? l.flowType === "old" : l.flowType === "new",
+            effectiveScope === "both" ? true : effectiveScope === "old" ? l.flowType === "old" : l.flowType === "new",
           );
           return Promise.all(
             lanes.map(async ({ flowType, flowIndex }) => {
@@ -326,8 +331,13 @@ function PlaygroundInner() {
             { flowType: "old", flowIndex: 0 },
             ...client.newFlows.map((_, i) => ({ flowType: "new" as const, flowIndex: i })),
           ];
+          // Pipelines flagged oldFlowReadOnly never want their old
+          // lane in any wave — its cells are renderOnly + auto-rendered,
+          // so firing them is wasted work and risks spurious dispatches.
+          // Override scope to "new" silently for those.
+          const effectiveScope = pipeline.oldFlowReadOnly ? "new" : scope;
           const lanes = allLanes.filter((l) =>
-            scope === "both" ? true : scope === "old" ? l.flowType === "old" : l.flowType === "new",
+            effectiveScope === "both" ? true : effectiveScope === "old" ? l.flowType === "old" : l.flowType === "new",
           );
           return Promise.all(
             lanes.map(({ flowType, flowIndex }) => {

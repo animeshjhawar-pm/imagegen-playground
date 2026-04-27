@@ -91,28 +91,32 @@ export function FlowRow({
           </span>
           {labelAdornment}
           {/* Per-row Run All — runs every step for this single lane
-           *  left-to-right, fail-stops if any step fails. */}
-          <button
-            onClick={() => onRunRow(client.id, flowType, flowIndex)}
-            disabled={!canRunRow}
-            title={
-              isThisRowRunning
-                ? "This row is running…"
-                : isGlobalRunning
-                  ? "A pipeline-wide run is in progress"
-                  : `Run every step for this ${label} row, left to right (multiple rows can run in parallel)`
-            }
-            className={`mt-0.5 px-1.5 py-0.5 text-[9px] rounded font-medium whitespace-nowrap
-              transition-colors inline-flex items-center gap-1
-              ${isThisRowRunning
-                ? "bg-violet-600 text-white animate-pulse"
-                : "bg-neutral-800 text-neutral-300 hover:bg-violet-700/60 hover:text-violet-50"
+           *  left-to-right, fail-stops if any step fails. Hidden on old-
+           *  flow rows when the pipeline is flagged oldFlowReadOnly
+           *  (everything renders automatically — nothing to "run"). */}
+          {!(pipeline.oldFlowReadOnly && flowType === "old") && (
+            <button
+              onClick={() => onRunRow(client.id, flowType, flowIndex)}
+              disabled={!canRunRow}
+              title={
+                isThisRowRunning
+                  ? "This row is running…"
+                  : isGlobalRunning
+                    ? "A pipeline-wide run is in progress"
+                    : `Run every step for this ${label} row, left to right (multiple rows can run in parallel)`
               }
-              disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-neutral-800
-              disabled:hover:text-neutral-300`}
-          >
-            {isThisRowRunning ? "Running…" : "▶ Run row"}
-          </button>
+              className={`mt-0.5 px-1.5 py-0.5 text-[9px] rounded font-medium whitespace-nowrap
+                transition-colors inline-flex items-center gap-1
+                ${isThisRowRunning
+                  ? "bg-violet-600 text-white animate-pulse"
+                  : "bg-neutral-800 text-neutral-300 hover:bg-violet-700/60 hover:text-violet-50"
+                }
+                disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-neutral-800
+                disabled:hover:text-neutral-300`}
+            >
+              {isThisRowRunning ? "Running…" : "▶ Run row"}
+            </button>
+          )}
         </div>
       </td>
 

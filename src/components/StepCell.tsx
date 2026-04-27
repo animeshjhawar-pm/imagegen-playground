@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePlayground } from "@/context/PlaygroundContext";
-import { resolveFixedAspectRatio, type StepDefinition, type StepDiff, type PageType, type ImageType } from "@/config/pipelines";
+import { PIPELINES, resolveFixedAspectRatio, type StepDefinition, type StepDiff, type PageType, type ImageType } from "@/config/pipelines";
 import type { StepState, ClientState } from "@/state/playgroundReducer";
 import { StatusDot } from "./StatusDot";
 import { CollapsibleField } from "./CollapsibleField";
@@ -99,6 +99,11 @@ export function StepCell({
 }: StepCellProps) {
   const { dispatch } = usePlayground();
   const pipelineKey = `${pageType}:${imageType}`;
+  // Pipelines flagged oldFlowReadOnly hide all run buttons on the
+  // old-flow side — every old-flow step is renderOnly + auto-renders,
+  // so there's nothing to "run" manually.
+  const oldFlowReadOnly = !!PIPELINES[pipelineKey]?.oldFlowReadOnly;
+  const hideRunButton = oldFlowReadOnly && flowType === "old";
 
   const flow =
     flowType === "old"
@@ -756,7 +761,10 @@ export function StepCell({
               )}
             </div>
 
-            {/* Run / Stop buttons */}
+            {/* Run / Stop buttons — hidden entirely on old-flow cells
+             *  for pipelines flagged oldFlowReadOnly (every step is
+             *  renderOnly + auto-rendered; nothing to run manually). */}
+            {!hideRunButton && (
             <div className="mt-auto flex items-center gap-2 self-start">
               {isRunning ? (
                 <>
@@ -786,6 +794,7 @@ export function StepCell({
                 </button>
               )}
             </div>
+            )}
           </div>
         )}
       </div>
