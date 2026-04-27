@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type { ImportedClientSeed } from "@/state/playgroundReducer";
 import { CLIENT_SAMPLES, getClientSampleBySlug, type ClientSample } from "@/config/client-samples";
-import type { PageType } from "@/config/pipelines";
+import type { PageType, ImageType } from "@/config/pipelines";
 
 interface ImportClientDialogProps {
   isOpen: boolean;
@@ -22,24 +22,73 @@ interface ImportClientDialogProps {
    * pipelines). Passed as null before the user picks a page type.
    */
   pageType?: PageType | null;
+  /**
+   * Current image type. Used to narrow the preset list when a page-type
+   * has multiple sub-pipelines that draw from disjoint client data sets
+   * (e.g. service:amp_up uses a different five clients than service:title
+   * / service:h2 do).
+   */
+  imageType?: ImageType | null;
 }
 
 /**
- * Does this preset client have DB-fetched data for the given page type?
- *   blog     → always applicable (every preset has a homepage + logos,
- *              which is enough for every blog flow).
- *   service  → needs at least one entry in serviceImageDescriptions.
- *   category → needs at least one entry in categoryImageDescriptions.
- *   null     → always applicable (no page type selected yet).
+ * A preset is "amp-up-only" when its data is purely amp_up rows (the
+ * five tester clients added for the service:amp_up pipeline). They
+ * should NOT show up under any other (page, image) combo because the
+ * rest of the ClientSample fields are stubbed empty.
  */
-function isSampleApplicable(sample: ClientSample, pageType: PageType | null | undefined): boolean {
-  if (!pageType || pageType === "blog") return true;
-  if (pageType === "service")  return sample.serviceImageDescriptions.length > 0;
+function isAmpUpOnlyClient(sample: ClientSample): boolean {
+  const hasAmp     = (sample.ampUpRows?.length ?? 0) > 0;
+  const hasService = sample.serviceImageDescriptions.length > 0;
+  const hasCategory = sample.categoryImageDescriptions.length > 0;
+  const hasBlogTopics = sample.blogTopicOptions.length > 0;
+  const hasBlogDescs = (
+    sample.blogImageDescriptionOptions.infographic.length +
+    sample.blogImageDescriptionOptions.internal.length +
+    sample.blogImageDescriptionOptions.external.length +
+    sample.blogImageDescriptionOptions.generic.length
+  ) > 0;
+  return hasAmp && !hasService && !hasCategory && !hasBlogTopics && !hasBlogDescs;
+}
+
+/**
+ * Does this preset client have data for the given (page type, image type)?
+ *   service:amp_up → needs ampUpRows. Amp-up-only clients are EXCLUSIVE
+ *                    to this pipeline; only they show here.
+ *   service:*      → amp-up-only clients are filtered OUT. Otherwise needs
+ *                    serviceImageDescriptions.
+ *   category:*     → amp-up-only clients filtered OUT, needs categoryImageDescriptions.
+ *   blog:*         → amp-up-only clients filtered OUT, otherwise applicable.
+ *   custom:*       → amp-up-only clients filtered OUT, otherwise applicable.
+ *   null page      → all clients shown (no filter applied yet).
+ */
+function isSampleApplicable(
+  sample: ClientSample,
+  pageType: PageType | null | undefined,
+  imageType: ImageType | null | undefined,
+): boolean {
+  if (!pageType) return true;
+
+  // Amp-up tester pipeline: ONLY amp-up-carrying clients qualify.
+  if (pageType === "service" && imageType === "amp_up") {
+    return (sample.ampUpRows?.length ?? 0) > 0;
+  }
+  // Everywhere else: amp-up-only stubs are hidden — they have no other data.
+  if (isAmpUpOnlyClient(sample)) return false;
+
+  if (pageType === "blog")    return true;
+  if (pageType === "service") return sample.serviceImageDescriptions.length > 0;
   if (pageType === "category") return sample.categoryImageDescriptions.length > 0;
+  if (pageType === "custom")  return true;
   return true;
 }
 
-function inapplicableReason(pageType: PageType | null | undefined): string {
+function inapplicableReason(
+  pageType: PageType | null | undefined,
+  imageType: ImageType | null | undefined,
+): string {
+  if (pageType === "service" && imageType === "amp_up")
+    return "No amp-up rows available — this preset isn't part of the amp-up tester set";
   if (pageType === "service")  return "No service page available";
   if (pageType === "category") return "No category page available";
   return "Not applicable";
@@ -179,7 +228,7 @@ function csvToSeeds(text: string): { seeds: ImportedClientSeed[]; errors: string
 // Component
 // ---------------------------------------------------------------------------
 export function ImportClientDialog({
-  isOpen, onCancel, onImport, onAddBlank, pageType = null,
+  isOpen, onCancel, onImport, onAddBlank, pageType = null, imageType = null,
 }: ImportClientDialogProps) {
   const [tab, setTab] = useState<Tab>("presets");
 
@@ -221,9 +270,9 @@ export function ImportClientDialog({
   // Computed once per render; cheap (14 samples).
   const applicableSlugs = useMemo(
     () => new Set(
-      CLIENT_SAMPLES.filter((s) => isSampleApplicable(s, pageType)).map((s) => s.slug),
+      CLIENT_SAMPLES.filter((s) => isSampleApplicable(s, pageType, imageType)).map((s) => s.slug),
     ),
-    [pageType],
+    [pageType, imageType],
   );
 
   function togglePreset(slug: string) {
@@ -434,7 +483,20 @@ export function ImportClientDialog({
 
               <div className="rounded border border-neutral-800 bg-neutral-950/40 max-h-[340px] overflow-auto">
                 <ul className="divide-y divide-neutral-800/70">
-                  {CLIENT_SAMPLES.map((s) => {
+                  {CLIENT_SAMPLES
+                    // Amp-up-only stubs are exclusive to service:amp_up.
+                    // Skip rendering them entirely on every other (page,
+                    // image) combo so the regular preset list stays clean.
+                    // Conversely: on service:amp_up, the regular 15
+                    // service/blog presets are filtered out for the same
+                    // reason — they have no amp_up rows.
+                    .filter((s) => {
+                      if (pageType === "service" && imageType === "amp_up") {
+                        return (s.ampUpRows?.length ?? 0) > 0;
+                      }
+                      return !isAmpUpOnlyClient(s);
+                    })
+                    .map((s) => {
                     const checked = selectedPresetSlugs.has(s.slug);
                     const applicable = applicableSlugs.has(s.slug);
                     return (
@@ -445,7 +507,7 @@ export function ImportClientDialog({
                               ? "cursor-pointer hover:bg-neutral-900/60"
                               : "cursor-not-allowed opacity-50"
                           }`}
-                          title={applicable ? undefined : inapplicableReason(pageType)}
+                          title={applicable ? undefined : inapplicableReason(pageType, imageType)}
                         >
                           <input
                             type="checkbox"
@@ -460,7 +522,7 @@ export function ImportClientDialog({
                               {!applicable && (
                                 <span className="text-[9px] uppercase tracking-wider font-semibold
                                   px-1 py-0.5 rounded bg-neutral-800 text-neutral-500 flex-shrink-0">
-                                  {inapplicableReason(pageType)}
+                                  {inapplicableReason(pageType, imageType)}
                                 </span>
                               )}
                             </div>
@@ -520,10 +582,22 @@ export function ImportClientDialog({
                     text-neutral-100 text-xs px-2 py-1.5
                     focus:outline-none focus:ring-1 focus:ring-violet-500"
                 >
-                  <option value="">— pick one of 10 real prod clients —</option>
-                  {CLIENT_SAMPLES.map((s) => (
-                    <option key={s.slug} value={s.slug}>{s.name} · {s.url}</option>
-                  ))}
+                  <option value="">— pick a real prod client —</option>
+                  {CLIENT_SAMPLES
+                    // Same exclusivity rule as the Presets tab: the Single
+                    // tab is for setting up a normal blog/service/category
+                    // pipeline run, so amp-up-only stubs (incomplete on
+                    // every other field) are filtered out everywhere
+                    // except the service:amp_up listing.
+                    .filter((s) => {
+                      if (pageType === "service" && imageType === "amp_up") {
+                        return (s.ampUpRows?.length ?? 0) > 0;
+                      }
+                      return !isAmpUpOnlyClient(s);
+                    })
+                    .map((s) => (
+                      <option key={s.slug} value={s.slug}>{s.name} · {s.url}</option>
+                    ))}
                 </select>
               </div>
 

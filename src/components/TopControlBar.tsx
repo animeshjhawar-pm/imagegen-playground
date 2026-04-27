@@ -252,6 +252,7 @@ export function TopControlBar({ onRunAll, isRunningAll }: TopControlBarProps) {
         }}
         onAddBlank={handleAddBlankFromDialog}
         pageType={pageType}
+        imageType={imageType}
       />
 
       <ExportCsvDialog
