@@ -9,8 +9,11 @@
 //   - {{placeholder_description}} — the picked blog topic
 //   - {{business_context}}        — additional_info JSON
 //   - {{graphic_token}}           — manually entered or pre-extracted token
-//   - {{aspect_ratio}}            — injected server-side as
-//                                   "16:9 (cover) and 3:2 (thumbnail)"
+//
+// aspect_ratio is intentionally NOT injected here. One prompt is generated
+// in this step and the same prompt is sent to TWO Replicate renders at
+// different aspect ratios (16:9 cover + 3:2 thumbnail). Aspect handling
+// lives entirely at the image-gen step.
 //
 // The user-template-only variables {{subtitle}} and {{category_label}} from
 // the blog template have been dropped — the tester is intentionally lean.
@@ -27,10 +30,10 @@ Google's Nano Banana Pro that produces an on-brand cover image.
 <task>
 Use the brand style guide in <style_guide>, the business context in
 <business_context>, and the blog details in <blog_post> to generate ONE
-prompt. The same prompt will be rendered at multiple aspect ratios listed
-in <context>.aspect_ratio — compose the scene so it holds together at
-both: text + key subjects centred enough to survive a vertical crop, and
-the wider scene reading well at 16:9.
+prompt. Compose the scene with text + key subjects centred enough to
+read well across both wider and squarer crops — the same prompt is
+rendered twice downstream (16:9 cover and 3:2 thumbnail), so do not
+mention any specific aspect ratio in the prompt body itself.
 
 A reference image is attached separately to each Replicate call:
 - For the 16:9 cover render, the cover.png layout reference is attached.
@@ -51,8 +54,6 @@ Wrap the final output in <final_prompt> XML tags. Output ONLY that block.
 - <business_context> — short prose describing the business, its primary
   verticals, and explicit out-of-scope subjects.
 - <blog_post> — { blog_title } that the cover/thumbnail is for.
-- <context> — { aspect_ratio } string listing every render target this
-  one prompt will be sent to (e.g. "16:9 (cover) and 3:2 (thumbnail)").
 </style_inputs>
 
 <scene_guardrails>

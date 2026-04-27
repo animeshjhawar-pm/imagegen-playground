@@ -372,13 +372,14 @@ Expected output format:
 // blog_title sources from the picker output (placeholder_description).
 // subtitle + category_label are optional user_input fields (empty by
 // default — the system prompt treats empty strings as "not provided").
-// aspect_ratio is injected server-side with the FULL set of downstream
-// render aspect ratios for the current flow (e.g. "16:9 (cover) and
-// 3:2 (thumbnail)" for the new flow, "16:9 (cover) and 1:1 (thumbnail)"
-// for the old flow). This way the single prompt we generate composes
-// well at both aspects. company_info is deliberately not part of this
-// template; cover + thumbnail ground on blog_title + business_context +
-// graphic_token only.
+// company_info is deliberately not part of this template; cover +
+// thumbnail ground on blog_title + business_context + graphic_token
+// only.
+//
+// NOTE: aspect_ratio is intentionally NOT in this user template. One
+// prompt is generated here, and the same prompt is sent to TWO
+// Replicate renders at different aspect ratios (16:9 cover + 3:2/1:1
+// thumbnail). Aspect handling lives entirely at the image-gen step.
 export const BLOG_COVER_USER_TEMPLATE_NEW = `
 <blog_post>
 {
@@ -395,10 +396,4 @@ export const BLOG_COVER_USER_TEMPLATE_NEW = `
 <style_guide>
 {{graphic_token}}
 </style_guide>
-
-<context>
-{
-  "aspect_ratio": "{{aspect_ratio}}"
-}
-</context>
 `.trim();

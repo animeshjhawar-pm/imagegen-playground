@@ -190,37 +190,12 @@ async function runLiveStep(
         truncationWarning = warning;
       }
 
-      // Build Image Prompt on the merged cover+thumbnail pipeline needs
-      // to tell the LLM what aspect ratio(s) the single prompt it
-      // generates will be rendered at. The step itself has no
-      // aspect_ratio input, so we derive it from the downstream image-
-      // gen step definitions and inject it as `aspect_ratio` for the
-      // user template to interpolate.
-      if (stepName === "build_image_prompt") {
-        const pipeline = PIPELINES[key];
-        if (pipeline) {
-          const downstreamAspects = pipeline.steps
-            .filter((s) =>
-              s.name === "generate_image" ||
-              s.name === "generate_cover_image" ||
-              s.name === "generate_thumbnail_image"
-            )
-            .map((s) => {
-              const aspect = resolveFixedAspectRatio(s, flowType);
-              // Label cover/thumbnail so the LLM knows which render
-              // each aspect targets; fall back to a bare ratio string
-              // for the single-image pipelines.
-              if (!aspect) return null;
-              if (s.name === "generate_cover_image")     return `${aspect} (cover)`;
-              if (s.name === "generate_thumbnail_image") return `${aspect} (thumbnail)`;
-              return aspect;
-            })
-            .filter((x): x is string => !!x);
-          if (downstreamAspects.length > 0) {
-            effectiveInputs["aspect_ratio"] = downstreamAspects.join(" and ");
-          }
-        }
-      }
+      // Note: aspect ratio is intentionally NOT injected at the
+      // build_image_prompt step. One prompt is generated here, and the
+      // same prompt is dispatched to the downstream image-gen step(s)
+      // (e.g. cover_thumbnail pipelines fan out to 16:9 cover + 3:2/1:1
+      // thumbnail renders). Aspect handling lives entirely at the
+      // image-gen step via stepDef.fixedAspectRatio[Old|New].
 
       // Derived vars (e.g. brand_lines from graphic_token JSON) are available
       // to both system + user prompt templates.
