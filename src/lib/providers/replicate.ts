@@ -84,9 +84,23 @@ function buildModelInput(
   const { prompt, aspectRatio, imageInput } = p;
 
   if (model === "google/nano-banana-pro") {
-    const input: Record<string, unknown> = { prompt, aspect_ratio: aspectRatio };
-    // Only include image_input if non-empty (empty array behaves differently).
-    if (imageInput && imageInput.length > 0) input.image_input = imageInput;
+    // Full canonical payload shape per the model's Replicate schema:
+    //   { prompt, resolution, image_input[], aspect_ratio, output_format,
+    //     safety_filter_level, allow_fallback_model }
+    // safety_filter_level=block_only_high is critical — the default
+    // (block_some / block_most) frequently refuses amp-up prompts as
+    // chat-style "I'm just a language model and can't help with that"
+    // responses, which Replicate translates into the opaque
+    // "No image content found in response" error.
+    const input: Record<string, unknown> = {
+      prompt,
+      resolution:           "2K",
+      aspect_ratio:         aspectRatio,
+      image_input:          imageInput ?? [],
+      output_format:        "png",
+      safety_filter_level:  "block_only_high",
+      allow_fallback_model: false,
+    };
     return input;
   }
 
