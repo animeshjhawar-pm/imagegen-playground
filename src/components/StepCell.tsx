@@ -207,8 +207,12 @@ export function StepCell({
     if (disabled) return;
     if (stepState.status === "running") return;
 
+    // Prefer explicit renderTemplateOld / renderTemplateNew; fall back
+    // to systemPromptOld / systemPromptNew for back-compat with legacy
+    // renderOnly steps that store the template as the system prompt.
     const template =
-      (flowType === "old" ? step.systemPromptOld : step.systemPromptNew) ?? "";
+      (flowType === "old" ? step.renderTemplateOld : step.renderTemplateNew) ??
+      (flowType === "old" ? step.systemPromptOld   : step.systemPromptNew) ?? "";
     if (!template) return;
 
     // Build the input values map and bail if any required input is missing.
@@ -240,6 +244,8 @@ export function StepCell({
     step.renderOnly,
     step.systemPromptOld,
     step.systemPromptNew,
+    step.renderTemplateOld,
+    step.renderTemplateNew,
     flowType,
     // Re-run whenever any source-resolved input value changes (e.g.
     // picker output changes → upstream step_output.field re-resolves).
@@ -423,6 +429,11 @@ export function StepCell({
       <div className="flex flex-col h-full">
 
         {/* ── Header ─────────────────────────────────────────────────────── */}
+        {/* Hide the header entirely when the step is both skipped for
+         *  this flow AND hideWhenSkipped. Together with the empty body
+         *  below it, the cell becomes effectively invisible (just an
+         *  empty TD that holds the column's width). */}
+        {!(isSkipped && step.hideWhenSkipped) && (
         <div className={`flex items-center gap-2 px-3 py-2 border-b border-neutral-800 bg-neutral-900/50 flex-wrap ${
           disabled ? "opacity-50" : ""
         }`}>
@@ -454,12 +465,20 @@ export function StepCell({
             </span>
           )}
         </div>
+        )}
 
         {/* ── Body ───────────────────────────────────────────────────────── */}
         {isSkipped ? (
-          <div className="flex items-center justify-center flex-1 px-3 py-8">
-            <span className="text-[11px] text-neutral-700 italic">— Not in Old Flow —</span>
-          </div>
+          step.hideWhenSkipped ? (
+            // Step asked to be invisible when skipped for this flow —
+            // render a minimal-height blank body so the table column
+            // alignment survives but no placeholder text shows.
+            <div className="flex-1 px-3 py-2" />
+          ) : (
+            <div className="flex items-center justify-center flex-1 px-3 py-8">
+              <span className="text-[11px] text-neutral-700 italic">— Not in {flowType === "old" ? "Old" : "New"} Flow —</span>
+            </div>
+          )
         ) : disabled ? (
           // Gated off because the client's required page-topic context is
           // empty (no PUBLISHED service/category cluster with an image

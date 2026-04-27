@@ -165,17 +165,22 @@ async function runLiveStep(
 
   // Universal renderOnly handler — runs BEFORE the step-name switch so
   // any step flagged renderOnly (regardless of name) interpolates its
-  // per-flow systemPrompt template and returns. This lets a single
-  // generate_image step display a pre-rendered URL on the old flow
-  // (renderOnly with systemPromptOld set) while the new flow falls
-  // through to the regular Replicate path (systemPromptNew left blank,
-  // route falls through below).
+  // per-flow template and returns. The runtime template is picked in
+  // this priority order:
+  //   1. systemPromptOverride (manual override from the cell)
+  //   2. renderTemplateOld / renderTemplateNew (preferred — keeps the
+  //      runtime template separate from the View-Prompt content)
+  //   3. systemPromptOld / systemPromptNew (back-compat for legacy
+  //      renderOnly steps that store the template as the system prompt)
   if (stepDef.renderOnly) {
+    const renderTemplate =
+      (flowType === "new" ? stepDef.renderTemplateNew : stepDef.renderTemplateOld);
     const systemTemplate =
       (flowType === "new" ? stepDef.systemPromptNew : stepDef.systemPromptOld) ?? "";
-    if (systemTemplate || systemPromptOverride) {
+    const effectiveTemplate = renderTemplate ?? systemTemplate;
+    if (effectiveTemplate || systemPromptOverride) {
       const vars = prepareLLMVars(inputs);
-      const rendered = systemPromptOverride ?? interpolate(systemTemplate, vars);
+      const rendered = systemPromptOverride ?? interpolate(effectiveTemplate ?? "", vars);
       if (rendered) return ok(rendered);
     }
     // Fall through when this flow has no renderOnly template — the

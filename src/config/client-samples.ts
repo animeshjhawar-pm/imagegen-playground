@@ -14066,6 +14066,7 @@ const CLIENT_SPEC_GAS: ClientSample = ampUpStub({
   slug: "spec-gas",
   name: "Spec Gas",
   url:  "https://specgasinc.com/",
+  primaryLogoUrl: "https://specgasinc.com/wp-content/uploads/2022/06/Specgas-Inc-Logo-Web-02.png",
   additionalInfoJson: `{
   "business_profile": {
     "inventory_nature": "Specialty gas cylinders, certified reference gas mixtures, custom multi-component gas blends, laser gas blends. Cylinders are sized for B2B lab and industrial use; gases are formulated to customer specifications.",
@@ -14134,6 +14135,7 @@ const CLIENT_HPR: ClientSample = ampUpStub({
   slug: "hydrostatic-pump-repair",
   name: "Hydrostatic Pump Repair",
   url:  "https://hydrostaticpumprepair.com/",
+  primaryLogoUrl: "https://hydrostaticpumprepair.com/images/logo.png",
   additionalInfoJson: `{
   "business_profile": {
     "inventory_nature": "Hydrostatic pump repair services, remanufactured OEM parts catalog, heavy-equipment hydraulic system service. Inventory mixes service capacity (workshop labor) and remanufactured parts SKUs.",
@@ -14202,6 +14204,7 @@ const CLIENT_TYSON_MARTIN: ClientSample = ampUpStub({
   slug: "tyson-martin",
   name: "Tyson Martin",
   url:  "https://tysonmartin.com/",
+  primaryLogoUrl: "https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/YbNB8PQowMH4pngE/tyson-martin-logo-PgBzMap1AnpEt3xS.png",
   additionalInfoJson: `{
   "business_profile": {
     "inventory_nature": "Independent advisory and fractional executive services. No physical product inventory; offerings are time-based engagements (board advisory, fractional CISO/CIO/CDO).",
@@ -14246,6 +14249,7 @@ const CLIENT_CNC: ClientSample = ampUpStub({
   slug: "cnc-programming-solutions",
   name: "CNC Programming Solutions",
   url:  "https://cncprogrammingsolutions.com/",
+  primaryLogoUrl: "https://images.squarespace-cdn.com/content/v1/622764c5e605f31df32e6b08/1c78aa9d-16ed-4bbd-8647-091a22b057dc/CNC+LOGO+%284%29.png?format=1500w",
   additionalInfoJson: `{
   "business_profile": {
     "inventory_nature": "Contract manufacturing capacity: CNC milling / machining centres, aluminum anodizing tanks, laser-cutting and finishing equipment. Inventory mixes machine-time slots and per-job consumables.",
