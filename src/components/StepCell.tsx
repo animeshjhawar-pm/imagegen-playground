@@ -653,6 +653,7 @@ export function StepCell({
                 config={stepState.stepConfig}
                 pageType={pageType}
                 imageType={imageType}
+                stepName={step.name}
                 onChange={(patch) =>
                   dispatch({
                     type: "UPDATE_STEP_CONFIG",
@@ -877,9 +878,19 @@ function isModelAllowedFor(
   id: ImageModelId,
   pageType: PageType,
   imageType: ImageType,
+  stepName: string,
 ): boolean {
   if (id === "openai/gpt-image-2") {
-    return pageType === "service" || pageType === "category";
+    // Service + category pipelines can use gpt-image-2 anywhere.
+    if (pageType === "service" || pageType === "category") return true;
+    // Custom tester pipeline: gpt-image-2 ONLY on the thumbnail step
+    // (3:2 fits gpt-image-2's strict 1:1/3:2/2:3 aspect enum natively).
+    if (
+      pageType === "custom" &&
+      imageType === "cover_thumbnail" &&
+      stepName === "generate_thumbnail_image"
+    ) return true;
+    return false;
   }
   if (id === "black-forest-labs/flux-2-flex") {
     return pageType === "blog" && imageType === "infographic";
@@ -891,15 +902,17 @@ function ImageModelPicker({
   config,
   pageType,
   imageType,
+  stepName,
   onChange,
 }: {
   config: Record<string, unknown> | undefined;
   pageType: PageType;
   imageType: ImageType;
+  stepName: string;
   onChange: (patch: Record<string, unknown>) => void;
 }) {
   const visibleModels = IMAGE_MODELS.filter((m) =>
-    isModelAllowedFor(m.id, pageType, imageType),
+    isModelAllowedFor(m.id, pageType, imageType, stepName),
   );
 
   const configured =
