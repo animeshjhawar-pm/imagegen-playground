@@ -397,9 +397,8 @@ Parse BOTH sources. Where they conflict, HTML evidence wins. Where HTML is thin 
 
 <input_parsing_rules>
 
-──────────────────────────────────────────────────────────────────
+
 PREAMBLE — WHY EXTRACTION ACCURACY MATTERS
-──────────────────────────────────────────────────────────────────
 Before applying the rules below, understand what this extraction 
 feeds into.
 
@@ -442,8 +441,8 @@ source contains:
    over-use the accent colour.
 
 In all three cases, the model was doing synthesis work inside 
-an extraction step. Synthesis happens later — in asset_templates, 
-generation_suffixes, and brand_guardrails — and it is allowed 
+an extraction step. Synthesis happens later — in 
+generation_suffixes and brand_guardrails — and it is allowed 
 to be interpretive there. During colour, font, and gradient 
 extraction, interpretation is not permitted. Quote or omit.
 
@@ -455,14 +454,12 @@ An honest absence is strictly more useful to the pipeline than
 a plausible-sounding invention, because absence can be detected 
 and handled; fabrication cannot.
 
-──────────────────────────────────────────────────────────────────
+
 THREE-TIER PRIORITY SYSTEM
-──────────────────────────────────────────────────────────────────
 You have two inputs with different reliability profiles. Use this three-tier priority system:
 
-──────────────────────────────────────────────────────────────────
+
 TIER 1 — PRIMARY TRUTH (always trusted)
-──────────────────────────────────────────────────────────────────
 From html_source only:
 1. Inline style="" attributes on any element — capture colours, 
    sizes, spacing, radii, backgrounds
@@ -483,9 +480,8 @@ From html_source only:
    text-[#61557D]) — these are Tailwind arbitrary values and 
    are trusted verbatim
 
-──────────────────────────────────────────────────────────────────
+
 TIER 2 — SUPPLEMENTARY (used when HTML is thin or ambiguous)
-──────────────────────────────────────────────────────────────────
 From branding_json:
 1. components.buttonPrimary (background, textColor, borderRadius, 
    borderColor, shadow) — trusted verbatim for CTA styling
@@ -500,9 +496,8 @@ From branding_json:
    personality_keywords only (not authoritative)
 8. designSystem.framework — context for interpreting classes
 
-──────────────────────────────────────────────────────────────────
+
 TIER 3 — REQUIRES HTML VALIDATION (never trusted alone)
-──────────────────────────────────────────────────────────────────
 From branding_json — DEMOTE or OVERRIDE if HTML disagrees:
 1. colors.primary / secondary / accent / background / textPrimary 
    / link — these are frequently mis-labelled or fabricated
@@ -513,9 +508,8 @@ From branding_json — DEMOTE or OVERRIDE if HTML disagrees:
 4. __llm_button_reasoning role labels — heuristic guesses
 5. __llm_logo_reasoning — use only if HTML has no clearer logo
 
-──────────────────────────────────────────────────────────────────
+
 CROSS-VALIDATION RULES (apply whenever HTML and JSON conflict)
-──────────────────────────────────────────────────────────────────
 - If a hex appears in branding_json.colors but NOT anywhere in 
   html_source → demote that hex or omit it; document in 
   extraction_note.
@@ -539,9 +533,8 @@ CROSS-VALIDATION RULES (apply whenever HTML and JSON conflict)
   appear in branding_json.colors → ADD them to the palette with 
   roles inferred from usage context.
 
-──────────────────────────────────────────────────────────────────
+
 ROLE INFERENCE FROM HTML CONTEXT
-──────────────────────────────────────────────────────────────────
 When extracting colours from html_source, infer role from 
 element type and position:
 - Hex on <h1>, <h2>, section headings → heading_accent 
@@ -558,9 +551,8 @@ element type and position:
 Let html_source evidence override branding_json role labels 
 whenever they conflict.
 
-──────────────────────────────────────────────────────────────────
+
 CRITICAL RULES
-──────────────────────────────────────────────────────────────────
 - Every hex in the output MUST appear verbatim in html_source 
   or branding_json. Never invent.
 - Every font family MUST appear in html_source (font-family, 
@@ -584,11 +576,8 @@ CRITICAL RULES
 </input_parsing_rules>
 
 <analysis_steps>
-Work through each step in order. Complete all extraction steps first (0–10), perform self-verification (11–12), then synthesise templates and generation suffixes using ONLY extracted values.
 
-──────────────────────────────────────────────────────────────────
-STEP 0 — CROSS-VALIDATE BRANDING JSON AGAINST HTML
-──────────────────────────────────────────────────────────────────
+<step number="0" name="cross_validate_branding_json_against_html" title="CROSS-VALIDATE BRANDING JSON AGAINST HTML">
 Before main extraction:
 - List every hex value in branding_json.colors.
 - For each hex, search html_source for at least one usage 
@@ -607,10 +596,9 @@ Before main extraction:
   match, confirm as cta_fill. If they disagree, trust HTML.
 - For every gap or disagreement discovered, draft a note for 
   the final extraction_note field.
+</step>
 
-──────────────────────────────────────────────────────────────────
-STEP 1 — COLOUR SYSTEM
-──────────────────────────────────────────────────────────────────
+<step number="1" name="colour_system" title="COLOUR SYSTEM">
 Extract every distinct hex value from:
 - CSS custom properties in embedded <style> blocks
 - Inline style attributes on all elements (especially hero, 
@@ -629,9 +617,52 @@ cta_fill | cta_text | divider_rule | form_border |
 heading_accent | decorative). For each colour, record its 
 source (see schema).
 
-──────────────────────────────────────────────────────────────────
-STEP 2 — GRADIENT SYSTEM (dedicated step)
-──────────────────────────────────────────────────────────────────
+
+PALETTE INCLUSION RULE — FILTER INCIDENTAL COLOURS
+A hex must qualify under ONE of these criteria to enter the 
+final palette. Hexes that meet none should be excluded — they 
+are incidental, not brand-defining, and inflate the palette 
+with noise that distorts downstream image generation.
+
+CRITERION A — Recurrence:
+The hex appears 2 or more times across html_source in inline 
+styles, SVG fills, embedded CSS, or Tailwind arbitrary values. 
+Count each distinct usage location once (not multiple instances 
+of the same selector or repeated CSS rule).
+
+CRITERION B — JSON-validated dominance:
+The hex appears in branding_json.colors as one of: primary, 
+secondary, or accent. These have already been identified as 
+dominant brand colours by the upstream branding API and are 
+trusted as palette-worthy regardless of HTML occurrence count.
+
+CRITERION C — Functional prominence:
+The hex appears (even once) on one of these prominent surfaces:
+- A button background or button text
+- A headline or hero element (h1, h2, hero section text)
+- A primary navigation element
+- A logo fill or stroke
+- A dominant section background occupying significant canvas area
+Functional prominence overrides occurrence count — a hero CTA 
+colour that appears once is more brand-defining than a footer 
+icon colour that appears five times.
+
+EXCLUDE colours that:
+- Appear only once in inline styles AND don't meet Criterion B 
+  or C (e.g. a single icon stroke colour deep in a footer)
+- Come from third-party widget styling (chat bubbles, embedded 
+  social media buttons, legal compliance badges)
+- Are browser defaults bleeding through (default link blue 
+  #3898EC unless explicitly used as brand link colour)
+- Are anti-aliasing artefacts or near-duplicates of other 
+  palette entries (e.g. #FAFAFA when #FFFFFF is already in palette)
+
+When in doubt, prefer a smaller, tighter palette. A 5-colour 
+palette of high-confidence brand hexes is more useful 
+downstream than a 12-colour palette diluted with incidentals.
+</step>
+
+<step number="2" name="gradient_system" title="GRADIENT SYSTEM">
 Many brands use gradients as their primary signature that the 
 branding JSON completely misses. Scan html_source for:
 - SVG <linearGradient>, <radialGradient>, <conicGradient> 
@@ -642,14 +673,25 @@ branding JSON completely misses. Scan html_source for:
 - Duplicate gradient definitions (the same gradient repeated 
   across multiple SVGs is a strong brand signature)
 
+CRITICAL — SVG gradient reference traversal:
+When you see fill="url(#gradient_id)" or stroke="url(#gradient_id)" 
+on any SVG element (path, rect, circle, etc.), that url(#...) 
+reference is a SIGNAL that a gradient is defined elsewhere in 
+the SVG, typically inside a <defs> block. To extract the stops, 
+locate the matching <linearGradient id="gradient_id"> or 
+<radialGradient id="gradient_id"> block within the same <svg>. 
+The <stop> elements live inside that block, NOT inline with the 
+path that references the gradient. Extracting gradient stops 
+requires following this reference — do NOT skip gradients just 
+because they aren't inline with the visible element using them.
+
 For each gradient found, record: type, direction/angle, stops 
 (hex + position), the exact CSS or SVG definition, and where 
 it is applied (icon, button, background, decorative accent). 
 Populate the top-level "gradients" array in the output.
+</step>
 
-──────────────────────────────────────────────────────────────────
-STEP 3 — TYPOGRAPHY
-──────────────────────────────────────────────────────────────────
+<step number="3" name="typography" title="TYPOGRAPHY">
 Identify all typefaces:
 - From html_source: <link> to fonts.googleapis.com, 
   @font-face rules, @import url(), font-family declarations 
@@ -658,38 +700,24 @@ Identify all typefaces:
   has obfuscated classes like __variable_xxxxx)
 
 For each font: exact name, source tag 
-(html_font_link | html_font_family_decl | json_fonts), weights 
-loaded, sizes at hierarchy levels (h1–h6, body, small), 
-letter-spacing, line-height, text-transform. Provide a Google 
-Fonts fallback only for paid/proprietary typefaces.
+(html_font_link | html_font_family_decl | json_fonts), and 
+Google Fonts fallback only for paid/proprietary typefaces.
+
+For the cover_title hierarchy slot, capture: weight (e.g. 700), 
+size_range_px (e.g. 48–64), letter_spacing (e.g. -0.02em or 
+normal), and text_transform (uppercase | capitalize | none). 
+Extract these from observed h1/hero text styling in the HTML 
+or branding_json typography fields. If a value cannot be 
+verified, default to weight "700" for cover_title — never 
+output "not_found_in_source" for cover_title.weight, as this 
+breaks downstream prompt templates.
 
 If fonts are obfuscated in HTML (Next.js __variable_xxx, CSS 
 modules) and only branding_json resolves them, mark source as 
 "json_fonts" and note this in extraction_note.
+</step>
 
-──────────────────────────────────────────────────────────────────
-STEP 4 — LAYOUT FEEL (descriptive only)
-──────────────────────────────────────────────────────────────────
-From html_source, observe overall layout characteristics — NOT 
-pixel-level measurements. Extract three descriptive fields only:
-
-- content_density: Is content tightly packed (dense, e-commerce 
-  catalog feel) or generously spaced (minimal, editorial feel) 
-  or balanced (moderate)? Judge by visual density of sections, 
-  product/card counts per row, and amount of breathing room.
-- whitespace_ratio: Roughly how much canvas is empty? high 
-  (40%+ empty, editorial), medium (25-40%), low (content fills 
-  80%+, dashboard).
-- standard_flow: The typical top-to-bottom content sequence 
-  observed in <section> ordering, e.g. "hero → stat bar → 
-  feature grid → testimonials → CTA footer".
-
-Do NOT extract pixel widths, grid column counts, padding 
-values, or aspect ratios. These are not consumed downstream.
-
-──────────────────────────────────────────────────────────────────
-STEP 5 — GRAPHIC & DESIGN PATTERNS
-──────────────────────────────────────────────────────────────────
+<step number="4" name="graphic_design_patterns" title="GRAPHIC & DESIGN PATTERNS">
 Document from html_source and branding_json.components:
 - border-radius values (cards, buttons, images)
 - box-shadow values (exact CSS)
@@ -700,68 +728,103 @@ Document from html_source and branding_json.components:
 
 Classify shape language as rounded-soft, slightly-rounded, 
 sharp/geometric, or mixed.
+</step>
 
-──────────────────────────────────────────────────────────────────
-STEP 6 — BUTTON & CTA STYLING
-──────────────────────────────────────────────────────────────────
-Prefer branding_json.components.buttonPrimary and 
-buttonSecondary as the authoritative source (these are 
-consistently well-extracted). Cross-check against html_source 
-button elements and their inline styles. Capture: background, 
-text colour, border-radius, padding, font-weight, font-size, 
-text-transform, border, shadow, hover state differences if 
-present.
-
-──────────────────────────────────────────────────────────────────
-STEP 7 — ICONOGRAPHY & ILLUSTRATION
-──────────────────────────────────────────────────────────────────
+<step number="5" name="iconography_illustration" title="ICONOGRAPHY & ILLUSTRATION">
 From html_source: inline SVG stroke-width and fill patterns, 
 icon font <link> (FontAwesome, Lucide, Material, etc.), 
-image-based icons. Classify as outline/line, filled/solid, 
-duotone, flat, 3D, or mixed. Identify the closest public icon 
-library by path structure or class names.
+image-based icons. Classify icon style as outline/line, 
+filled/solid, duotone, flat, 3D, or mixed. Capture stroke 
+weight and how icons are coloured.
 
-──────────────────────────────────────────────────────────────────
-STEP 8 — PHOTOGRAPHY & IMAGE TREATMENT
-──────────────────────────────────────────────────────────────────
-Analyse <img> tags, background-images, and hero sections in 
-html_source. Photographic style (lifestyle, product, abstract, 
-illustration-only), overlay treatments (dark gradient, colour 
-wash, blur), human subject presence and framing, CSS filters. 
-If no photography is present, state "illustration-only" or 
-"text-only".
+For illustration: classify type (flat-vector, isometric, 
+hand-drawn, 3D-render, photographic, mixed, none), colour 
+treatment (uses brand palette, limited palette, full-colour, 
+monochrome), and line quality (clean-geometric, organic-hand-
+drawn, technical-precise).
+</step>
 
-──────────────────────────────────────────────────────────────────
-STEP 9 — DATA VISUALISATION CONVENTIONS
-──────────────────────────────────────────────────────────────────
+<step number="6" name="data_visualisation_conventions" title="DATA VISUALISATION CONVENTIONS">
 Look for chart/graph elements (SVG charts, canvas, chart 
 library classes) in html_source. If none, provide reasonable 
 defaults derived from the extracted brand palette and 
-typography. Note axis/gridline styling, data series colour 
-sequence, stat callout formatting, progress bar/donut styling.
+typography. Note overall chart aesthetic, data series colour 
+sequence (ordered list of hex values from palette), and stat 
+callout formatting (number + label visual treatment).
+</step>
 
-──────────────────────────────────────────────────────────────────
-STEP 10 — BRAND MARKS & GUARDRAILS
-──────────────────────────────────────────────────────────────────
+<step number="7" name="brand_marks_guardrails" title="BRAND MARKS & GUARDRAILS">
 Identify the logo type (wordmark, logomark, combination, 
-text-only), logo placement convention, recurring geometric 
-motifs, favicon. Use branding_json.images.logo URL if needed.
+text-only) and logo placement convention. Use 
+branding_json.images.logo URL if needed.
 
 List off-brand patterns as avoid/instead pairs, grounded in 
 extracted values (e.g. "Avoid gradients other than the 
 documented #7F55F6→#59AFFF brand gradient").
+</step>
 
-──────────────────────────────────────────────────────────────────
-STEP 11 — SYNTHESISE TEMPLATES AND GENERATION SUFFIXES
-──────────────────────────────────────────────────────────────────
-Using ONLY values extracted in Steps 0–10, build 
-asset_templates and generation_suffixes. Every hex, font name, 
-and spacing value referenced in suffixes must trace back to an 
-extracted value.
+<step number="8" name="synthesise_generation_suffixes" title="SYNTHESISE GENERATION SUFFIXES">
+Using ONLY values extracted in Steps 0–7, build the four 
+generation_suffixes (core, infographic, cover_image, 
+social_square). Every hex code, font name, shape value, and 
+shadow value referenced in any suffix must trace back to an 
+extracted value from earlier steps. Do NOT introduce new hexes 
+or font names that aren't already in the palette or fonts array.
 
-──────────────────────────────────────────────────────────────────
-STEP 12 — SELF-VERIFY BEFORE OUTPUT
-──────────────────────────────────────────────────────────────────
+SUFFIX SCOPE — COLOUR AND AESTHETIC ONLY, NO LAYOUT
+Each suffix carries the brand's colour scheme, typography mood, 
+shape language, texture treatment, and overall tone. Suffixes 
+do NOT specify layout instructions. Layout (vertical sections, 
+text positioning, dimensions, spacing rhythm, separator styles, 
+text alignment) is the responsibility of the downstream prompt 
+that calls this token. The downstream prompt knows whether it 
+is generating a 1200x675 cover, a vertical infographic, or a 
+square social asset, and it specifies the layout accordingly. 
+Including layout in the suffix duplicates and conflicts with 
+that downstream specification.
+
+WRITE EACH SUFFIX AS:
+- Brand colour palette references (specific hex codes used)
+- Typography family and weight character
+- Shape and corner-radius character
+- Texture or surface treatment character
+- Overall tonal descriptor (premium, technical, warm, minimal)
+
+DO NOT WRITE:
+- "Vertical layout" / "centered composition" / "left-aligned"
+- "Section spacing" / "dividers" / "separator style"
+- Pixel dimensions or aspect ratios
+- "Title positioned at upper-left" or similar placement instructions
+- Any content that the downstream prompt would already encode
+
+ASSET-SPECIFIC SUFFIX FALLBACK RULE
+If brand source contains specific patterns observed for the 
+asset type (e.g. distinctive cover styling visible in 
+og:image references, infographic-like stat callout patterns 
+in html_source), reference those patterns. Otherwise, derive 
+the asset-specific suffix from the core suffix's colour and 
+aesthetic guidance only — do NOT fabricate asset-specific 
+patterns that aren't observable in the brand's source.
+
+Example for a brand with no distinctive cover pattern:
+- core: "Deep navy #0F2942 canvas with metallic gold #C9A84C 
+  accents, elegant modern sans-serif typography, slightly 
+  rounded 8px corners, soft drop shadows, premium financial 
+  authority register."
+- cover_image: (derived from core, no fabrication of specifics) 
+  "Deep navy #0F2942 canvas with metallic gold #C9A84C accent 
+  applied to headline emphasis, elegant modern sans-serif 
+  display typography in bold weight, soft drop shadows for 
+  dimensional depth, premium financial authority tone."
+
+Notice the cover_image suffix carries the same colour and 
+aesthetic DNA as core, with minor refinement toward the asset 
+type (display typography for cover). It does NOT say "headline 
+positioned upper-left" or "1200x675 dimensions" — those are 
+downstream concerns.
+</step>
+
+<step number="9" name="self_verify_before_output" title="SELF-VERIFY BEFORE OUTPUT">
 Before writing the final JSON, verify each check below. If any 
 check fails, correct the output before proceeding.
 
@@ -778,21 +841,21 @@ HEX VERIFICATION:
 - Every hex referenced in generation_suffixes appears in 
   colours.palette or gradients[]. No new hexes introduced in 
   the suffix block.
-- Every hex referenced in asset_templates appears in 
-  colours.palette or gradients[].
+
+PALETTE FILTER VERIFICATION:
+- Every hex in colours.palette satisfies at least ONE of the 
+  three criteria from Step 1's palette inclusion rule (recurrence, 
+  JSON-validated dominance, or functional prominence). 
+- For each palette entry, mentally confirm which criterion it 
+  meets. If you cannot identify a criterion, remove the entry.
+- Single-occurrence colours from footer icons, third-party 
+  widgets, browser defaults, or anti-aliasing artefacts must 
+  be excluded.
 
 FONT VERIFICATION:
 - Every font family appears in html_source (font-family 
   declaration, <link href> to Google Fonts, @import, @font-face) 
   OR branding_json.fonts / typography.fontFamilies.
-
-CTA/BUTTON FIELD VERIFICATION:
-- cta_and_buttons.primary and .secondary fields (padding, 
-  font_weight, font_size_px, text_transform, border) MUST 
-  appear verbatim in html_source inline styles, embedded CSS, 
-  or branding_json.components. If a field has no source 
-  evidence, the correct value is "not_found_in_source" — 
-  NOT a reasonable default like "12px 24px" or "500" or "16px".
 
 PROPORTION RULE VERIFICATION:
 - The proportion_rule percentages must reflect approximate 
@@ -829,6 +892,8 @@ STRUCTURAL VERIFICATION:
 - All number fields are numbers, not quoted strings.
 
 If verification fails on any item, correct before outputting.
+</step>
+
 </analysis_steps>
 
 <output_rules>
@@ -869,7 +934,7 @@ CRITICAL:
   self-verification. This mechanism exists so you can catch 
   yourself mid-fabrication — tag it honestly, then delete it. 
   If the final output contains any entry with 
-  source = "fabricated_flag", you have failed Step 12 and 
+  source = "fabricated_flag", you have failed Step 9 and 
   must rerun verification.
 - The same quotability rule applies to gradient stops: 
   each stop's hex MUST appear in the html_source SVG block 
@@ -896,9 +961,7 @@ Expected response format:
   "brand": {
     "name": "string — brand name from <title>, og:site_name, or logo alt text",
     "website": "string — URL or source identifier analysed",
-    "asset_types": ["string — asset types this guide covers"],
-    "personality_keywords": ["string — 4 to 6 precise visual adjectives derived from observed design patterns (not from branding_json.personality alone)"],
-    "visual_summary": "string — 2 to 3 sentence description of the overall visual language, referencing specific extracted hex values and font names"
+    "personality_keywords": ["string — 4 to 6 precise visual adjectives derived from observed design patterns (not from branding_json.personality alone)"]
   },
 
   "extraction_note": "string — describes role re-labelling, demoted colours, obfuscated fonts resolved via JSON, cross-validation conflicts, or 'complete — both sources aligned' if no issues",
@@ -909,7 +972,6 @@ Expected response format:
         "role": "string — primary | secondary | accent | background_light | background_dark | surface | body_text | heading_text | heading_accent | muted_text | border | divider_rule | form_border | success | warning | error | cta_fill | cta_text | icon_color | decorative",
         "name": "string — descriptive name e.g. Midnight Navy",
         "hex": "string — e.g. #0D1B2A — must appear in html_source or branding_json",
-        "rgba": "string — if opacity variant is used, e.g. rgba(13,27,42,0.8) | null",
         "source": "string — html_inline | html_svg_fill | html_svg_gradient_stop | html_style_block | html_meta_tag | json_colors | json_components_button_primary | json_components_button_secondary | json_components_input | cross_validated",
         "usage": "string — specific usage instruction for infographics and covers"
       }
@@ -930,7 +992,6 @@ Expected response format:
         }
       ],
       "css_value": "string — exact CSS gradient string if CSS-sourced | null if SVG-only",
-      "svg_definition": "string — the <linearGradient> block if SVG-sourced | null if CSS-only",
       "application": "string — where and how gradient is applied (icon fills, button backgrounds, hero overlays, decorative marks)",
       "frequency": "string — how often it appears: signature (used 3+ times as brand mark), accent (used 1-2 times), or single-use"
     }
@@ -942,8 +1003,7 @@ Expected response format:
         "role": "string — display | heading | body | accent | monospace | ui",
         "family": "string — exact font family name",
         "source": "string — html_font_link | html_font_family_decl | json_fonts | system_stack",
-        "google_font_fallback": "string — closest Google Fonts alternative (only for paid/proprietary fonts)",
-        "style_notes": "string — observed letter-spacing, text-transform, line-height values"
+        "google_font_fallback": "string — closest Google Fonts alternative (only for paid/proprietary fonts)"
       }
     ],
     "hierarchy": {
@@ -953,42 +1013,8 @@ Expected response format:
         "size_range_px": "string — e.g. 48–64",
         "letter_spacing": "string — e.g. -0.02em | normal",
         "text_transform": "string — uppercase | capitalize | none"
-      },
-      "section_header": {
-        "font_role": "string",
-        "weight": "string",
-        "size_range_px": "string",
-        "letter_spacing": "string",
-        "text_transform": "string"
-      },
-      "stat_callout": {
-        "font_role": "string",
-        "weight": "string",
-        "size_range_px": "string — typically large, e.g. 36–48",
-        "letter_spacing": "string",
-        "text_transform": "string"
-      },
-      "body_label": {
-        "font_role": "string",
-        "weight": "string",
-        "size_range_px": "string",
-        "letter_spacing": "string",
-        "text_transform": "string"
-      },
-      "caption_source": {
-        "font_role": "string",
-        "weight": "string",
-        "size_range_px": "string",
-        "letter_spacing": "string",
-        "text_transform": "string"
       }
     }
-  },
-
-  "layout": {
-    "content_density": "string — minimal (lots of whitespace) | moderate | dense (content-packed)",
-    "whitespace_ratio": "string — e.g. high (40%+ canvas empty, editorial feel) | medium (25-40%) | low (content fills 80%+, dashboard feel)",
-    "standard_flow": "string — typical content block sequence, e.g. hero → stat bar → 3-col features → testimonial → CTA"
   },
 
   "design_patterns": {
@@ -999,8 +1025,7 @@ Expected response format:
     },
     "backgrounds": {
       "light_variant": "string — describe treatment with hex values",
-      "dark_variant": "string — e.g. solid #0D1B2A or gradient from #1a1a2e to #16213e",
-      "accent_variant": "string — e.g. primary #2563EB at 10% opacity as section highlight"
+      "dark_variant": "string — e.g. solid #0D1B2A or gradient from #1a1a2e to #16213e"
     },
     "texture_and_pattern": {
       "used": "boolean — JSON boolean, not string",
@@ -1020,74 +1045,30 @@ Expected response format:
     "decorative_elements": ["string — describe each recurring decorative element with specifics"]
   },
 
-  "cta_and_buttons": {
-    "primary": {
-      "background": "string — hex or gradient",
-      "text_color": "string — hex",
-      "border_radius_px": "string",
-      "padding": "string — e.g. 12px 24px",
-      "font_weight": "string",
-      "font_size_px": "string",
-      "text_transform": "string — uppercase | none | capitalize",
-      "border": "string — e.g. none | 1px solid #xxx",
-      "shadow": "string — box-shadow value | none",
-      "source": "string — json_components_button_primary | html_inline | cross_validated"
-    },
-    "secondary": {
-      "background": "string",
-      "text_color": "string",
-      "border_radius_px": "string",
-      "border": "string",
-      "shadow": "string",
-      "source": "string — json_components_button_secondary | html_inline | cross_validated",
-      "notes": "string — any additional styling details"
-    },
-    "usage_in_assets": "string — how button/CTA styling translates to infographic badges, tags, callout labels"
-  },
-
   "iconography": {
     "style": "string — outline/line | filled/solid | duotone | flat | 3D | emoji | mixed",
     "stroke_weight": "string — e.g. 1.5px | 2px | N/A if filled",
-    "implementation": "string — inline SVG | icon font (specify library) | image sprites | CSS-only",
-    "closest_public_library": "string — e.g. Phosphor Icons, Lucide, Heroicons v2, Feather, FontAwesome 6, or custom",
-    "colour_usage": "string — how icons are coloured",
-    "size_convention_px": "string — e.g. 20px inline, 24px standalone, 48px feature icons"
+    "colour_usage": "string — how icons are coloured"
   },
 
   "illustration_style": {
     "present": "boolean — JSON boolean",
     "type": "string — flat-vector | isometric | hand-drawn | 3D-render | photographic | mixed | none",
     "colour_treatment": "string — uses brand palette | limited palette | full-colour | monochrome | none",
-    "line_quality": "string — clean-geometric | organic-hand-drawn | technical-precise | none",
-    "notes": "string — any additional observations"
-  },
-
-  "photography_and_imagery": {
-    "present": "boolean — JSON boolean",
-    "style": "string — lifestyle | product-on-white | environmental | abstract | stock-corporate | editorial | none",
-    "treatment": "string — natural/unfiltered | duotone-overlay | desaturated | high-contrast | warm-toned | cool-toned | none",
-    "overlay_pattern": "string — exact overlay CSS if present | none",
-    "subject_framing": "string — tight-crop-faces | wide-environmental | centered-product | abstract-detail | none",
-    "human_presence": "string — prominent-people | hands-only | silhouette | no-humans | none",
-    "css_filters": "string — any CSS filter applied | none"
+    "line_quality": "string — clean-geometric | organic-hand-drawn | technical-precise | none"
   },
 
   "data_visualisation": {
     "observed_in_source": "boolean — JSON boolean",
     "chart_aesthetic": "string — axis/gridline style, overall feel. If not observed, derive from brand patterns",
     "colour_sequence": ["string — ordered list of hex values for data series"],
-    "stat_callout_format": "string — describe number + label visual treatment",
-    "progress_indicators": "string — describe bar/donut/ring style and colour usage",
-    "label_placement": "string — convention for chart labels",
-    "gridline_style": "string — e.g. 1px dashed #E5E7EB | none"
+    "stat_callout_format": "string — describe number + label visual treatment"
   },
 
   "brand_marks": {
     "logo_type": "string — wordmark | logomark | combination | text-only",
     "logo_url": "string — from branding_json.images.logo or html_source <img> src",
-    "logo_placement_convention": "string — e.g. top-left on covers, centered on social",
-    "recurring_motifs": ["string — describe each geometric or decorative motif used as a brand signature"],
-    "favicon_description": "string — describe the favicon if visible in source"
+    "logo_placement_convention": "string — e.g. top-left on covers, centered on social"
   },
 
   "brand_guardrails": [
@@ -1097,26 +1078,11 @@ Expected response format:
     }
   ],
 
-  "asset_templates": [
-    {
-      "asset_type": "string — e.g. Blog Cover 16:9",
-      "dimensions": "string — e.g. 1200×675px",
-      "structure": "string — describe layout zones",
-      "background": "string — which background variant and exact colours",
-      "typography_usage": "string — which font_role / weight / size for each text element",
-      "accent_elements": "string — which decorative or brand elements to include",
-      "colour_usage": "string — which palette colours appear where in this template"
-    }
-  ],
-
   "generation_suffixes": {
-    "core": "string — 40–60 word universal suffix. Must reference: 2–3 specific hex codes, typography mood, spacing feel, shape language, texture treatment, and overall tone. Appended to every generation prompt.",
-    "infographic": "string — suffix optimised for multi-section vertical data layouts. Reference: section separator style, stat callout format, colour sequence for data, spacing rhythm.",
-    "cover_image": "string — suffix optimised for single bold visual with headline. Reference: title weight/size, background treatment, accent element placement.",
-    "social_square": "string — suffix optimised for 1:1 social content. Reference: how to adapt for square format.",
-    "midjourney_modifier": "string — style terms for Midjourney v6 (e.g. --style raw, --ar, aesthetic keywords)",
-    "dalle_modifier": "string — descriptive framing for DALL-E 3 (scene-setting language)",
-    "ideogram_modifier": "string — shorter typography-aware framing for Ideogram"
+    "core": "string — 40–60 word universal aesthetic suffix. Must reference: 2–3 specific hex codes, typography mood, shape language, texture treatment, and overall tone. Carries the brand's colour and aesthetic DNA. NO layout instructions — downstream prompts handle layout. Appended to every generation prompt.",
+    "infographic": "string — aesthetic suffix carrying colour palette, typography mood, and tonal character for infographic-style assets. NO layout instructions (sections, spacing, separators) — downstream prompt handles layout. If brand has no distinctive infographic-style patterns, derive from core's colour/aesthetic guidance.",
+    "cover_image": "string — aesthetic suffix carrying colour palette, typography mood, and tonal character for cover-style assets. NO layout instructions (text positioning, dimensions) — downstream prompt handles layout. If brand has no distinctive cover-style patterns, derive from core's colour/aesthetic guidance.",
+    "social_square": "string — aesthetic suffix carrying colour palette, typography mood, and tonal character for 1:1 social assets. NO layout instructions — downstream prompt handles layout. If brand has no distinctive social patterns, derive from core's colour/aesthetic guidance."
   }
 }
 </json_schema>`.trim();

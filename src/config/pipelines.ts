@@ -1155,11 +1155,18 @@ function makePipeline(opts: {
   defaultAspectRatioOld?: string;
   defaultAspectRatioNew?: string;
   alignmentNote?: string;
+  /**
+   * When true, omit the Firecrawl scrape + extract_graphic_token steps
+   * from the pipeline. Use for pipelines whose downstream Build Image
+   * Prompt step doesn't actually consume the graphic_token output —
+   * currently service:title, service:h2, category:industry. The
+   * pipeline starts directly from step3 (the picker).
+   */
+  noScrapeAndExtract?: boolean;
 }): PipelineDefinition {
   return {
     steps: [
-      scrapeStep,
-      extractGraphicTokenStep,
+      ...(opts.noScrapeAndExtract ? [] : [scrapeStep, extractGraphicTokenStep]),
       opts.step3 ?? generatePlaceholderDescriptionStep,
       opts.step4,
       opts.step5 ?? generateImageStep_blog,
@@ -1444,16 +1451,18 @@ export const PIPELINES: Record<string, PipelineDefinition> = {
     step4: buildImagePromptStep_LLM_page,
     step5: generateImageStep_page,
     defaultAspectRatio: "1:1",
+    noScrapeAndExtract: true,
     alignmentNote:
-      "Old flow: Step 3 calls SERVICE_PAGE_CONTENT_GEN (pp-service-pa-ab5621) with topic + paa_data + service_catalog + company_info — identical variables to stormbreaker's get_service_prompt_params. Import → Preset picks one of the 10 sample clients to auto-fill paa_data / service_catalog / company_info. Step 4 expands the first page_info image description via Claude 4.6. Pinecone + amp-up (service-page refinement) are not implemented — on-miss path only.",
+      "Three steps: pick description → Build Image Prompt → Generate Image. Scrape + extract_graphic_token are skipped — Build Image Prompt for this pipeline only consumes placeholder_description + business_context + company_info, never graphic_token.",
   }),
   "service:h2": makePipeline({
     step3: chooseServiceDescriptionStep,
     step4: buildImagePromptStep_LLM_page,
     step5: generateImageStep_page,
     defaultAspectRatio: "1:1",
+    noScrapeAndExtract: true,
     alignmentNote:
-      "Same handler and upstream prompt as service:title (update_images.py). In stormbreaker the title vs h2 distinction only exists in each image object's `context` field within page_info.",
+      "Same pipeline as service:title (in stormbreaker the title vs h2 distinction is only a context label on each image). Three steps; scrape + extract skipped.",
   }),
 
   // Custom tester pipeline. New-flow only, 4 steps:
@@ -1520,8 +1529,9 @@ export const PIPELINES: Record<string, PipelineDefinition> = {
     step4: buildImagePromptStep_LLM_page,
     step5: generateImageStep_page,
     defaultAspectRatio: "1:1",
+    noScrapeAndExtract: true,
     alignmentNote:
-      "Old flow: Step 3 calls CATEGORY_PAGE_CONTENT_GEN (pp-category-p-ba2554) with topic + paa_data + product_information + company_info. Step 4 expands the first page_info image description via Claude 4.6. Pinecone + upscale-on-match is not implemented — on-miss path only.",
+      "Three steps: pick description → Build Image Prompt → Generate Image. Scrape + extract_graphic_token are skipped — Build Image Prompt for this pipeline only consumes placeholder_description + business_context + company_info, never graphic_token.",
   }),
 };
 
