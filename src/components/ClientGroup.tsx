@@ -105,11 +105,28 @@ export function ClientGroup({
   const oldOutput = (stepName: string) =>
     (client.oldFlow?.stepStates?.[stepName]?.output ?? "").trim();
 
+  // Compress full model id to the segment after "/". Default when no
+  // model was explicitly chosen on the lane is google/nano-banana-pro.
+  const modelLabel = (rawModel: unknown): string => {
+    const m = typeof rawModel === "string" && rawModel ? rawModel : "google/nano-banana-pro";
+    const slash = m.lastIndexOf("/");
+    return slash >= 0 ? m.slice(slash + 1) : m;
+  };
+
   // ALL new-flow outputs (one per lane), filtered to non-empty. Each
-  // lane that has produced an image becomes its own Compare panel.
-  const newOutputsForStep = (stepName: string): { url: string; laneIdx: number }[] =>
+  // lane that has produced an image becomes its own Compare panel,
+  // tagged with the model that produced it (read from per-lane
+  // stepConfig.model — falls back to nano-banana-pro when not set).
+  const newOutputsForStep = (stepName: string): { url: string; laneIdx: number; model: string }[] =>
     client.newFlows
-      .map((f, i) => ({ url: (f.stepStates?.[stepName]?.output ?? "").trim(), laneIdx: i }))
+      .map((f, i) => {
+        const s = f.stepStates?.[stepName];
+        return {
+          url:     (s?.output ?? "").trim(),
+          laneIdx: i,
+          model:   modelLabel(s?.stepConfig?.model),
+        };
+      })
       .filter((o) => !!o.url);
 
   const isCoverThumb = pageType === "blog" && imageType === "cover_thumbnail";
@@ -145,6 +162,10 @@ export function ClientGroup({
   } = (() => {
     const newLaneLabel = (laneIdx: number) =>
       laneIdx === 0 ? "New" : `New ${laneIdx + 1}`;
+    // Compose "<lane> <kind> · <model>" so the user can tell which
+    // model produced each new-flow image at a glance.
+    const newPanelLabel = (laneIdx: number, kind: string, model: string) =>
+      `${newLaneLabel(laneIdx)} ${kind} · ${model}`;
     switch (compareKind) {
       case "generate_image": {
         const labelSuffix = isAmpUp ? " · Amp-Up Refine vs Generate" : "";
@@ -153,7 +174,7 @@ export function ClientGroup({
           panels: [
             { label: "Old Image", url: singleOldOut, accent: "neutral" as const },
             ...singleNewOuts.map((o, i) => ({
-              label: `${newLaneLabel(o.laneIdx)} Image`,
+              label: newPanelLabel(o.laneIdx, "Image", o.model),
               url:   o.url,
               accent: i === 0 ? ("violet" as const) : ("indigo" as const),
             })),
@@ -166,7 +187,7 @@ export function ClientGroup({
           panels: [
             { label: "Old Cover", url: coverOldOut, accent: "neutral" as const },
             ...coverNewOuts.map((o, i) => ({
-              label: `${newLaneLabel(o.laneIdx)} Cover`,
+              label: newPanelLabel(o.laneIdx, "Cover", o.model),
               url:   o.url,
               accent: i === 0 ? ("violet" as const) : ("indigo" as const),
             })),
@@ -178,7 +199,7 @@ export function ClientGroup({
           panels: [
             { label: "Old Thumbnail", url: thumbOldOut, accent: "neutral" as const },
             ...thumbNewOuts.map((o, i) => ({
-              label: `${newLaneLabel(o.laneIdx)} Thumbnail`,
+              label: newPanelLabel(o.laneIdx, "Thumbnail", o.model),
               url:   o.url,
               accent: i === 0 ? ("violet" as const) : ("indigo" as const),
             })),

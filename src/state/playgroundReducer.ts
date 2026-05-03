@@ -605,29 +605,32 @@ export function playgroundReducer(
     case "ADD_NEW_FLOW": {
       const pipeline = getPipeline(state.pageType, state.imageType);
       if (!pipeline) return state;
-      // Picker steps are sharedAcrossFlows — when a new lane is added it
-      // should inherit the existing picker selection (taken from
-      // newFlows[0], falling back to oldFlow). Without this carry-over
-      // the new lane's picker cell renders empty until the user clicks
-      // a card again, which then dispatches SET_SHARED_STEP_OUTPUT and
-      // syncs everyone. Pre-seeding the picker output cuts out that
-      // extra click.
-      const pickerStepNames = pipeline.steps
-        .filter((s) => s.picker)
-        .map((s) => s.name);
+      // Extra new lanes are intended for model A/B comparison — only
+      // the Generate Image step should differ per lane, every upstream
+      // step (picker, scrape, extract, build_image_prompt, etc.)
+      // inherits lane 0's output verbatim. Copy every COMPLETED step
+      // output from lane 0 (or the old flow as a fallback) into the
+      // fresh lane, EXCEPT image-gen step names — those are the
+      // user-facing differentiator on the new lane.
+      const IMAGE_GEN_STEPS = new Set([
+        "generate_image",
+        "generate_cover_image",
+        "generate_thumbnail_image",
+      ]);
       return updateClient(state, action.clientId, (c) => {
         const fresh = makeEmptyFlowState(pipeline);
         const seed = c.newFlows[0] ?? c.oldFlow;
         if (seed) {
-          for (const name of pickerStepNames) {
-            const ref = seed.stepStates[name];
-            if (ref?.output) {
-              fresh.stepStates[name] = {
-                ...fresh.stepStates[name],
-                output: ref.output,
-                status: "completed",
-              };
-            }
+          for (const step of pipeline.steps) {
+            if (IMAGE_GEN_STEPS.has(step.name)) continue; // independent per lane
+            const ref = seed.stepStates[step.name];
+            if (!ref?.output) continue;
+            fresh.stepStates[step.name] = {
+              ...fresh.stepStates[step.name],
+              output:           ref.output,
+              status:           "completed",
+              isOutputOverride: true,   // treat as user-pinned so re-runs don't clobber
+            };
           }
         }
         return {
