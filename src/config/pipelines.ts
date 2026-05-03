@@ -282,7 +282,7 @@ export interface PipelineDefinition {
 // ---------------------------------------------------------------------------
 
 export const IMAGE_TYPES_BY_PAGE: Record<PageType, ImageType[]> = {
-  blog: ["cover_thumbnail", "internal", "external", "infographic", "generic"],
+  blog: ["cover_thumbnail", "infographic"],
   service: ["title", "h2", "amp_up"],
   category: ["industry"],
   custom: ["cover_thumbnail"],
@@ -290,6 +290,7 @@ export const IMAGE_TYPES_BY_PAGE: Record<PageType, ImageType[]> = {
 
 export const IMAGE_TYPE_LABELS: Record<ImageType, string> = {
   cover_thumbnail: "Cover + Thumbnail",
+  // Hidden but kept in the union for back-compat with existing data.
   internal: "Internal (vector DB)",
   external: "External (SERP search)",
   infographic: "Infographic",
@@ -299,6 +300,16 @@ export const IMAGE_TYPE_LABELS: Record<ImageType, string> = {
   industry: "Industry Image",
   amp_up: "Amp Up (refine existing image)",
 };
+
+/**
+ * Per-(pageType, imageType) label override. Lets the dropdown show
+ * a different label for the same ImageType under different pages
+ * (e.g. blog "Cover + Thumbnail (v0)" vs custom "Cover + Thumbnail").
+ */
+export function imageTypeLabelFor(pageType: PageType, imageType: ImageType): string {
+  if (pageType === "blog" && imageType === "cover_thumbnail") return "Cover + Thumbnail (v0)";
+  return IMAGE_TYPE_LABELS[imageType];
+}
 
 // ---------------------------------------------------------------------------
 // Shared client context fields

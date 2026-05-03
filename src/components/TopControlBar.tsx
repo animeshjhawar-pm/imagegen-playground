@@ -5,6 +5,7 @@ import { usePlayground } from "@/context/PlaygroundContext";
 import {
   IMAGE_TYPES_BY_PAGE,
   IMAGE_TYPE_LABELS,
+  imageTypeLabelFor,
   PIPELINES,
   type PageType,
   type ImageType,
@@ -16,7 +17,7 @@ const PAGE_TYPE_OPTIONS: { value: PageType; label: string }[] = [
   { value: "blog",     label: "Blog" },
   { value: "service",  label: "Service" },
   { value: "category", label: "Category" },
-  { value: "custom",   label: "Custom (tester)" },
+  { value: "custom",   label: "Blog v2" },
 ];
 
 export type RunScope = "both" | "old" | "new";
@@ -127,7 +128,7 @@ export function TopControlBar({ onRunAll, isRunningAll }: TopControlBarProps) {
             {pageType ? "Select image type…" : "Select page type first"}
           </option>
           {imageTypeOptions.map((it) => (
-            <option key={it} value={it}>{IMAGE_TYPE_LABELS[it]}</option>
+            <option key={it} value={it}>{pageType ? imageTypeLabelFor(pageType, it) : IMAGE_TYPE_LABELS[it]}</option>
           ))}
         </select>
       </div>

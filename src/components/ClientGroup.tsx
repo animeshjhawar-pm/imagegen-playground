@@ -101,14 +101,16 @@ export function ClientGroup({
     useState<null | "generate_image" | "generate_cover_image" | "generate_thumbnail_image">(null);
   const headerRowRef = useRef<HTMLTableRowElement>(null);
 
-  // Helper — picks the newFlows[0] output for a given image-gen step
-  // name. We always use lane 0 for the "New" side so the CTA stays
-  // stable when the user has added extra New lanes.
-  const genOutput = (stepName: string, side: "old" | "new") =>
-    (side === "new"
-      ? client.newFlows[0]?.stepStates?.[stepName]?.output
-      : client.oldFlow?.stepStates?.[stepName]?.output
-    )?.trim() ?? "";
+  // Old-flow output for the given image-gen step.
+  const oldOutput = (stepName: string) =>
+    (client.oldFlow?.stepStates?.[stepName]?.output ?? "").trim();
+
+  // ALL new-flow outputs (one per lane), filtered to non-empty. Each
+  // lane that has produced an image becomes its own Compare panel.
+  const newOutputsForStep = (stepName: string): { url: string; laneIdx: number }[] =>
+    client.newFlows
+      .map((f, i) => ({ url: (f.stepStates?.[stepName]?.output ?? "").trim(), laneIdx: i }))
+      .filter((o) => !!o.url);
 
   const isCoverThumb = pageType === "blog" && imageType === "cover_thumbnail";
   // Service amp-up uses different step names per flow: old-flow
@@ -118,29 +120,70 @@ export function ClientGroup({
 
   // For non-amp_up pipelines old + new both come from generate_image.
   // For amp_up, old comes from show_refined_image and new from generate_image.
-  const singleNewOut  = genOutput("generate_image", "new");
   const singleOldOut  = isAmpUp
-    ? genOutput("show_refined_image", "old")
-    : genOutput("generate_image", "old");
-  const coverNewOut   = genOutput("generate_cover_image", "new");
-  const coverOldOut   = genOutput("generate_cover_image", "old");
-  const thumbNewOut   = genOutput("generate_thumbnail_image", "new");
-  const thumbOldOut   = genOutput("generate_thumbnail_image", "old");
+    ? oldOutput("show_refined_image")
+    : oldOutput("generate_image");
+  const singleNewOuts = newOutputsForStep("generate_image");
+  const coverOldOut   = oldOutput("generate_cover_image");
+  const coverNewOuts  = newOutputsForStep("generate_cover_image");
+  const thumbOldOut   = oldOutput("generate_thumbnail_image");
+  const thumbNewOuts  = newOutputsForStep("generate_thumbnail_image");
 
-  // One CTA per comparison, gated on both sides having output. When
-  // the pipeline has no old flow at all (custom tester) there's
-  // nothing to compare, so all CTAs are suppressed.
+  // CTA gating: need the old image AND at least one new lane's image.
+  // (When the pipeline has no old flow at all (custom tester) there's
+  // nothing to compare against, so all CTAs are suppressed.)
   const hasOldFlow = !pipeline.omitOldFlow;
-  const canCompareSingle    = hasOldFlow && !isCoverThumb && !!singleNewOut && !!singleOldOut;
-  const canCompareCover     = hasOldFlow && isCoverThumb  && !!coverNewOut  && !!coverOldOut;
-  const canCompareThumbnail = hasOldFlow && isCoverThumb  && !!thumbNewOut  && !!thumbOldOut;
+  const canCompareSingle    = hasOldFlow && !isCoverThumb && !!singleOldOut && singleNewOuts.length > 0;
+  const canCompareCover     = hasOldFlow && isCoverThumb  && !!coverOldOut  && coverNewOuts.length  > 0;
+  const canCompareThumbnail = hasOldFlow && isCoverThumb  && !!thumbOldOut  && thumbNewOuts.length  > 0;
 
-  // Map the currently-open dialog back to its pair.
-  const compareImages = (() => {
+  // Build the list of panels for the open dialog (old first, then one
+  // panel per new lane that has output).
+  const compareImages: null | {
+    label: string;
+    panels: { label: string; url: string; accent: "violet" | "neutral" | "indigo" }[];
+  } = (() => {
+    const newLaneLabel = (laneIdx: number) =>
+      laneIdx === 0 ? "New" : `New ${laneIdx + 1}`;
     switch (compareKind) {
-      case "generate_image":           return { newUrl: singleNewOut, oldUrl: singleOldOut, label: isAmpUp ? " · Amp-Up Refine vs Generate" : "" };
-      case "generate_cover_image":     return { newUrl: coverNewOut,  oldUrl: coverOldOut,  label: " · Cover (16:9)" };
-      case "generate_thumbnail_image": return { newUrl: thumbNewOut,  oldUrl: thumbOldOut,  label: " · Thumbnail (3:2)" };
+      case "generate_image": {
+        const labelSuffix = isAmpUp ? " · Amp-Up Refine vs Generate" : "";
+        return {
+          label: labelSuffix,
+          panels: [
+            { label: "Old Image", url: singleOldOut, accent: "neutral" as const },
+            ...singleNewOuts.map((o, i) => ({
+              label: `${newLaneLabel(o.laneIdx)} Image`,
+              url:   o.url,
+              accent: i === 0 ? ("violet" as const) : ("indigo" as const),
+            })),
+          ],
+        };
+      }
+      case "generate_cover_image":
+        return {
+          label: " · Cover (16:9)",
+          panels: [
+            { label: "Old Cover", url: coverOldOut, accent: "neutral" as const },
+            ...coverNewOuts.map((o, i) => ({
+              label: `${newLaneLabel(o.laneIdx)} Cover`,
+              url:   o.url,
+              accent: i === 0 ? ("violet" as const) : ("indigo" as const),
+            })),
+          ],
+        };
+      case "generate_thumbnail_image":
+        return {
+          label: " · Thumbnail (3:2)",
+          panels: [
+            { label: "Old Thumbnail", url: thumbOldOut, accent: "neutral" as const },
+            ...thumbNewOuts.map((o, i) => ({
+              label: `${newLaneLabel(o.laneIdx)} Thumbnail`,
+              url:   o.url,
+              accent: i === 0 ? ("violet" as const) : ("indigo" as const),
+            })),
+          ],
+        };
       default: return null;
     }
   })();
@@ -442,8 +485,7 @@ export function ClientGroup({
         <CompareViewDialog
           isOpen={true}
           clientName={`${client.name}${compareImages.label}`}
-          newImageUrl={compareImages.newUrl}
-          oldImageUrl={compareImages.oldUrl}
+          panels={compareImages.panels}
           inputDescription={inputDescription}
           onClose={() => setCompareKind(null)}
         />,

@@ -605,10 +605,36 @@ export function playgroundReducer(
     case "ADD_NEW_FLOW": {
       const pipeline = getPipeline(state.pageType, state.imageType);
       if (!pipeline) return state;
-      return updateClient(state, action.clientId, (c) => ({
-        ...c,
-        newFlows: [...c.newFlows, makeEmptyFlowState(pipeline)],
-      }));
+      // Picker steps are sharedAcrossFlows — when a new lane is added it
+      // should inherit the existing picker selection (taken from
+      // newFlows[0], falling back to oldFlow). Without this carry-over
+      // the new lane's picker cell renders empty until the user clicks
+      // a card again, which then dispatches SET_SHARED_STEP_OUTPUT and
+      // syncs everyone. Pre-seeding the picker output cuts out that
+      // extra click.
+      const pickerStepNames = pipeline.steps
+        .filter((s) => s.picker)
+        .map((s) => s.name);
+      return updateClient(state, action.clientId, (c) => {
+        const fresh = makeEmptyFlowState(pipeline);
+        const seed = c.newFlows[0] ?? c.oldFlow;
+        if (seed) {
+          for (const name of pickerStepNames) {
+            const ref = seed.stepStates[name];
+            if (ref?.output) {
+              fresh.stepStates[name] = {
+                ...fresh.stepStates[name],
+                output: ref.output,
+                status: "completed",
+              };
+            }
+          }
+        }
+        return {
+          ...c,
+          newFlows: [...c.newFlows, fresh],
+        };
+      });
     }
 
     case "UPDATE_STEP_CONFIG":

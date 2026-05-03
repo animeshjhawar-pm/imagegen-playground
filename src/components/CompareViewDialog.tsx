@@ -1,17 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+
+/**
+ * One panel in the Compare dialog.
+ *   - label: caption shown above the image
+ *   - url: image URL (rendered into an <img>); empty → "no image yet"
+ *   - accent: visual accent for the caption strip
+ */
+export interface CompareViewPanel {
+  label: string;
+  url: string;
+  accent: "violet" | "neutral" | "indigo";
+}
 
 interface CompareViewDialogProps {
   isOpen: boolean;
   clientName: string;
-  /** Latest image URL from the NEW flow's generate_image step.
-   *  When empty, the caller should not render the dialog. */
-  newImageUrl: string;
-  /** Latest image URL from the OLD flow's generate_image step. */
-  oldImageUrl: string;
+  /** Panels rendered left-to-right in the dialog. Two minimum (old + new),
+   *  more when extra New lanes are present (old + new0 + new1 + …). */
+  panels: CompareViewPanel[];
   /** Picker-step output shared across flows — the human-readable brief
-   *  both images were generated against. Shown in a collapsible strip
+   *  the images were generated against. Shown in a collapsible strip
    *  along the top of the dialog. */
   inputDescription?: string;
   onClose: () => void;
@@ -24,7 +34,7 @@ interface CompareViewDialogProps {
  * × 94vh) so the images render as large as possible. Esc closes.
  */
 export function CompareViewDialog({
-  isOpen, clientName, newImageUrl, oldImageUrl, inputDescription, onClose,
+  isOpen, clientName, panels, inputDescription, onClose,
 }: CompareViewDialogProps) {
   const [descExpanded, setDescExpanded] = useState(false);
 
@@ -117,11 +127,16 @@ export function CompareViewDialog({
           </div>
         )}
 
-        {/* Body: 50/50 panels */}
+        {/* Body: N panels split evenly across the width. Each panel is
+         *  flex-1 min-w-0 so 2, 3, or 4 lanes share the available space.
+         *  5px dividers between them match the design language. */}
         <div className="flex-1 min-h-0 flex">
-          <ImagePanel url={newImageUrl} label="New Image" accent="violet" />
-          <div className="w-[5px] bg-neutral-800 flex-shrink-0" />
-          <ImagePanel url={oldImageUrl} label="Old Image" accent="neutral" />
+          {panels.map((p, i) => (
+            <Fragment key={`${p.label}-${i}`}>
+              {i > 0 && <div className="w-[5px] bg-neutral-800 flex-shrink-0" />}
+              <ImagePanel url={p.url} label={p.label} accent={p.accent} />
+            </Fragment>
+          ))}
         </div>
       </div>
     </div>
@@ -131,7 +146,7 @@ export function CompareViewDialog({
 interface ImagePanelProps {
   url: string;
   label: string;
-  accent: "violet" | "neutral";
+  accent: "violet" | "neutral" | "indigo";
 }
 
 function ImagePanel({ url, label, accent }: ImagePanelProps) {
@@ -172,9 +187,10 @@ function ImagePanel({ url, label, accent }: ImagePanelProps) {
     dragRef.current = null;
   };
 
-  const accentClass = accent === "violet"
-    ? "border-violet-700/60 bg-violet-950/30 text-violet-200"
-    : "border-neutral-700 bg-neutral-900 text-neutral-300";
+  const accentClass =
+    accent === "violet" ? "border-violet-700/60 bg-violet-950/30 text-violet-200" :
+    accent === "indigo" ? "border-indigo-700/60 bg-indigo-950/30 text-indigo-200" :
+                          "border-neutral-700 bg-neutral-900 text-neutral-300";
 
   return (
     <div className="flex-1 min-w-0 flex flex-col">
