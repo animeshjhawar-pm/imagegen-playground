@@ -34,12 +34,23 @@ export interface GenerateImageParams {
   googleSearch?: boolean;
 }
 
-// Budget sized for the 300s Vercel function timeout (see vercel.json).
-// Image generation with img2img on gpt-image-2 / seedream-4 can take
-// 60–120s; nano-banana-pro is usually 10–30s. Keep ~15s headroom for the
-// POST + final serialization.
-const MAX_WAIT_MS   = 280_000; // 280s total budget
-const POLL_INTERVAL = 2_000;   // 2s between polls
+// Default polling budget — Vercel function timeout is 300s, leave ~15s
+// headroom for the POST + final serialization. Most models settle well
+// within this: nano-banana-pro is usually 10–30s, nano-banana-2 ~40s,
+// seedream-4 ~40s, gpt-image-2 ~60–120s.
+const DEFAULT_MAX_WAIT_MS = 280_000; // 280s
+// gpt-image-2 routinely takes 2–5 min for img2img with two reference
+// images (its OpenAI backend is slower than Gemini's, and content
+// moderation adds latency). Give it a longer leash so we don't bail
+// before Replicate finishes. This will time out a Vercel-deployed
+// function, but locally with the default Next dev server (no timeout)
+// it works fine — and that's where the playground actually runs.
+const GPT_IMAGE_2_MAX_WAIT_MS = 540_000; // 9 min
+const POLL_INTERVAL = 2_000;             // 2s between polls
+
+function maxWaitMsForModel(model: ImageModel): number {
+  return model === "openai/gpt-image-2" ? GPT_IMAGE_2_MAX_WAIT_MS : DEFAULT_MAX_WAIT_MS;
+}
 // Replicate supports `Prefer: wait=<seconds>` (max 60) — the initial POST
 // holds the connection open until either the prediction finishes or the
 // wait window elapses. For fast models this lets us skip polling entirely.
@@ -248,8 +259,11 @@ export async function generateImage(params: GenerateImageParams): Promise<Replic
   if (immediateResult) return immediateResult;
   if (!predictionId)   throw new Error("Failed to create Replicate prediction");
 
-  // Poll until succeeded or failed
-  const deadline = Date.now() + MAX_WAIT_MS;
+  // Poll until succeeded or failed. Polling budget is per-model: longer
+  // for gpt-image-2 (its OpenAI backend is slower than Gemini's and
+  // moderation adds latency).
+  const maxWaitMs = maxWaitMsForModel(model);
+  const deadline  = Date.now() + maxWaitMs;
   while (Date.now() < deadline) {
     await sleep(POLL_INTERVAL);
 
@@ -284,5 +298,5 @@ export async function generateImage(params: GenerateImageParams): Promise<Replic
     // status === 'starting' | 'processing' → keep polling
   }
 
-  throw new Error(`Replicate prediction timed out after ${MAX_WAIT_MS / 1000}s`);
+  throw new Error(`Replicate prediction timed out after ${maxWaitMs / 1000}s`);
 }
