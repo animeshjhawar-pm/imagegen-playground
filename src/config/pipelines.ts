@@ -1551,73 +1551,21 @@ export const PIPELINES: Record<string, PipelineDefinition> = {
 // ---------------------------------------------------------------------------
 
 /**
- * Steps that should stay runnable in the NEW flow of a service/category
- * pipeline even when its topic is missing. The scrape + graphic-token
- * extraction don't depend on the topic, so we let the user still exercise
- * them even for clients that have no published page to seed the topic from.
- */
-const NEW_FLOW_TOPICLESS_RUNNABLE_STEPS = new Set([
-  "scrape_client_site",
-  "extract_graphic_token",
-]);
-
-/**
  * Returns the set of step names that should be rendered as disabled
  * (not runnable, greyed-out body) for a given (pipelineKey, flow).
  *
- * Rules — NEW flow gated only for service + category pipelines:
- *   - If the pipeline's `topic` source field is empty in client.context,
- *     the page isn't buildable.
- *     · OLD flow: disable every step (scrape/extract_graphic_token don't
- *       exist in old flow anyway, so the row effectively has no runnable
- *       steps).
- *     · NEW flow: disable every step EXCEPT scrape + extract_graphic_token
- *       so the user can still preview the early brand-extraction flow.
- *   - Otherwise no steps are disabled.
- *
- * Blog pipelines are not gated here (user manages their own blog flow).
+ * Currently always returns an empty set — no pipeline-level gating.
+ * Each cell handles its own "missing required input" state via the
+ * StepCell-level `requiredInputsMissing` predicate, which disables
+ * the Run button when an input is empty. The previous topic-presence
+ * gating got in the way of "+ Add Blank" workflows where the user
+ * wants to manually fill inputs on a fresh client without first
+ * importing a preset.
  */
 export function getDisabledStepsForFlow(
-  pipelineKey: string,
-  context: Record<string, string>,
-  flowType: "old" | "new"
+  _pipelineKey: string,
+  _context: Record<string, string>,
+  _flowType: "old" | "new"
 ): Set<string> {
-  // service:amp_up has its own gating (ampUpRows on the client) and
-  // does NOT depend on new_flow_service_topic_options. Skip the topic
-  // check entirely so the picker + image steps stay runnable for the
-  // 5 amp-up tester clients (which intentionally have empty service
-  // topic options).
-  if (pipelineKey === "service:amp_up") return new Set();
-
-  const topicField = pipelineKey.startsWith("service:")
-    ? "new_flow_service_topic_options"
-    : pipelineKey.startsWith("category:")
-      ? "new_flow_category_topic_options"
-      : null;
-  if (!topicField) return new Set();
-
-  // Options field is a JSON-encoded array; empty array or missing value
-  // both mean "no topic available".
-  const raw = (context[topicField] ?? "").trim();
-  let hasTopic = false;
-  if (raw) {
-    try {
-      const arr = JSON.parse(raw);
-      hasTopic = Array.isArray(arr) && arr.length > 0;
-    } catch {
-      hasTopic = false;
-    }
-  }
-  if (hasTopic) return new Set();
-
-  const pipeline = PIPELINES[pipelineKey];
-  if (!pipeline) return new Set();
-  if (flowType === "old") {
-    return new Set(pipeline.steps.map((s) => s.name));
-  }
-  return new Set(
-    pipeline.steps
-      .filter((s) => !NEW_FLOW_TOPICLESS_RUNNABLE_STEPS.has(s.name))
-      .map((s) => s.name)
-  );
+  return new Set();
 }
