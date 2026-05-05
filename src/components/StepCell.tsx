@@ -883,12 +883,22 @@ function isModelAllowedFor(
   if (id === "openai/gpt-image-2") {
     // Service + category pipelines can use gpt-image-2 anywhere.
     if (pageType === "service" || pageType === "category") return true;
-    // Custom tester pipeline: gpt-image-2 ONLY on the thumbnail step
-    // (3:2 fits gpt-image-2's strict 1:1/3:2/2:3 aspect enum natively).
+    // Blog infographic — single 16:9 image-gen step.
+    if (pageType === "blog" && imageType === "infographic") return true;
+    // Blog cover/thumbnail v0 — only the 16:9 cover step
+    // (thumbnail is 3:2/1:1 which the user opted out of for gpt-image-2).
+    if (
+      pageType === "blog" &&
+      imageType === "cover_thumbnail" &&
+      stepName === "generate_cover_image"
+    ) return true;
+    // Custom tester (Blog v2) cover/thumbnail — both render steps are
+    // allowed: cover at 16:9 (per this ask) and thumbnail at 3:2 (per
+    // earlier ask). Keep both.
     if (
       pageType === "custom" &&
       imageType === "cover_thumbnail" &&
-      stepName === "generate_thumbnail_image"
+      (stepName === "generate_cover_image" || stepName === "generate_thumbnail_image")
     ) return true;
     return false;
   }

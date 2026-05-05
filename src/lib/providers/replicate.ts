@@ -64,26 +64,25 @@ async function sleep(ms: number): Promise<void> {
 }
 
 /**
- * gpt-image-2's Replicate schema restricts `aspect_ratio` to exactly
- * three values: "1:1" | "3:2" | "2:3". Pipelines can legitimately
- * request ratios outside that set (e.g. blog:cover / blog:infographic
- * lock to 16:9, blog:thumbnail new flow to 3:2). Map each incoming
- * ratio to the closest supported one so the user can switch models on
- * those pipelines without hitting a 422 from Replicate.
+ * gpt-image-2 aspect handling. Replicate's schema enum advertises
+ * "1:1" | "3:2" | "2:3", but the underlying model also accepts "16:9"
+ * (per the model's own docs — confirmed by user 2026-05-06). Anything
+ * outside that extended set is mapped to the closest supported ratio
+ * so the user can switch models on pipelines that lock to other
+ * ratios without hitting a 422 from Replicate.
  *
- * Mapping — wider-than-square → 3:2, taller-than-square → 2:3,
- * square-ish → 1:1. Anything already in the supported set passes
- * through unchanged.
+ * Mapping for non-allowed ratios — wider-than-square → 3:2,
+ * taller-than-square → 2:3, square-ish → 1:1.
  */
-function mapAspectRatioForGptImage2(ratio: string): "1:1" | "3:2" | "2:3" {
-  if (ratio === "1:1" || ratio === "3:2" || ratio === "2:3") return ratio;
+function mapAspectRatioForGptImage2(ratio: string): "1:1" | "3:2" | "2:3" | "16:9" {
+  if (ratio === "1:1" || ratio === "3:2" || ratio === "2:3" || ratio === "16:9") return ratio;
   const m = /^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/.exec(ratio);
   if (!m) return "1:1"; // Unparseable — safe default.
   const w = Number(m[1]);
   const h = Number(m[2]);
   if (!(w > 0) || !(h > 0)) return "1:1";
   const r = w / h;
-  if (r > 1.1) return "3:2"; // 16:9, 4:3, 5:3, etc.
+  if (r > 1.1) return "3:2"; // 4:3, 5:3, etc. (16:9 is now passthrough)
   if (r < 0.9) return "2:3"; // 9:16, 3:4, etc.
   return "1:1";
 }
