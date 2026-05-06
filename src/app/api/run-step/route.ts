@@ -17,6 +17,7 @@ import { PIPELINES, resolveFixedAspectRatio, type StepDefinition } from "@/confi
 import { scrapeClientSite } from "@/lib/providers/firecrawl";
 import { callPortkey, callPortkeyStoredPrompt } from "@/lib/providers/portkey";
 import { generateImage } from "@/lib/providers/replicate";
+import { generateImageViaFal } from "@/lib/providers/fal";
 import { prepareLLMVars } from "@/lib/prepareLLMVars";
 import { truncateToTokenBudget } from "@/lib/tokenBudget";
 
@@ -334,6 +335,22 @@ async function runLiveStep(
       // produce different thumbnail sizes across old and new.
       const fixedAspect = resolveFixedAspectRatio(stepDef, flowType);
       const effectiveAspect = fixedAspect ?? aspectRatio ?? "1:1";
+
+      // Provider routing — for Blog v2 (custom:cover_thumbnail) +
+      // gpt-image-2, hit fal.ai instead of Replicate. Every other
+      // (pipeline, model) combo continues to go through Replicate.
+      const useFal =
+        key === "custom:cover_thumbnail" &&
+        model === "openai/gpt-image-2";
+      if (useFal) {
+        const falResult = await generateImageViaFal({
+          prompt: cleanPrompt,
+          imageInput,
+          aspectRatio: effectiveAspect,
+        });
+        return ok(falResult.image_url);
+      }
+
       const result = await generateImage({
         prompt: cleanPrompt,
         aspectRatio: effectiveAspect,
