@@ -395,7 +395,7 @@ Expected output format:
 
 export const CUSTOM_TESTER_USER_TEMPLATE = `
 <blog_topic>
-{{blog_topic}}
+{{placeholder_description}}
 </blog_topic>
 
 <business_context>
